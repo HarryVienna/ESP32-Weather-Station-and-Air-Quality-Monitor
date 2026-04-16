@@ -1,0 +1,4 @@
+.vscode
+build
+sdkconfig
+sdkconfig.esp32-n8r8
