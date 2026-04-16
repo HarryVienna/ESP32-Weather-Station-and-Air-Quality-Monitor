@@ -10,7 +10,7 @@ extern "C" {
 
 // Function declarations
 void init_wifi(void);
-void esp_now_start();
+esp_err_t esp_now_start(void);
 
 #ifdef __cplusplus
 }

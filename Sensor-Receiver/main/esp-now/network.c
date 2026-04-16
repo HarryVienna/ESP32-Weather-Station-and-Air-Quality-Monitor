@@ -10,6 +10,10 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
+// Project modules
+#include "sensor_stack.h"
+#include "display_driver.h"
+
 
 #define MAC_STR_LEN 18
 #define ESPNOW_FIXED_CHANNEL 13
@@ -21,9 +25,9 @@ typedef struct __attribute__((packed)) struct_data {
     uint8_t sensor_nr;
     uint8_t sensor_type;
     uint32_t voltage;
-    double pressure;
-    double temperature;
-    double humidity;
+    float pressure;
+    float temperature;
+    float humidity;
 } struct_data;
 
 typedef struct __attribute__((packed)) struct_pairing_response {
@@ -42,13 +46,6 @@ enum MessageType {
     PAIRING_REQ,
     PAIRING_RESP,
     DATA,
-};
-
-enum SensorType {
-    SENSOR_TYPE_BME280 = 0,
-    SENSOR_TYPE_HDC1080,
-    SENSOR_TYPE_DHT22,
-    SENSOR_TYPE_CUSTOM,
 };
 
 /**
@@ -138,32 +135,62 @@ void on_data_recv(const esp_now_recv_info_t *recv_info, const uint8_t *incoming_
     }
 
     char mac[MAC_STR_LEN];
-    ESP_LOGI(TAG, "%d bytes of data received from %s", len, get_mac_string(mac_addr, mac));
+    get_mac_string(mac_addr, mac);
   
     uint8_t type = incoming_data[0];
     switch (type) {
         case DATA : {
+            ESP_LOGI(TAG, "DATA packet from %s (%d bytes)", mac, len);
+            
             if (len != sizeof(struct_data)) {
-                ESP_LOGE(TAG, "Datenpaket hat falsche Größe!");
+                ESP_LOGE(TAG, "Datenpaket hat falsche Größe! Erwarte %zu, bekomme %d",
+                         sizeof(struct_data), len);
                 break;
             }
 
             struct_data msg;
             memcpy(&msg, incoming_data, sizeof(struct_data));
 
-            // TODO store data
-            //disp_sensor_data(msg.sensor_nr, msg.temperature, msg.humidity, msg.pressure, msg.voltage, date_time);
+            ESP_LOGI(TAG, "  Sensor %d [Type=%d]: T=%.2f C, H=%.2f %, P=%.2f hPa, V=%lu mV",
+                     msg.sensor_nr, msg.sensor_type,
+                     msg.temperature, msg.humidity, msg.pressure,
+                     (unsigned long)msg.voltage);
 
+            // Push to sensor stack and update display
+            sensor_packet_t packet;
+            memset(&packet, 0, sizeof(packet));
+            packet.msg_type = SENSOR_SOURCE_ESPNOW;
+            packet.sensor_nr = msg.sensor_nr;
+            packet.sensor_type = msg.sensor_type;
+            packet.voltage_mv = msg.voltage;
+            packet.temperature = msg.temperature;
+            packet.humidity = msg.humidity;
+            packet.pressure = msg.pressure;
+            packet.lora_rssi = -1;
+            packet.lora_snr = -1.0f;
+            packet.timestamp = xTaskGetTickCount();
+            
+            sensor_stack_push(&packet, SENSOR_SOURCE_ESPNOW);
+            display_driver_update(&packet);
 
             break;
         }
         case PAIRING_REQ: {
+            ESP_LOGI(TAG, "PAIRING_REQ from %s", mac);
+            
             if (len != sizeof(struct_pairing_request)) {
+                ESP_LOGW(TAG, "Pairing request size mismatch! Erwarte %zu, bekomme %d",
+                         sizeof(struct_pairing_request), len);
                 break;
             }
 
             struct_pairing_request pairingRequest;
             memcpy(&pairingRequest, incoming_data, sizeof(struct_pairing_request));
+
+            ESP_LOGI(TAG, "  Sensor Nr: %d", pairingRequest.sensor_nr);
+
+            // Peer zuerst hinzufügen, DANN senden
+            add_peer(mac_addr, ESPNOW_FIXED_CHANNEL);
 
             struct_pairing_response pairingResponse;
             pairingResponse.msg_type = PAIRING_RESP;
@@ -173,16 +200,16 @@ void on_data_recv(const esp_now_recv_info_t *recv_info, const uint8_t *incoming_
 
             esp_err_t result = esp_now_send(mac_addr, (uint8_t *) &pairingResponse, sizeof(struct_pairing_response));
             if (result != ESP_OK) {
-                ESP_LOGE(TAG, "Error sending message");
+                ESP_LOGE(TAG, "Error sending pairing response (err=%d)", result);
                 break;
             }
 
-            add_peer(mac_addr, ESPNOW_FIXED_CHANNEL);
+            ESP_LOGI(TAG, "  PAIRING_RESP sent successfully");
 
             break;
         }
         default: {
-            ESP_LOGW(TAG, "Unknown message type: %d", type);
+            ESP_LOGW(TAG, "Unknown message type: %d from %s", type, mac);
             break;
         }
     }
@@ -218,11 +245,12 @@ void init_wifi(void) {
     // WiFi in den Station-Mode versetzen (Standard für ESP-NOW Endpunkte)
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
 
-    // Fester Channel für ESP-NOW (muss mit Sender übereinstimmen)
-    ESP_ERROR_CHECK(esp_wifi_set_channel(ESPNOW_FIXED_CHANNEL, WIFI_SECOND_CHAN_NONE));
-
     // WICHTIG: Das Starten des Wi-Fi-Treibers ist zwingend erforderlich!
     ESP_ERROR_CHECK(esp_wifi_start());
+
+    // Fester Channel für ESP-NOW (muss mit Sender übereinstimmen)
+    // Channel muss NACH dem Start gesetzt werden
+    esp_wifi_set_channel(ESPNOW_FIXED_CHANNEL, WIFI_SECOND_CHAN_NONE);
 }
 
 
@@ -233,12 +261,13 @@ void init_wifi(void) {
  *            Registers callbacks for sending and receiving data.
  *
  */
-void esp_now_start(){
+esp_err_t esp_now_start(void){
 
     if (esp_now_init() != ESP_OK) {
       ESP_LOGE(TAG, "Error initializing ESP-NOW");
-      return;
+      return ESP_FAIL;
     }
     esp_now_register_send_cb(on_data_sent);
     esp_now_register_recv_cb(on_data_recv);
+    return ESP_OK;
 }
