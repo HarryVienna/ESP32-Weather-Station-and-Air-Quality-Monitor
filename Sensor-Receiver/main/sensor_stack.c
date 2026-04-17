@@ -13,7 +13,8 @@ esp_err_t sensor_stack_init(void) {
         ESP_LOGE(TAG, "Failed to create mutex");
         return ESP_ERR_NO_MEM;
     }
-    ESP_LOGI(TAG, "Sensor stack initialized (size=%d)", SENSOR_STACK_SIZE);
+    ESP_LOGI(TAG, "Sensor stack initialized (size=%d, max_payload=%d)", 
+             SENSOR_STACK_SIZE, MAX_PAYLOAD_SIZE);
     return ESP_OK;
 }
 
@@ -22,24 +23,36 @@ esp_err_t sensor_stack_push(const sensor_packet_t *packet, sensor_source_t sourc
         return ESP_ERR_NO_MEM;
     }
 
+    // Validate payload length
+    if (packet->header.payload_len > MAX_PAYLOAD_SIZE) {
+        ESP_LOGW(TAG, "Payload too large: %d bytes (max %d)", 
+                 packet->header.payload_len, MAX_PAYLOAD_SIZE);
+        xSemaphoreGive(g_stack.mutex);
+        return ESP_ERR_INVALID_SIZE;
+    }
+
     if (g_stack.count >= SENSOR_STACK_SIZE) {
         g_stack.total_dropped++;
         xSemaphoreGive(g_stack.mutex);
-        ESP_LOGW(TAG, "Stack full! Dropped packet #%lu", g_stack.total_received + 1);
+        ESP_LOGW(TAG, "Stack full! Dropped packet #%lu (sensor %d, type %d)", 
+                 g_stack.total_received + 1,
+                 packet->header.sensor_nr,
+                 packet->header.sensor_type);
         return ESP_ERR_NO_MEM;
     }
 
     uint8_t idx = (g_stack.head + 1) % SENSOR_STACK_SIZE;
-    g_stack.packets[idx].msg_type = (uint8_t)source;
-    g_stack.packets[idx].sensor_nr = packet->sensor_nr;
-    g_stack.packets[idx].sensor_type = packet->sensor_type;
-    g_stack.packets[idx].voltage_mv = packet->voltage_mv;
-    g_stack.packets[idx].temperature = packet->temperature;
-    g_stack.packets[idx].humidity = packet->humidity;
-    g_stack.packets[idx].pressure = packet->pressure;
-    g_stack.packets[idx].lora_rssi = packet->lora_rssi;
-    g_stack.packets[idx].lora_snr = packet->lora_snr;
-    g_stack.packets[idx].timestamp = packet->timestamp;
+    
+    // Copy header (4 bytes)
+    g_stack.packets[idx].header = packet->header;
+    // Override source type
+    g_stack.packets[idx].header.msg_type = (uint8_t)source;
+    
+    // Copy link metadata (12 bytes)
+    g_stack.packets[idx].link = packet->link;
+    
+    // Copy variable payload (0..MAX_PAYLOAD_SIZE bytes)
+    memcpy(g_stack.packets[idx].payload, packet->payload, packet->header.payload_len);
 
     g_stack.head = idx;
     g_stack.count++;
@@ -60,16 +73,14 @@ esp_err_t sensor_stack_pop(sensor_packet_t *packet) {
     }
 
     uint8_t idx = (g_stack.tail + 1) % SENSOR_STACK_SIZE;
-    packet->msg_type = g_stack.packets[idx].msg_type;
-    packet->sensor_nr = g_stack.packets[idx].sensor_nr;
-    packet->sensor_type = g_stack.packets[idx].sensor_type;
-    packet->voltage_mv = g_stack.packets[idx].voltage_mv;
-    packet->temperature = g_stack.packets[idx].temperature;
-    packet->humidity = g_stack.packets[idx].humidity;
-    packet->pressure = g_stack.packets[idx].pressure;
-    packet->lora_rssi = g_stack.packets[idx].lora_rssi;
-    packet->lora_snr = g_stack.packets[idx].lora_snr;
-    packet->timestamp = g_stack.packets[idx].timestamp;
+    
+    // Copy header
+    packet->header = g_stack.packets[idx].header;
+    // Copy link metadata
+    packet->link = g_stack.packets[idx].link;
+    // Copy variable payload
+    memcpy(packet->payload, g_stack.packets[idx].payload, 
+           g_stack.packets[idx].header.payload_len);
 
     g_stack.tail = idx;
     g_stack.count--;

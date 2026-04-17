@@ -15,7 +15,7 @@
 #define LORA_CODING_RATE        LORA_CR_4_5
 #define LORA_TX_POWER           12             // dBm (RX mode, lower power OK)
 #define LORA_PREAMBLE_LENGTH    8
-#define LORA_PAYLOAD_LENGTH     sizeof(sensor_packet_t)
+#define LORA_PAYLOAD_LENGTH     (sizeof(packet_header_t) + sizeof(link_metadata_t) + MAX_PAYLOAD_SIZE)
 #define LORA_CRC_ON             true
 #define LORA_IQ_INVERTED        true
 #define LORA_RX_GAIN_BOOSTED    true

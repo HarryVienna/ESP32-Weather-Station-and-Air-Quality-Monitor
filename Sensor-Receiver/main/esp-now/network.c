@@ -20,15 +20,12 @@
 
 static const char* TAG = "WIFI";
 
-typedef struct __attribute__((packed)) struct_data {
-    uint8_t msg_type;
-    uint8_t sensor_nr;
-    uint8_t sensor_type;
-    uint32_t voltage;
-    float pressure;
-    float temperature;
-    float humidity;
-} struct_data;
+/* ============================================================================
+ * ESP-NOW Packet Format
+ *
+ * Uses common packet_format.h (via sensor_stack.h)
+ * Link metadata (RSSI/SNR/timestamp) is added by the receiver
+ * ============================================================================ */
 
 typedef struct __attribute__((packed)) struct_pairing_response {
     uint8_t msg_type;       // 1 byte
@@ -142,36 +139,60 @@ void on_data_recv(const esp_now_recv_info_t *recv_info, const uint8_t *incoming_
         case DATA : {
             ESP_LOGI(TAG, "DATA packet from %s (%d bytes)", mac, len);
             
-            if (len != sizeof(struct_data)) {
-                ESP_LOGE(TAG, "Datenpaket hat falsche Größe! Erwarte %zu, bekomme %d",
-                         sizeof(struct_data), len);
+            // Validate minimum size: header (4 bytes) only, no payload
+            if (len < sizeof(packet_header_t)) {
+                ESP_LOGE(TAG, "Packet too small! Expected >= %zu, got %d",
+                         sizeof(packet_header_t), len);
                 break;
             }
 
-            struct_data msg;
-            memcpy(&msg, incoming_data, sizeof(struct_data));
+            // Parse header to get payload length
+            packet_header_t *header = (packet_header_t *)incoming_data;
+            int expected_total = sizeof(packet_header_t) + header->payload_len;
+            
+            if (len != expected_total) {
+                ESP_LOGE(TAG, "Packet size mismatch! Expected %d, got %d",
+                         expected_total, len);
+                break;
+            }
 
-            ESP_LOGI(TAG, "  Sensor %d [Type=%d]: T=%.2f C, H=%.2f %, P=%.2f hPa, V=%lu mV",
-                     msg.sensor_nr, msg.sensor_type,
-                     msg.temperature, msg.humidity, msg.pressure,
-                     (unsigned long)msg.voltage);
+            if (header->payload_len > MAX_PAYLOAD_SIZE) {
+                ESP_LOGE(TAG, "Payload too large: %d bytes (max %d)",
+                         header->payload_len, MAX_PAYLOAD_SIZE);
+                break;
+            }
 
-            // Push to sensor stack and update display
+            // Build sensor_packet_t with transparent payload
             sensor_packet_t packet;
             memset(&packet, 0, sizeof(packet));
-            packet.msg_type = SENSOR_SOURCE_ESPNOW;
-            packet.sensor_nr = msg.sensor_nr;
-            packet.sensor_type = msg.sensor_type;
-            packet.voltage_mv = msg.voltage;
-            packet.temperature = msg.temperature;
-            packet.humidity = msg.humidity;
-            packet.pressure = msg.pressure;
-            packet.lora_rssi = -1;
-            packet.lora_snr = -1.0f;
-            packet.timestamp = xTaskGetTickCount();
             
-            sensor_stack_push(&packet, SENSOR_SOURCE_ESPNOW);
-            display_driver_update(&packet);
+            // Copy header (msg_type = original sender value, e.g. DATA=2)
+            packet.header = *header;
+            
+            // Link metadata - msg_source indicates how data reached receiver
+            packet.link.msg_source = SENSOR_SOURCE_ESPNOW;
+            packet.link.lora_rssi = recv_info->rx_ctrl->rssi;
+            packet.link.lora_snr = -1.0f;  // SNR not available for ESP-NOW/WiFi
+            packet.link.timestamp = xTaskGetTickCount();
+            
+            // Copy payload (receiver doesn't interpret it)
+            memcpy(packet.payload, incoming_data + sizeof(packet_header_t),
+                   header->payload_len);
+            packet.header.payload_len = header->payload_len;
+            
+            // Push to stack
+            esp_err_t ret = sensor_stack_push(&packet, SENSOR_SOURCE_ESPNOW);
+            if (ret == ESP_OK) {
+                // Update display (only needs header + link metadata)
+                display_driver_update(&packet);
+                
+                ESP_LOGI(TAG, "  Sensor %d [Type=%d] payload=%d bytes",
+                         packet.header.sensor_nr,
+                         packet.header.sensor_type,
+                         packet.header.payload_len);
+            } else {
+                ESP_LOGW(TAG, "Stack full, ESP-NOW packet dropped");
+            }
 
             break;
         }
@@ -179,7 +200,7 @@ void on_data_recv(const esp_now_recv_info_t *recv_info, const uint8_t *incoming_
             ESP_LOGI(TAG, "PAIRING_REQ from %s", mac);
             
             if (len != sizeof(struct_pairing_request)) {
-                ESP_LOGW(TAG, "Pairing request size mismatch! Erwarte %zu, bekomme %d",
+                ESP_LOGW(TAG, "Pairing request size mismatch! Expected %zu, got %d",
                          sizeof(struct_pairing_request), len);
                 break;
             }
@@ -219,7 +240,7 @@ void on_data_recv(const esp_now_recv_info_t *recv_info, const uint8_t *incoming_
  *
  * This function initializes the WIFI driver without full TCP/IP stack overhead.
  */
-void init_wifi(void) {
+esp_err_t init_wifi(void) {
     ESP_LOGI(TAG, "Initialize WIFI for ESP-NOW");
 
     esp_err_t ret;
@@ -228,29 +249,57 @@ void init_wifi(void) {
     ret = nvs_flash_init();
     if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
       ESP_ERROR_CHECK(nvs_flash_erase());
-      ESP_ERROR_CHECK(nvs_flash_init());
+      ret = nvs_flash_init();
+      if (ret != ESP_OK) {
+          ESP_LOGE(TAG, "NVS flash init failed: %s", esp_err_to_name(ret));
+          return ret;
+      }
     }
 
     // Grundlegende Netzwerk- und Event-Initialisierung
-    ESP_ERROR_CHECK(esp_netif_init());
-    ESP_ERROR_CHECK(esp_event_loop_create_default());
+    if ((ret = esp_netif_init()) != ESP_OK) {
+        ESP_LOGE(TAG, "ESP netif init failed: %s", esp_err_to_name(ret));
+        return ret;
+    }
+    if ((ret = esp_event_loop_create_default()) != ESP_OK) {
+        ESP_LOGE(TAG, "Event loop create failed: %s", esp_err_to_name(ret));
+        return ret;
+    }
 
     // Init WiFi
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
-    ESP_ERROR_CHECK(esp_wifi_init(&cfg));
+    if ((ret = esp_wifi_init(&cfg)) != ESP_OK) {
+        ESP_LOGE(TAG, "WiFi init failed: %s", esp_err_to_name(ret));
+        return ret;
+    }
     
     // Speicher auf RAM setzen, um Flash-Abnutzung zu vermeiden
-    ESP_ERROR_CHECK(esp_wifi_set_storage(WIFI_STORAGE_RAM));
+    if ((ret = esp_wifi_set_storage(WIFI_STORAGE_RAM)) != ESP_OK) {
+        ESP_LOGE(TAG, "WiFi set storage failed: %s", esp_err_to_name(ret));
+        return ret;
+    }
 
     // WiFi in den Station-Mode versetzen (Standard für ESP-NOW Endpunkte)
-    ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
+    if ((ret = esp_wifi_set_mode(WIFI_MODE_STA)) != ESP_OK) {
+        ESP_LOGE(TAG, "WiFi set mode failed: %s", esp_err_to_name(ret));
+        return ret;
+    }
 
     // WICHTIG: Das Starten des Wi-Fi-Treibers ist zwingend erforderlich!
-    ESP_ERROR_CHECK(esp_wifi_start());
+    if ((ret = esp_wifi_start()) != ESP_OK) {
+        ESP_LOGE(TAG, "WiFi start failed: %s", esp_err_to_name(ret));
+        return ret;
+    }
 
     // Fester Channel für ESP-NOW (muss mit Sender übereinstimmen)
     // Channel muss NACH dem Start gesetzt werden
-    esp_wifi_set_channel(ESPNOW_FIXED_CHANNEL, WIFI_SECOND_CHAN_NONE);
+    if ((ret = esp_wifi_set_channel(ESPNOW_FIXED_CHANNEL, WIFI_SECOND_CHAN_NONE)) != ESP_OK) {
+        ESP_LOGE(TAG, "WiFi set channel failed: %s", esp_err_to_name(ret));
+        return ret;
+    }
+
+    ESP_LOGI(TAG, "WiFi initialized successfully");
+    return ESP_OK;
 }
 
 

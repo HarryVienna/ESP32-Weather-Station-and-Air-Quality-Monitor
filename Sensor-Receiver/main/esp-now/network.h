@@ -9,7 +9,7 @@ extern "C" {
 #endif
 
 // Function declarations
-void init_wifi(void);
+esp_err_t init_wifi(void);
 esp_err_t esp_now_start(void);
 
 #ifdef __cplusplus

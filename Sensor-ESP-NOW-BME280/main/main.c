@@ -21,6 +21,9 @@
 
 #include "bme280_sensor_driver.h"
 
+/* Common packet format - shared with receiver project */
+#include "../common/packet_format.h"
+
 #define NVS_NAMESPACE "SENSOR"
 #define MAC_VALUE "MAC"
 #define CHANNEL_VALUE "CHANNEL"
@@ -56,12 +59,8 @@ enum MessageType {
     DATA,
 };
 
-enum SensorType {
-    SENSOR_TYPE_BME280 = 0,
-    SENSOR_TYPE_HDC1080,
-    SENSOR_TYPE_DHT22,
-    SENSOR_TYPE_CUSTOM,
-};
+// Sensor types defined in common/packet_format.h (sensor_type_t enum)
+// SENSOR_TYPE_BME280 = 1, etc.
 
 RTC_DATA_ATTR static int boot_count = 0;
 
@@ -73,16 +72,6 @@ static i2c_master_bus_handle_t i2c_master_bus = NULL;
 
 static QueueHandle_t s_espnow_queue;
 static EventGroupHandle_t s_espnow_event_group;
-
-typedef struct __attribute__((packed)) struct_data {
-    uint8_t msg_type;
-    uint8_t sensor_nr;
-    uint8_t sensor_type;
-    uint32_t voltage;
-    float pressure;
-    float temperature;
-    float humidity;
-} struct_data;
 
 typedef struct __attribute__((packed)) struct_pairing_response {
     uint8_t msg_type;       // 1 byte
@@ -625,17 +614,25 @@ void app_main(){
     add_peer(peer_mac, chan);
     esp_wifi_set_channel(chan, WIFI_SECOND_CHAN_NONE);
 
-    // Create message to send
-    struct_data msg;
-    msg.msg_type = DATA;
-    msg.sensor_nr = sensor_nr;
-    msg.sensor_type = SENSOR_TYPE_BME280;
-    msg.voltage = voltage;
-    msg.temperature = values_bme280.temperature;
-    msg.humidity = values_bme280.humidity;
-    msg.pressure = values_bme280.pressure;
+    // Create message using common packet format
+    espnow_sensor_packet_t packet;
+    memset(&packet, 0, sizeof(packet));
+    packet.header.msg_type = DATA;  // Original sender msg_type (0=PAIRING_REQ, 1=PAIRING_RESP, 2=DATA)
+    packet.header.sensor_nr = sensor_nr;
+    packet.header.sensor_type = SENSOR_TYPE_BME280;
+    // Pack sensor data into payload (16 bytes: voltage + 3 floats)
+    uint8_t payload_offset = 0;
+    memcpy(&packet.payload[payload_offset], &voltage, sizeof(uint32_t));
+    payload_offset += sizeof(uint32_t);
+    memcpy(&packet.payload[payload_offset], &values_bme280.pressure, sizeof(float));
+    payload_offset += sizeof(float);
+    memcpy(&packet.payload[payload_offset], &values_bme280.temperature, sizeof(float));
+    payload_offset += sizeof(float);
+    memcpy(&packet.payload[payload_offset], &values_bme280.humidity, sizeof(float));
+    payload_offset += sizeof(float);
+    packet.header.payload_len = payload_offset;
 
-    ESP_ERROR_CHECK(esp_now_send(peer_mac, (uint8_t *) &msg, sizeof(struct_data)));
+    ESP_ERROR_CHECK(esp_now_send(peer_mac, (uint8_t *) &packet, sizeof(packet_header_t) + packet.header.payload_len));
 
     EventBits_t bits = xEventGroupWaitBits(s_espnow_event_group,
             ESPNOW_SEND_SUCCESSFUL_BIT | ESPNOW_SEND_FAIL_BIT,

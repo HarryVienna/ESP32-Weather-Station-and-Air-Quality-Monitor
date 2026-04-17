@@ -7,34 +7,25 @@
 #include "freertos/semphr.h"
 
 /* ============================================================================
- * Sensor Packet Format (unified for LoRa + ESP-NOW)
- * Total size: 36 bytes
+ * Common packet format - shared with sender project
+ * Copy common/packet_format.h into your sender project as well
+ * ============================================================================ */
+#include "../common/packet_format.h"
+
+/* ============================================================================
+ * Payload format enum (P4-only, not needed by sender)
  * ============================================================================ */
 
 typedef enum {
-    SENSOR_SOURCE_LORA = 1,
-    SENSOR_SOURCE_ESPNOW,
-} sensor_source_t;
-
-typedef enum {
-    SENSOR_TYPE_BME280 = 0,
-    SENSOR_TYPE_HDC1080,
-    SENSOR_TYPE_DHT22,
-    SENSOR_TYPE_CUSTOM,
-} sensor_type_t;
-
-typedef struct __attribute__((packed)) {
-    uint8_t msg_type;           // MSG_TYPE_LORA or MSG_TYPE_ESPNOW
-    uint8_t sensor_nr;          // 1-254
-    uint8_t sensor_type;        // sensor_type_t enum
-    uint32_t voltage_mv;        // Voltage in mV
-    float temperature;          // °C
-    float humidity;             // %RH
-    float pressure;             // hPa
-    int16_t lora_rssi;         // RSSI in dBm (-1 if ESP-NOW)
-    float lora_snr;            // SNR in dB (-1.0 if ESP-NOW)
-    uint32_t timestamp;         // xTaskGetTickCount() at receive time
-} sensor_packet_t;
+    SENSOR_PAYLOAD_NONE    = 0,   // No payload (e.g., beacon)
+    SENSOR_PAYLOAD_BME280  = 1,   // temp(4) + hum(4) + press(4) = 12 bytes
+    SENSOR_PAYLOAD_HDC1080 = 2,   // temp(4) + hum(4) = 8 bytes
+    SENSOR_PAYLOAD_DHT22   = 3,   // temp(4) + hum(4) = 8 bytes
+    SENSOR_PAYLOAD_WIND    = 4,   // speed(4) + dir(4) = 8 bytes
+    SENSOR_PAYLOAD_RAIN    = 5,   // amount(4) = 4 bytes
+    SENSOR_PAYLOAD_LIGHT   = 6,   // lux(4) = 4 bytes
+    SENSOR_PAYLOAD_CUSTOM  = 255, // Variable format, defined by sensor_type
+} sensor_payload_format_t;
 
 /* ============================================================================
  * Sensor Stack (FIFO buffer for I2C readout by ESP32-P4)
@@ -46,7 +37,7 @@ typedef struct __attribute__((packed)) {
 
 /* I2C Register Map for P4 readout */
 #define I2C_REG_SENSOR_COUNT  0x00    // Number of available packets (1 byte)
-#define I2C_REG_SENSOR_READ   0x01    // Read next packet (36 bytes)
+#define I2C_REG_SENSOR_READ   0x01    // Read next packet (variable, up to 80 bytes)
 #define I2C_REG_RESET_DROP    0x23    // Write 0x01 to reset dropped counter
 
 typedef struct {
@@ -71,7 +62,7 @@ esp_err_t sensor_stack_init(void);
 
 /**
  * @brief Push a received sensor packet into the stack
- * @param packet Pointer to the sensor packet
+ * @param packet Pointer to the sensor packet (must have valid header + payload)
  * @param source SENSOR_SOURCE_LORA or SENSOR_SOURCE_ESPNOW
  * @return ESP_OK if stored, ESP_ERR_NO_MEM if stack full
  */

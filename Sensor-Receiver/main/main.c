@@ -11,6 +11,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "esp_log.h"
@@ -185,14 +186,28 @@ void app_main(void) {
         return;
     }
     
+    // Initialize LoRa Hardware
+    if (init_lora() != ESP_OK) {
+        ESP_LOGE(TAG, "LoRa initialization failed!");
+        return;
+    }
+
+        // Initialize WiFi for ESP-NOW
+    if (init_wifi() != ESP_OK) {
+        ESP_LOGE(TAG, "WiFi initialization failed!");
+        return;
+    }
+
+    // Set timezone for ESP32 system time (CET/CEST)
+    setenv("TZ", "CET-1CEST,M3.5.0,M10.5.0/3", 1);
+    tzset();
+    ESP_LOGI(TAG, "Timezone set to CET/CEST");
+    
     // Initialize Display Driver (sets g_u8g2 pointer, creates mutex)
     if (display_driver_init(&u8g2) != ESP_OK) {
         ESP_LOGE(TAG, "Display driver initialization failed!");
         return;
     }
-    
-    // Show welcome message
-    display_driver_show_welcome(&u8g2);
     
     // Initialize Sensor Stack
     if (sensor_stack_init() != ESP_OK) {
@@ -201,12 +216,7 @@ void app_main(void) {
         return;
     }
     
-    // Initialize LoRa Hardware
-    if (init_lora() != ESP_OK) {
-        ESP_LOGE(TAG, "LoRa initialization failed!");
-        display_driver_show_error(&u8g2, "LoRa Init Failed");
-        return;
-    }
+
     
     // Initialize LoRa Receiver
     if (lora_receiver_init() != ESP_OK) {
@@ -215,8 +225,7 @@ void app_main(void) {
         return;
     }
     
-    // Initialize WiFi for ESP-NOW
-    init_wifi();
+
     
     // Initialize ESP-NOW
     if (esp_now_start() != ESP_OK) {
