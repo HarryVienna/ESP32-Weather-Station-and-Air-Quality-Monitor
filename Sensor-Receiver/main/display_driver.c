@@ -162,13 +162,3 @@ esp_err_t display_driver_update(const sensor_packet_t *packet) {
     return ESP_OK;
 }
 
-void display_driver_show_error(u8g2_t *u8g2, const char *error_msg) {
-    if (u8g2 == NULL) return;
-    
-    u8g2_ClearBuffer(u8g2);
-    u8g2_SetFont(u8g2, DISPLAY_FONT);
-    u8g2_DrawStr(u8g2, 2, 18, "ERROR:");
-    u8g2_DrawStr(u8g2, 2, 24, error_msg);
-    u8g2_DrawStr(u8g2, 2, 36, "Check logs!");
-    u8g2_SendBuffer(u8g2);
-}

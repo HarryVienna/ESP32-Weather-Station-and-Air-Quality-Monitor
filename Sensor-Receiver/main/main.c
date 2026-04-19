@@ -212,7 +212,6 @@ void app_main(void) {
     // Initialize Sensor Stack
     if (sensor_stack_init() != ESP_OK) {
         ESP_LOGE(TAG, "Sensor stack initialization failed!");
-        display_driver_show_error(&u8g2, "Stack Init Failed");
         return;
     }
     
@@ -221,7 +220,6 @@ void app_main(void) {
     // Initialize LoRa Receiver
     if (lora_receiver_init() != ESP_OK) {
         ESP_LOGE(TAG, "LoRa receiver initialization failed!");
-        display_driver_show_error(&u8g2, "LoRa Rx Failed");
         return;
     }
     
@@ -230,14 +228,12 @@ void app_main(void) {
     // Initialize ESP-NOW
     if (esp_now_start() != ESP_OK) {
         ESP_LOGE(TAG, "ESP-NOW initialization failed!");
-        display_driver_show_error(&u8g2, "ESPN Init Failed");
         return;
     }
     
     // Start LoRa Receiver (configures SX1262 and starts async RX)
     if (lora_receiver_start() != ESP_OK) {
         ESP_LOGE(TAG, "LoRa receiver start failed!");
-        display_driver_show_error(&u8g2, "LoRa Start Failed");
         return;
     }
     

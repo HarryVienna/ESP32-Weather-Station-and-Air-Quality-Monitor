@@ -54,11 +54,4 @@ esp_err_t display_driver_init(u8g2_t *u8g2);
  */
 esp_err_t display_driver_update(const sensor_packet_t *packet);
 
-/**
- * @brief Show error message on display
- * @param u8g2 Pointer to initialized U8g2 structure
- * @param error_msg Error message string
- */
-void display_driver_show_error(u8g2_t *u8g2, const char *error_msg);
-
 #endif /* DISPLAY_DRIVER_H */
