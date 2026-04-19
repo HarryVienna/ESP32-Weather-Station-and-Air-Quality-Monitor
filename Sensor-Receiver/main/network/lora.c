@@ -1,29 +1,10 @@
-#include "lora_receiver.h"
+#include "lora.h"
 #include "sensor_stack.h"
 #include "display_driver.h"
 #include "esp_log.h"
+#include "sx1262.h"
 
 static const char* TAG = "lora_rx";
-
-static volatile uint32_t g_packets_received = 0;
-static volatile uint32_t g_crc_errors = 0;
-
-/* ============================================================================
- * Helper: sensor_type_to_string
- * ============================================================================ */
-
-static const char* sensor_type_to_string(uint8_t type) {
-    switch (type) {
-        case SENSOR_TYPE_BME280:  return "BME280";
-        case SENSOR_TYPE_HDC1080: return "HDC1080";
-        case SENSOR_TYPE_DHT22:   return "DHT22";
-        case SENSOR_TYPE_WIND:    return "WIND";
-        case SENSOR_TYPE_RAIN:    return "RAIN";
-        case SENSOR_TYPE_LIGHT:   return "LIGHT";
-        case SENSOR_TYPE_CUSTOM:  return "CUSTOM";
-        default:                  return "???";
-    }
-}
 
 /* ============================================================================
  * SX1262 Receive Callback
@@ -38,7 +19,6 @@ static void lora_rx_callback(uint8_t *data, uint8_t len, sx1262_packet_status_t 
     if (len < sizeof(packet_header_t) + sizeof(link_metadata_t)) {
         ESP_LOGW(TAG, "Packet too small: expected >= %zu, got %d", 
                  sizeof(packet_header_t) + sizeof(link_metadata_t), len);
-        g_crc_errors++;
         return;
     }
     
@@ -48,14 +28,12 @@ static void lora_rx_callback(uint8_t *data, uint8_t len, sx1262_packet_status_t 
     
     if (len != expected_total) {
         ESP_LOGW(TAG, "Packet size mismatch: expected %d, got %d", expected_total, len);
-        g_crc_errors++;
         return;
     }
     
     if (header->payload_len > MAX_PAYLOAD_SIZE) {
         ESP_LOGW(TAG, "Payload too large: %d bytes (max %d)", 
                  header->payload_len, MAX_PAYLOAD_SIZE);
-        g_crc_errors++;
         return;
     }
     
@@ -81,20 +59,14 @@ static void lora_rx_callback(uint8_t *data, uint8_t len, sx1262_packet_status_t 
     // Push to stack
     esp_err_t ret = sensor_stack_push(&packet, SENSOR_SOURCE_LORA);
     if (ret == ESP_OK) {
-        g_packets_received++;
-        
         // Update display (only needs header + link metadata)
         display_driver_update(&packet);
         
-        // Log every 10th packet
-        if (g_packets_received % 10 == 0) {
-            ESP_LOGI(TAG, "LoRa RX #%lu: Sensor %d [%s] payload=%d, RSSI:%d, SNR:%.1f, Stack:%d",
-                     g_packets_received, packet.header.sensor_nr,
-                     sensor_type_to_string(packet.header.sensor_type),
-                     packet.header.payload_len,
-                     status->rssi_pkt, status->snr_pkt,
-                     sensor_stack_count());
-        }
+        ESP_LOGI(TAG, "LoRa RX: Sensor %d [Type=%d] payload=%d bytes, RSSI:%d, SNR:%.1f",
+                 packet.header.sensor_nr,
+                 packet.header.sensor_type,
+                 packet.header.payload_len,
+                 status->rssi_pkt, status->snr_pkt);
     } else {
         ESP_LOGW(TAG, "Stack full, LoRa packet dropped");
     }
@@ -104,13 +76,28 @@ static void lora_rx_callback(uint8_t *data, uint8_t len, sx1262_packet_status_t 
  * API Functions
  * ============================================================================ */
 
-esp_err_t lora_receiver_init(void) {
-    g_packets_received = 0;
-    g_crc_errors = 0;
+esp_err_t init_lora(void) {
+    ESP_LOGI(TAG, "Initializing LoRa (SX1262)...");
+    
+    // Phase 1: Initialize SPI bus and GPIOs
+    esp_err_t ret = sx1262_init_bus();
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to initialize LoRa bus: %s", esp_err_to_name(ret));
+        return ret;
+    }
+    
+    // Phase 2: Cold start radio
+    ret = sx1262_init_radio();
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to initialize LoRa radio: %s", esp_err_to_name(ret));
+        return ret;
+    }
+    
+    ESP_LOGI(TAG, "LoRa hardware initialized");
     return ESP_OK;
 }
 
-esp_err_t lora_receiver_start(void) {
+esp_err_t lora_start(void) {
     sx1262_config_t config = {
         .modem_mode = SX1262_MODEM_LORA,
         .frequency = LORA_FREQUENCY,
@@ -148,12 +135,7 @@ esp_err_t lora_receiver_start(void) {
     return ESP_OK;
 }
 
-void lora_receiver_stop(void) {
-    sx1262_stop_receive_async();
+void lora_stop(void) {
+    sx1262_sleep();
     ESP_LOGI(TAG, "LoRa receiver stopped");
-}
-
-void lora_receiver_stats(uint32_t *packets_received, uint32_t *crc_errors) {
-    if (packets_received) *packets_received = g_packets_received;
-    if (crc_errors) *crc_errors = g_crc_errors;
 }

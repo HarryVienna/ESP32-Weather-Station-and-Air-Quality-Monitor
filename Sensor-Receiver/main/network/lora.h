@@ -1,5 +1,5 @@
-#ifndef LORA_RECEIVER_H
-#define LORA_RECEIVER_H
+#ifndef LORA_H
+#define LORA_H
 
 #include "esp_err.h"
 #include "sx1262.h"
@@ -25,11 +25,11 @@
  * ============================================================================ */
 
 /**
- * @brief Initialize the LoRa receiver state
+ * @brief Initialize LoRa hardware (SPI bus, GPIO, radio)
  * 
  * @return ESP_OK on success
  */
-esp_err_t lora_receiver_init(void);
+esp_err_t init_lora(void);
 
 /**
  * @brief Configure and start LoRa reception
@@ -39,20 +39,13 @@ esp_err_t lora_receiver_init(void);
  * 
  * @return ESP_OK on success
  */
-esp_err_t lora_receiver_start(void);
+esp_err_t lora_start(void);
 
 /**
  * @brief Stop LoRa reception
  * 
  * Puts SX1262 into sleep mode.
  */
-void lora_receiver_stop(void);
+void lora_stop(void);
 
-/**
- * @brief Get LoRa receive statistics
- * @param packets_received Output: total packets received
- * @param crc_errors Output: CRC error count
- */
-void lora_receiver_stats(uint32_t *packets_received, uint32_t *crc_errors);
-
-#endif /* LORA_RECEIVER_H */
+#endif /* LORA_H */

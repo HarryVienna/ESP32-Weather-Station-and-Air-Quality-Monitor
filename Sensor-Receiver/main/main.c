@@ -19,13 +19,12 @@
 
 // U8g2 and Hardware
 #include "u8g2_esp32_hal.h"
-#include "sx1262.h"
 
 // Project modules
 #include "sensor_stack.h"
 #include "display_driver.h"
-#include "lora/lora_receiver.h"
-#include "esp-now/network.h"
+#include "network/lora.h"
+#include "network/esp-now.h"
 
 static const char* TAG = "MAIN";
 
@@ -116,30 +115,6 @@ static esp_err_t init_display(void) {
 }
 
 /**
- * @brief Initialize LoRa (SX1262) hardware
- */
-static esp_err_t init_lora(void) {
-    ESP_LOGI(TAG, "Initializing LoRa (SX1262)...");
-    
-    // Phase 1: Initialize SPI bus and GPIOs
-    esp_err_t ret = sx1262_init_bus();
-    if (ret != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to initialize LoRa bus: %s", esp_err_to_name(ret));
-        return ret;
-    }
-    
-    // Phase 2: Cold start radio
-    ret = sx1262_init_radio();
-    if (ret != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to initialize LoRa radio: %s", esp_err_to_name(ret));
-        return ret;
-    }
-    
-    ESP_LOGI(TAG, "LoRa hardware initialized");
-    return ESP_OK;
-}
-
-/**
  * @brief I2C Slave task for P4 readout
  * 
  * This task handles I2C requests from the ESP32-P4 master.
@@ -217,14 +192,6 @@ void app_main(void) {
     
 
     
-    // Initialize LoRa Receiver
-    if (lora_receiver_init() != ESP_OK) {
-        ESP_LOGE(TAG, "LoRa receiver initialization failed!");
-        return;
-    }
-    
-
-    
     // Initialize ESP-NOW
     if (esp_now_start() != ESP_OK) {
         ESP_LOGE(TAG, "ESP-NOW initialization failed!");
@@ -232,7 +199,7 @@ void app_main(void) {
     }
     
     // Start LoRa Receiver (configures SX1262 and starts async RX)
-    if (lora_receiver_start() != ESP_OK) {
+    if (lora_start() != ESP_OK) {
         ESP_LOGE(TAG, "LoRa receiver start failed!");
         return;
     }
