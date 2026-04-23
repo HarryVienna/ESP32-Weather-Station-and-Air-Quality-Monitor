@@ -1,10 +1,19 @@
-#ifndef DISPLAY_DRIVER_H
-#define DISPLAY_DRIVER_H
+#ifndef DISPLAY_H
+#define DISPLAY_H
 
 #include <stdint.h>
 #include <stdbool.h>
+#include "driver/gpio.h"
 #include "u8g2.h"
 #include "sensor_stack.h"
+
+/* ============================================================================
+ * Hardware Pins (Heltec WiFi LoRa 32 V3.x / V4)
+ * ============================================================================ */
+
+#define DISPLAY_PIN_SDA     GPIO_NUM_17
+#define DISPLAY_PIN_SCL     GPIO_NUM_18
+#define DISPLAY_PIN_RST     GPIO_NUM_21
 
 /* ============================================================================
  * Display Configuration
@@ -28,11 +37,11 @@ typedef struct {
     uint8_t source;             // SENSOR_SOURCE_LORA or SENSOR_SOURCE_ESPNOW
     uint8_t sensor_nr;
     uint8_t sensor_type;
-    uint8_t payload_len;        // Show payload size on display
-    int16_t rssi;               // -1 if ESP-NOW
-    float snr;                  // -1.0 if ESP-NOW
+    uint8_t payload_len;
+    int16_t rssi;
+    float snr;
     uint32_t timestamp;
-    char time_str[9];           // HH:MM:SS
+    char time_str[6];           // HH:MM
 } display_entry_t;
 
 /* ============================================================================
@@ -40,18 +49,16 @@ typedef struct {
  * ============================================================================ */
 
 /**
- * @brief Initialize the display driver (create mutex, set u8g2 pointer)
- * @param u8g2 Pointer to initialized U8g2 structure
+ * @brief Initialize display hardware and driver (owns u8g2 internally)
  * @return ESP_OK on success
  */
-esp_err_t display_driver_init(u8g2_t *u8g2);
+esp_err_t display_init(void);
 
 /**
- * @brief Update display with new sensor data (called from callbacks)
- *        FIFO scroll buffer, newest at bottom
+ * @brief Append a new line for the received sensor packet (scrolls when full)
  * @param packet Pointer to sensor packet
  * @return ESP_OK on success
  */
-esp_err_t display_driver_update(const sensor_packet_t *packet);
+esp_err_t display_update(const sensor_packet_t *packet);
 
-#endif /* DISPLAY_DRIVER_H */
+#endif /* DISPLAY_H */

@@ -4,7 +4,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include "freertos/FreeRTOS.h"
-#include "freertos/semphr.h"
 
 /* ============================================================================
  * Common packet format - shared with sender project
@@ -28,26 +27,30 @@ typedef enum {
 } sensor_payload_format_t;
 
 /* ============================================================================
- * Sensor Stack (FIFO buffer for I2C readout by ESP32-P4)
+ * Sensor Stack: one slot per sensor, latest value wins
+ * New data from the same sensor overwrites the previous unread value.
+ * Reading a slot (pop) marks it as consumed.
  * ============================================================================ */
 
-#define SENSOR_STACK_SIZE     16
+#define MAX_SENSORS           16   // Maximum number of distinct sensors
 #define I2C_SLAVE_ADDR        0x38
 #define I2C_CLOCK_KHZ         400
 
 /* I2C Register Map for P4 readout */
-#define I2C_REG_SENSOR_COUNT  0x00    // Number of available packets (1 byte)
-#define I2C_REG_SENSOR_READ   0x01    // Read next packet (variable, up to 80 bytes)
+#define I2C_REG_SENSOR_COUNT  0x00    // Number of sensors with unread data (1 byte)
+#define I2C_REG_SENSOR_READ   0x01    // Read and consume next available packet
 #define I2C_REG_RESET_DROP    0x23    // Write 0x01 to reset dropped counter
 
 typedef struct {
-    sensor_packet_t packets[SENSOR_STACK_SIZE];
-    uint8_t head;                   // Write index
-    uint8_t tail;                   // Read index (for P4)
-    uint8_t count;                  // Current number of packets
-    uint32_t total_received;        // Total packets received
-    uint32_t total_dropped;         // Dropped packets (stack full)
-    SemaphoreHandle_t mutex;        // Access synchronization
+    sensor_packet_t packet;
+    bool valid;                     // true = unread data available
+} sensor_slot_t;
+
+typedef struct {
+    sensor_slot_t slots[MAX_SENSORS];  // indexed directly by sensor_nr
+    uint8_t count;                     // number of slots with unread data
+    uint32_t total_received;
+    uint32_t total_overwritten;        // replaced unread data (same sensor updated)
 } sensor_stack_t;
 
 /* ============================================================================
@@ -61,35 +64,38 @@ typedef struct {
 esp_err_t sensor_stack_init(void);
 
 /**
- * @brief Push a received sensor packet into the stack
+ * @brief Push a sensor packet into the stack.
+ *        If a slot for this sensor_nr already exists, it is overwritten.
+ *        If no slot exists yet, a free slot is allocated.
  * @param packet Pointer to the sensor packet (must have valid header + payload)
  * @param source SENSOR_SOURCE_LORA or SENSOR_SOURCE_ESPNOW
- * @return ESP_OK if stored, ESP_ERR_NO_MEM if stack full
+ * @return ESP_OK on success, ESP_ERR_NO_MEM if MAX_SENSORS limit reached
  */
 esp_err_t sensor_stack_push(const sensor_packet_t *packet, sensor_source_t source);
 
 /**
- * @brief Read the next packet from the stack (consumes it)
+ * @brief Read and consume the next available packet.
+ *        After this call the slot is marked free (for a new sensor if needed).
  * @param packet Output buffer for the packet
- * @return ESP_OK if packet read, ESP_ERR_TIMEOUT if stack empty
+ * @return ESP_OK if a packet was read, ESP_ERR_NOT_FOUND if stack empty
  */
 esp_err_t sensor_stack_pop(sensor_packet_t *packet);
 
 /**
- * @brief Get the number of available packets
- * @return Number of packets in stack
+ * @brief Get the number of sensors with unread data
+ * @return Number of valid (unread) slots
  */
 uint8_t sensor_stack_count(void);
 
 /**
  * @brief Get statistics
- * @param received Output: total received
- * @param dropped Output: total dropped
+ * @param received    Output: total packets received
+ * @param overwritten Output: packets that replaced unread data (same sensor updated)
  */
-void sensor_stack_stats(uint32_t *received, uint32_t *dropped);
+void sensor_stack_stats(uint32_t *received, uint32_t *overwritten);
 
 /**
- * @brief Reset the dropped counter
+ * @brief Reset the dropped and overwritten counters
  */
 void sensor_stack_reset_dropped(void);
 

@@ -1126,7 +1126,7 @@
           "x": -485.88588004893643,
           "y": -320.8989684598873
         },
-        "scale": 0.8
+        "scale": 0.67
       },
       "timeline": {
         "isEditorActive": false,
@@ -1160,10 +1160,10 @@
       },
       "transform": {
         "translate": {
-          "x": -486.808525954585,
-          "y": -209.63867405850078
+          "x": -531.0875621127379,
+          "y": -203.65790096681462
         },
-        "scale": 0.8
+        "scale": 0.67
       },
       "timeline": {
         "isEditorActive": false,
@@ -1177,9 +1177,7 @@
           "0": {
             "0": {},
             "1": {},
-            "2": {
-              "$selected": true
-            }
+            "2": {}
           }
         }
       }
@@ -1226,6 +1224,6 @@
   ],
   "showInactiveFlowsInDebugger": true,
   "globalFlowZoom": true,
-  "flowZoom": 0.8,
+  "flowZoom": 0.67,
   "implementationLanguage": "C"
 }

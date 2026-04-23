@@ -5,114 +5,105 @@
 static const char* TAG = "sensor_stack";
 
 static sensor_stack_t g_stack;
+static SemaphoreHandle_t g_mutex;
 
 esp_err_t sensor_stack_init(void) {
     memset(&g_stack, 0, sizeof(g_stack));
-    g_stack.mutex = xSemaphoreCreateMutex();
-    if (g_stack.mutex == NULL) {
+    g_mutex = xSemaphoreCreateMutex();
+    if (g_mutex == NULL) {
         ESP_LOGE(TAG, "Failed to create mutex");
         return ESP_ERR_NO_MEM;
     }
-    ESP_LOGI(TAG, "Sensor stack initialized (size=%d, max_payload=%d)", 
-             SENSOR_STACK_SIZE, MAX_PAYLOAD_SIZE);
+    ESP_LOGI(TAG, "Sensor stack initialized (max_sensors=%d, max_payload=%d)",
+             MAX_SENSORS, MAX_PAYLOAD_SIZE);
     return ESP_OK;
 }
 
 esp_err_t sensor_stack_push(const sensor_packet_t *packet, sensor_source_t source) {
-    if (packet == NULL || xSemaphoreTake(g_stack.mutex, pdMS_TO_TICKS(100)) != pdTRUE) {
-        return ESP_ERR_NO_MEM;
+    if (packet == NULL) {
+        return ESP_ERR_INVALID_ARG;
     }
 
-    // Validate payload length
+    uint8_t sensor_nr = packet->header.sensor_nr;
+
+    if (sensor_nr >= MAX_SENSORS) {
+        ESP_LOGE(TAG, "sensor_nr %d out of range, ignored (max %d)", sensor_nr, MAX_SENSORS - 1);
+        return ESP_ERR_INVALID_ARG;
+    }
+
     if (packet->header.payload_len > MAX_PAYLOAD_SIZE) {
-        ESP_LOGW(TAG, "Payload too large: %d bytes (max %d)", 
+        ESP_LOGW(TAG, "Payload too large: %d bytes (max %d)",
                  packet->header.payload_len, MAX_PAYLOAD_SIZE);
-        xSemaphoreGive(g_stack.mutex);
         return ESP_ERR_INVALID_SIZE;
     }
 
-    if (g_stack.count >= SENSOR_STACK_SIZE) {
-        g_stack.total_dropped++;
-        xSemaphoreGive(g_stack.mutex);
-        ESP_LOGW(TAG, "Stack full! Dropped packet #%lu (sensor %d, type %d)", 
-                 g_stack.total_received + 1,
-                 packet->header.sensor_nr,
-                 packet->header.sensor_type);
-        return ESP_ERR_NO_MEM;
+    if (xSemaphoreTake(g_mutex, pdMS_TO_TICKS(100)) != pdTRUE) {
+        return ESP_ERR_TIMEOUT;
     }
 
-    uint8_t idx = (g_stack.head + 1) % SENSOR_STACK_SIZE;
-    
-    // Copy header (4 bytes)
-    g_stack.packets[idx].header = packet->header;
-    // Override source type
-    g_stack.packets[idx].header.msg_type = (uint8_t)source;
-    
-    // Copy link metadata (12 bytes)
-    g_stack.packets[idx].link = packet->link;
-    
-    // Copy variable payload (0..MAX_PAYLOAD_SIZE bytes)
-    memcpy(g_stack.packets[idx].payload, packet->payload, packet->header.payload_len);
+    sensor_slot_t *slot = &g_stack.slots[sensor_nr];
 
-    g_stack.head = idx;
-    g_stack.count++;
+    if (!slot->valid) {
+        g_stack.count++;
+    } else {
+        g_stack.total_overwritten++;
+        ESP_LOGD(TAG, "Sensor %d: unread data overwritten", sensor_nr);
+    }
+
+    slot->packet = *packet;
+    slot->valid  = true;
     g_stack.total_received++;
 
-    xSemaphoreGive(g_stack.mutex);
+    xSemaphoreGive(g_mutex);
     return ESP_OK;
 }
 
 esp_err_t sensor_stack_pop(sensor_packet_t *packet) {
-    if (packet == NULL || xSemaphoreTake(g_stack.mutex, pdMS_TO_TICKS(100)) != pdTRUE) {
-        return ESP_ERR_NO_MEM;
+    if (packet == NULL) {
+        return ESP_ERR_INVALID_ARG;
     }
-
-    if (g_stack.count == 0) {
-        xSemaphoreGive(g_stack.mutex);
+    if (xSemaphoreTake(g_mutex, pdMS_TO_TICKS(100)) != pdTRUE) {
         return ESP_ERR_TIMEOUT;
     }
 
-    uint8_t idx = (g_stack.tail + 1) % SENSOR_STACK_SIZE;
-    
-    // Copy header
-    packet->header = g_stack.packets[idx].header;
-    // Copy link metadata
-    packet->link = g_stack.packets[idx].link;
-    // Copy variable payload
-    memcpy(packet->payload, g_stack.packets[idx].payload, 
-           g_stack.packets[idx].header.payload_len);
+    for (int i = 0; i < MAX_SENSORS; i++) {
+        if (g_stack.slots[i].valid) {
+            *packet = g_stack.slots[i].packet;
+            g_stack.slots[i].valid = false;
+            g_stack.count--;
+            xSemaphoreGive(g_mutex);
+            return ESP_OK;
+        }
+    }
 
-    g_stack.tail = idx;
-    g_stack.count--;
-
-    xSemaphoreGive(g_stack.mutex);
-    return ESP_OK;
+    xSemaphoreGive(g_mutex);
+    return ESP_ERR_NOT_FOUND;
 }
 
 uint8_t sensor_stack_count(void) {
-    if (xSemaphoreTake(g_stack.mutex, pdMS_TO_TICKS(100)) != pdTRUE) {
+    if (xSemaphoreTake(g_mutex, pdMS_TO_TICKS(100)) != pdTRUE) {
         return 0;
     }
     uint8_t count = g_stack.count;
-    xSemaphoreGive(g_stack.mutex);
+    xSemaphoreGive(g_mutex);
     return count;
 }
 
-void sensor_stack_stats(uint32_t *received, uint32_t *dropped) {
-    if (xSemaphoreTake(g_stack.mutex, pdMS_TO_TICKS(100)) != pdTRUE) {
-        if (received) *received = 0;
-        if (dropped) *dropped = 0;
+void sensor_stack_stats(uint32_t *received, uint32_t *overwritten) {
+    if (xSemaphoreTake(g_mutex, pdMS_TO_TICKS(100)) != pdTRUE) {
+        if (received)    *received    = 0;
+        if (overwritten) *overwritten = 0;
         return;
     }
-    if (received) *received = g_stack.total_received;
-    if (dropped) *dropped = g_stack.total_dropped;
-    xSemaphoreGive(g_stack.mutex);
+    if (received)    *received    = g_stack.total_received;
+    if (overwritten) *overwritten = g_stack.total_overwritten;
+    xSemaphoreGive(g_mutex);
 }
 
 void sensor_stack_reset_dropped(void) {
-    if (xSemaphoreTake(g_stack.mutex, pdMS_TO_TICKS(100)) != pdTRUE) {
+    if (xSemaphoreTake(g_mutex, pdMS_TO_TICKS(100)) != pdTRUE) {
         return;
     }
-    g_stack.total_dropped = 0;
-    xSemaphoreGive(g_stack.mutex);
+    g_stack.total_overwritten = 0;
+    xSemaphoreGive(g_mutex);
 }

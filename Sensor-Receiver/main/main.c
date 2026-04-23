@@ -14,35 +14,24 @@
 #include <time.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "driver/gpio.h"
 #include "esp_log.h"
 #include "esp_sleep.h"
 
-// U8g2 and Hardware
-#include "u8g2_esp32_hal.h"
-
 // Project modules
 #include "sensor_stack.h"
-#include "display_driver.h"
+#include "display/display.h"
 #include "network/lora.h"
 #include "network/esp-now.h"
 
 static const char* TAG = "MAIN";
 
-// Display Pins for Heltec WiFi LoRa 32 V3.x & V4
-#define PIN_SDA      GPIO_NUM_17
-#define PIN_SCL      GPIO_NUM_18
-#define PIN_RST      GPIO_NUM_21
-#define PIN_VEXT     GPIO_NUM_36
+#define PIN_VEXT     GPIO_NUM_36  // Display power supply (LOW = on)
 
-// -------------------------------------------------------------------------
 // PIN DEFINITIONS FOR RF FRONT-END MODULE (FEM)
-// -------------------------------------------------------------------------
 #define PIN_VFEM     GPIO_NUM_7   // Amplifier power
 #define PIN_PA_CSD   GPIO_NUM_2   // Chip Shut Down / Enable
 #define PIN_PA_CPS   GPIO_NUM_46  // RX/TX Path Control
-
-// U8g2 Display Handle
-static u8g2_t u8g2;
 
 /**
  * @brief Configure VExt, VFem and PA pins
@@ -78,43 +67,6 @@ static esp_err_t init_board(void) {
 }
 
 /**
- * @brief Initialize OLED Display
- */
-static esp_err_t init_display(void) {
-    ESP_LOGI(TAG, "Configuring U8g2 HAL...");
-    u8g2_esp32_hal_t u8g2_esp32_hal = U8G2_ESP32_HAL_DEFAULT;
-    u8g2_esp32_hal.bus.i2c.sda = PIN_SDA;
-    u8g2_esp32_hal.bus.i2c.scl = PIN_SCL;
-    u8g2_esp32_hal.reset = PIN_RST;
-    u8g2_esp32_hal_init(u8g2_esp32_hal);
-    
-    ESP_LOGI(TAG, "U8g2 HAL initialized");
-    
-    vTaskDelay(pdMS_TO_TICKS(100));
-    
-    // Initialize display (SSD1306 128x64 OLED)
-    ESP_LOGI(TAG, "Setup U8g2 Display Structure...");
-    u8g2_Setup_ssd1306_i2c_128x64_noname_f(
-        &u8g2,
-        U8G2_R0,
-        u8g2_esp32_i2c_byte_cb,
-        u8g2_esp32_gpio_and_delay_cb
-    );
-    
-    // Set I2C address
-    u8x8_SetI2CAddress(&u8g2.u8x8, 0x3C << 1 );
-    
-    ESP_LOGI(TAG, "Initializing Display (I2C Address 0x3C/0x78)...");
-    
-    // Initialize display
-    u8g2_InitDisplay(&u8g2);
-    u8g2_SetPowerSave(&u8g2, 0); // Turn on display
-    
-    ESP_LOGI(TAG, "Display initialized");
-    return ESP_OK;
-}
-
-/**
  * @brief I2C Slave task for P4 readout
  * 
  * This task handles I2C requests from the ESP32-P4 master.
@@ -130,12 +82,12 @@ static void i2c_slave_task(void *arg) {
     // Placeholder: Just monitor stack stats
     uint32_t last_count = 0;
     while (1) {
-        uint32_t received, dropped;
-        sensor_stack_stats(&received, &dropped);
-        
+        uint32_t received, overwritten;
+        sensor_stack_stats(&received, &overwritten);
+
         if (received != last_count) {
-            ESP_LOGI(TAG, "Stack: %d packets, Total: %lu, Dropped: %lu",
-                     sensor_stack_count(), received, dropped);
+            ESP_LOGI(TAG, "Stack: %d sensors with data, Total: %lu, Overwritten: %lu",
+                     sensor_stack_count(), received, overwritten);
             last_count = received;
         }
         
@@ -155,12 +107,6 @@ void app_main(void) {
         return;
     }
 
-    // Initialize Display Hardware
-    if (init_display() != ESP_OK) {
-        ESP_LOGE(TAG, "Display initialization failed!");
-        return;
-    }
-    
     // Initialize LoRa Hardware
     if (init_lora() != ESP_OK) {
         ESP_LOGE(TAG, "LoRa initialization failed!");
@@ -178,8 +124,7 @@ void app_main(void) {
     tzset();
     ESP_LOGI(TAG, "Timezone set to CET/CEST");
     
-    // Initialize Display Driver (sets g_u8g2 pointer, creates mutex)
-    if (display_driver_init(&u8g2) != ESP_OK) {
+    if (display_init() != ESP_OK) {
         ESP_LOGE(TAG, "Display driver initialization failed!");
         return;
     }

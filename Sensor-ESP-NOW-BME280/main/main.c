@@ -164,7 +164,7 @@ static esp_err_t get_voltage(uint32_t *voltage)
 
     adc_cali_handle_t adc1_cali_chan0_handle = NULL;
 
-    adc_cali_line_fitting_config_t cali_config = {
+    adc_cali_line_fitting_config_t cali_config = {  
         .unit_id = ADC_UNIT,
         .atten = ADC_ATTEN,
         .bitwidth = ADC_BITWIDTH_DEFAULT,

@@ -12,7 +12,7 @@
 
 // Project modules
 #include "sensor_stack.h"
-#include "display_driver.h"
+#include "display/display.h"
 
 
 #define MAC_STR_LEN 18
@@ -184,7 +184,7 @@ void on_data_recv(const esp_now_recv_info_t *recv_info, const uint8_t *incoming_
             esp_err_t ret = sensor_stack_push(&packet, SENSOR_SOURCE_ESPNOW);
             if (ret == ESP_OK) {
                 // Update display (only needs header + link metadata)
-                display_driver_update(&packet);
+                display_update(&packet);
                 
                 ESP_LOGI(TAG, "  Sensor %d [Type=%d] payload=%d bytes",
                          packet.header.sensor_nr,
