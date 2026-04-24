@@ -43,8 +43,8 @@ static void lora_rx_callback(uint8_t *data, uint8_t len, sx1262_packet_status_t 
     memcpy(&packet.header, data, sizeof(packet_header_t));
 
     packet.link.msg_source = SENSOR_SOURCE_LORA;
-    packet.link.lora_rssi  = status->rssi_pkt;
-    packet.link.lora_snr   = status->snr_pkt;
+    packet.link.rssi  = status->rssi_pkt;
+    packet.link.snr   = status->snr_pkt;
     packet.link.timestamp  = xTaskGetTickCount();
 
     // Payload starts immediately after header (sender does not include link_metadata)

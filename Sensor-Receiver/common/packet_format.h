@@ -61,8 +61,8 @@ typedef struct __attribute__((packed)) {
 
 typedef struct __attribute__((packed)) {
     uint8_t  msg_source;  // sensor_source_t: LORA=1, ESPNOW=2
-    int16_t  lora_rssi;   // RSSI in dBm  (-32768 if ESP-NOW)
-    float    lora_snr;    // SNR  in dB   (-1.0   if ESP-NOW)
+    int16_t  rssi;   // RSSI in dBm
+    float    snr;    // SNR  in dB   (-1.0   if ESP-NOW)
     uint32_t timestamp;   // xTaskGetTickCount() at receive time
 } link_metadata_t;
 

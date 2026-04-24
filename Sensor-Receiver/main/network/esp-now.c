@@ -171,8 +171,8 @@ void on_data_recv(const esp_now_recv_info_t *recv_info, const uint8_t *incoming_
             
             // Link metadata - msg_source indicates how data reached receiver
             packet.link.msg_source = SENSOR_SOURCE_ESPNOW;
-            packet.link.lora_rssi = recv_info->rx_ctrl->rssi;
-            packet.link.lora_snr = -1.0f;  // SNR not available for ESP-NOW/WiFi
+            packet.link.rssi = recv_info->rx_ctrl->rssi;
+            packet.link.snr = -1.0f;  // SNR not available for ESP-NOW/WiFi
             packet.link.timestamp = xTaskGetTickCount();
             
             // Copy payload (receiver doesn't interpret it)

@@ -101,8 +101,8 @@ esp_err_t display_update(const sensor_packet_t *packet) {
     entry->sensor_nr   = packet->header.sensor_nr;
     entry->sensor_type = packet->header.sensor_type;
     entry->payload_len = packet->header.payload_len;
-    entry->rssi        = packet->link.lora_rssi;
-    entry->snr         = packet->link.lora_snr;
+    entry->rssi        = packet->link.rssi;
+    entry->snr         = packet->link.snr;
     entry->timestamp   = packet->link.timestamp;
     get_time_str(entry->time_str, sizeof(entry->time_str));
 
