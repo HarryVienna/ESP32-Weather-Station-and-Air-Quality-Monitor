@@ -82,7 +82,7 @@ esp_err_t sx1262_init_bus(void)
 
     // SPI Device Configuration
     spi_device_interface_config_t devcfg = {
-        .clock_speed_hz = 1 * 1000 * 1000,  // 1 MHz
+        .clock_speed_hz = 8 * 1000 * 1000,  // 8 MHz
         .mode = 0,
         .spics_io_num = LORA_PIN_NSS,
         .queue_size = 7,
@@ -122,16 +122,13 @@ esp_err_t sx1262_init_radio(void)
         return ret;
     }
 
-    vTaskDelay(pdMS_TO_TICKS(10));
-
     // Configure DIO3 as TCXO Control (3.3V, 5ms timeout)
+    // wait_on_busy() inside write_command handles TCXO stabilisation
     uint8_t tcxo_config[4] = {0x07, 0x00, 0x01, 0x40}; // 320 * 15.625us = 5ms
     ret = sx1262_write_command(SX1262_CMD_SET_DIO3_AS_TCXO_CTRL, tcxo_config, 4);
     if (ret != ESP_OK) {
         ESP_LOGE(TAG, "TCXO configuration failed");
     }
-
-    vTaskDelay(pdMS_TO_TICKS(10));
 
     // DIO2 as RF Switch Control
     uint8_t dio2_config = 0x01; // Enable
@@ -147,14 +144,12 @@ esp_err_t sx1262_init_radio(void)
         ESP_LOGE(TAG, "Regulator Mode failed");
     }
 
-    // Calibrate
+    // Calibrate — BUSY stays HIGH for the full duration, wait_on_busy() handles it
     uint8_t calib_param = 0x7F; // All
     ret = sx1262_write_command(SX1262_CMD_CALIBRATE, &calib_param, 1);
     if (ret != ESP_OK) {
         ESP_LOGE(TAG, "Calibration failed");
     }
-
-    vTaskDelay(pdMS_TO_TICKS(10));
 
     // Set RxTxFallbackMode (Chip goes back to STDBY_XOSC after TX/RX)
     uint8_t fallback_mode = 0x30; // STDBY_XOSC
@@ -859,7 +854,7 @@ void sx1262_stop_receive_async(void)
 
 esp_err_t sx1262_sleep(void)
 {
-    uint8_t sleep_config = 0x00; // Cold start: ~0.9 µA, radio must be fully re-initialized on wake
+    uint8_t sleep_config = 0x04; // Warm start: retain RAM & calibration (~1.1 µA)
     return sx1262_write_command(SX1262_CMD_SET_SLEEP, &sleep_config, 1);
 }
 

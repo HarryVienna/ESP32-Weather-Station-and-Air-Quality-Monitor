@@ -13,7 +13,6 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
-#include "driver/i2c_master.h"
 #include "driver/gpio.h"
 
 #include "esp_adc/adc_oneshot.h"
@@ -26,7 +25,7 @@
 
 #include "u8g2_esp32_hal.h"
 #include "sx1262.h"
-#include "bme280_sensor_driver.h"
+#include "bme280_sensor.h"
 
 #include "../common/packet_format.h"
 #include "config.h"
@@ -35,7 +34,7 @@
  * Constants
  * ============================================================================ */
 
-#define SLEEP_TIME_SECONDS 600
+#define SLEEP_TIME_SECONDS 60
 
 enum MessageType { PAIRING_REQ, PAIRING_RESP, DATA };
 
@@ -81,8 +80,6 @@ enum MessageType { PAIRING_REQ, PAIRING_RESP, DATA };
 #define STATUS_DISPLAY_MS 3000
 
 static const char *TAG = "main";
-
-static i2c_master_bus_handle_t i2c_master_bus = NULL;
 
 /* ============================================================================
  * Board init
@@ -198,29 +195,24 @@ static esp_err_t get_voltage(uint32_t *voltage) {
     return ESP_OK;
 }
 
-/* ============================================================================
- * I2C / BME280
- * ============================================================================ */
 
-static void i2c_init(void) {
-    i2c_master_bus_config_t cfg = {
-        .i2c_port      = I2C_NUM_0,
-        .scl_io_num    = I2C_SCL,
-        .sda_io_num    = I2C_SDA,
-        .clk_source    = I2C_CLK_SRC_DEFAULT,
-        .glitch_ignore_cnt = 7,
-        .flags.enable_internal_pullup = 1,
-    };
-    ESP_ERROR_CHECK(i2c_new_master_bus(&cfg, &i2c_master_bus));
-}
 
 /* ============================================================================
  * LoRa
  * ============================================================================ */
 
 static esp_err_t init_lora(int8_t tx_power) {
-    if (sx1262_init_bus()   != ESP_OK) return ESP_FAIL;
-    if (sx1262_init_radio() != ESP_OK) return ESP_FAIL;
+    if (sx1262_init_bus() != ESP_OK) return ESP_FAIL;
+
+    bool warm = (esp_reset_reason() == ESP_RST_DEEPSLEEP) &&
+                (sx1262_wakeup() == ESP_OK);
+
+    if (!warm) {
+        ESP_LOGI(TAG, "LoRa: cold start");
+        if (sx1262_init_radio() != ESP_OK) return ESP_FAIL;
+    } else {
+        ESP_LOGI(TAG, "LoRa: warm start");
+    }
 
     sx1262_config_t config = {
         .modem_mode       = SX1262_MODEM_LORA,
@@ -249,125 +241,22 @@ static esp_err_t init_lora(int8_t tx_power) {
  * ============================================================================ */
 
 static void start_deep_sleep(void) {
-    // 1. LoRa schlafen schicken
-    sx1262_sleep();
-    vTaskDelay(pdMS_TO_TICKS(10));
-    // WICHTIG: sx1262_deinit_bus() weglassen! Der SPI-Bus bleibt, 
-    // damit der Chip-Select Pin nicht zuckt und LoRa weckt.
 
-    gpio_set_direction(GPIO_NUM_43, GPIO_MODE_INPUT); 
-    gpio_pullup_dis(GPIO_NUM_43);
 
-    // 2. VEXT (Display) und ADC (Spannungsteiler) hart abschalten
-    gpio_set_direction(PIN_VEXT, GPIO_MODE_OUTPUT);
-    gpio_set_level(PIN_VEXT, 1);
-    gpio_set_direction(ADC_CTRL, GPIO_MODE_OUTPUT);
-    gpio_set_level(ADC_CTRL, 0);
-
-    // 3. DAS BME280 PROBLEM BEHEBEN: I2C Pins hochohmig machen (Float)
-    // Verhindert den Hardware-Kampf zwischen ESP-Hold und Sensor-Pull-ups
-    gpio_set_direction(I2C_SDA, GPIO_MODE_INPUT);
-    gpio_pullup_dis(I2C_SDA);
-    gpio_pulldown_dis(I2C_SDA);
-
-    gpio_set_direction(I2C_SCL, GPIO_MODE_INPUT);
-    gpio_pullup_dis(I2C_SCL);
-    gpio_pulldown_dis(I2C_SCL);
-
-    // 4. DAS HELTEC V3 PROBLEM BEHEBEN: USB-Chip Backfeed verhindern (~3.5 mA)
-    // Isoliert die UART Pins, damit kein Strom in den toten USB-Chip fließt
-    gpio_set_direction(GPIO_NUM_43, GPIO_MODE_INPUT); // U0TXD
-    gpio_pullup_dis(GPIO_NUM_43);
-    gpio_pulldown_dis(GPIO_NUM_43);
-
-    gpio_set_direction(GPIO_NUM_44, GPIO_MODE_INPUT); // U0RXD
-    gpio_pullup_dis(GPIO_NUM_44);
-    gpio_pulldown_dis(GPIO_NUM_44);
-
-    // 5. Display Pins ebenfalls komplett hochohmig machen
-    gpio_set_direction(DISPLAY_SDA, GPIO_MODE_INPUT);
-    gpio_pullup_dis(DISPLAY_SDA);
-    gpio_set_direction(DISPLAY_SCL, GPIO_MODE_INPUT);
-    gpio_pullup_dis(DISPLAY_SCL);
-    gpio_set_direction(DISPLAY_RST, GPIO_MODE_INPUT);
-    gpio_pullup_dis(DISPLAY_RST);
-
-    // 6. Alle soeben gesetzten, sicheren Zustände einfrieren
-    gpio_deep_sleep_hold_en();
-
-    // 7. Wakeup Timer und Button konfigurieren
-    esp_sleep_enable_timer_wakeup(1000000ULL * SLEEP_TIME_SECONDS);
-    esp_sleep_enable_ext1_wakeup(1ULL << GPIO_NUM_0, ESP_EXT1_WAKEUP_ANY_LOW);
-
-    ESP_LOGI(TAG, "Deep sleep...");
-    esp_deep_sleep_start();
-}
-
-/* ============================================================================
- * app_main
- * ============================================================================ */
-
-void app_main(void) {
-    
-    uint32_t voltage = 0;
-    get_voltage(&voltage);
-
-    gpio_reset_pin(I2C_SDA);
-    gpio_reset_pin(I2C_SCL);
-    i2c_init();
-    bme280_set_i2c_bus(i2c_master_bus);
-
-    sensor_data_t bme280_data = {0};
-    const sensor_driver_bme280_conf_t bme280_conf = {
-        .osr_p  = BME280_OVERSAMPLING_1X,
-        .osr_t  = BME280_OVERSAMPLING_1X,
-        .osr_h  = BME280_OVERSAMPLING_1X,
-        .filter = BME280_FILTER_COEFF_OFF,
-        .dev_id = BME280_I2C_ADDR_PRIM,
-    };
-
-    sensor_driver_t *bme280 = sensor_driver_new_bme280(&bme280_conf);
-    if (bme280 == NULL) {
-        ESP_LOGE(TAG, "BME280 driver alloc failed");
-    } else if (sensor_driver_init_sensor(bme280) != ESP_OK) {
-        ESP_LOGE(TAG, "BME280 init failed");
-    } else if (sensor_driver_read_values(bme280, &bme280_data) != ESP_OK) {
-        ESP_LOGE(TAG, "BME280 read failed");
-    } else {
-        ESP_LOGI(TAG, "BME280: %.2f°C / %.2f%% / %.2f hPa",
-                 bme280_data.temperature, bme280_data.humidity, bme280_data.pressure);
-    }
-
-    //sensor_driver_deinit(bme280);
-
-    // 4. PULL-UP KRIECHSTROM VERHINDERN
+    // PULL-UP KRIECHSTROM VERHINDERN
     // Zuerst Pegel auf HIGH setzen, DANN als Output definieren.
-    // gpio_set_level(I2C_SDA, 1);
-    // gpio_set_direction(I2C_SDA, GPIO_MODE_OUTPUT);
+    gpio_set_level(I2C_SDA, 1);
+    gpio_set_direction(I2C_SDA, GPIO_MODE_OUTPUT);
 
-    // gpio_set_level(I2C_SCL, 1);
-    // gpio_set_direction(I2C_SCL, GPIO_MODE_OUTPUT);
+    gpio_set_level(I2C_SCL, 1);
+    gpio_set_direction(I2C_SCL, GPIO_MODE_OUTPUT);
 
-
-
-// 1. LORA STARTEN
-    // Bus kurz aktivieren, um mit dem Chip reden zu können
-    sx1262_init_bus();
-    sx1262_init_radio(); 
-
-    
-
-
-    // 3. LORA SCHLAFEN SCHICKEN (< 1 µA)
-    sx1262_sleep();
-    vTaskDelay(pdMS_TO_TICKS(10));
-
-    // 4. DEN SPI-GLITCH VERHINDERN
+    // DEN SPI-GLITCH VERHINDERN
     // NSS Pin hart auf HIGH zwingen
     gpio_set_level(GPIO_NUM_8, 1); 
     gpio_set_direction(GPIO_NUM_8, GPIO_MODE_OUTPUT);
 
-    // 4. RESTLICHE LORA PINS ISOLIEREN
+    // RESTLICHE LORA PINS ISOLIEREN
     gpio_set_direction(GPIO_NUM_9, GPIO_MODE_INPUT);  // SCK
     gpio_set_direction(GPIO_NUM_10, GPIO_MODE_INPUT); // MOSI
     gpio_set_direction(GPIO_NUM_11, GPIO_MODE_INPUT); // MISO
@@ -375,7 +264,7 @@ void app_main(void) {
     gpio_set_direction(GPIO_NUM_12, GPIO_MODE_OUTPUT); // RST
     gpio_set_level(GPIO_NUM_12, 1); // WICHTIG: HIGH lassen!
 
-    // 5. DIE ERFOLGREICHE BASELINE ANWENDEN
+    // DIE ERFOLGREICHE BASELINE ANWENDEN
     // VEXT (OLED) hart aus
     gpio_set_direction(GPIO_NUM_36, GPIO_MODE_OUTPUT);
     gpio_set_level(GPIO_NUM_36, 1); 
@@ -394,38 +283,27 @@ void app_main(void) {
     gpio_set_direction(GPIO_NUM_44, GPIO_MODE_INPUT);
     gpio_pullup_dis(GPIO_NUM_44);
 
-
-
-    // 7. ALLES EINFRIEREN UND SCHLAFEN
+    // ALLES EINFRIEREN UND SCHLAFEN
     gpio_deep_sleep_hold_en();
     
-    // Für 60 Sekunden schlafen
-    esp_sleep_enable_timer_wakeup(60000000ULL);
+    esp_sleep_enable_timer_wakeup(1000000ULL * SLEEP_TIME_SECONDS);
+
+    ESP_LOGI(TAG, "Deep sleep...");
     esp_deep_sleep_start();
 
+}
 
+/* ============================================================================
+ * app_main
+ * ============================================================================ */
 
+void app_main(void) {
+    
+ 
+    bool show_menu = (esp_reset_reason() != ESP_RST_DEEPSLEEP);
+    show_menu = FALSE;
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    /* Button wake from deep sleep → show config menu */
-    bool show_menu = (esp_reset_reason() == ESP_RST_DEEPSLEEP) &&
-                     (esp_sleep_get_wakeup_cause() == ESP_SLEEP_WAKEUP_EXT1);
-
-    ESP_LOGI(TAG, "Boot: %s", show_menu ? "button wake → config menu" :
-             (esp_reset_reason() == ESP_RST_DEEPSLEEP) ? "timer wake" : "reset");
+    ESP_LOGI(TAG, "Boot: %s", show_menu ? "reset → config menu" : "timer wake");
 
     /* NVS — required by config module */
     esp_err_t ret = nvs_flash_init();
@@ -451,10 +329,31 @@ void app_main(void) {
 
     /* ── Measure ── */
 
+    uint32_t voltage = 0;
+    get_voltage(&voltage);
 
+    bme280_data_t bme280_data = {0};
+    bme280_sensor_t bme280    = {0};
+    const bme280_config_t bme280_conf = {
+        .sda_pin = I2C_SDA,
+        .scl_pin = I2C_SCL,
+        .osr_p   = BME280_OVERSAMPLING_1X,
+        .osr_t   = BME280_OVERSAMPLING_1X,
+        .osr_h   = BME280_OVERSAMPLING_1X,
+        .filter  = BME280_FILTER_COEFF_OFF,
+        .dev_id  = BME280_I2C_ADDR_PRIM,
+    };
+
+    if (bme280_sensor_init(&bme280, &bme280_conf) != ESP_OK) {
+        ESP_LOGE(TAG, "BME280 init failed");
+    } else if (bme280_sensor_read(&bme280, &bme280_data) != ESP_OK) {
+        ESP_LOGE(TAG, "BME280 read failed");
+    } else {
+        ESP_LOGI(TAG, "BME280: %.2f°C / %.2f%% / %.2f hPa",
+                 bme280_data.temperature, bme280_data.humidity, bme280_data.pressure);
+    }
 
     /* ── Send ── */
-
     ESP_ERROR_CHECK(init_lora(cfg.tx_power));
 
     lora_sensor_packet_t packet;
@@ -480,6 +379,8 @@ void app_main(void) {
     } else {
         ESP_LOGE(TAG, "LoRa send failed: %s", esp_err_to_name(send_err));
     }
+    sx1262_sleep();
+    vTaskDelay(pdMS_TO_TICKS(10));
 
     start_deep_sleep();
 }
