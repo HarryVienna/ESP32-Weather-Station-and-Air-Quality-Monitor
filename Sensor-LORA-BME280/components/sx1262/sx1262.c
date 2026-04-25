@@ -20,12 +20,13 @@ static void sx1262_reset(void);
 static void sx1262_wait_on_busy(void);
 
 static esp_err_t sx1262_write_command(uint8_t cmd, uint8_t *data, uint8_t len);
+static esp_err_t sx1262_write_command_nowait(uint8_t cmd, uint8_t *data, uint8_t len);
 static esp_err_t sx1262_read_command(uint8_t cmd, uint8_t *data, uint8_t len);
 
 static esp_err_t sx1262_write_register(uint16_t addr, uint8_t *data, uint8_t len);
 static esp_err_t sx1262_read_register(uint16_t addr, uint8_t *data, uint8_t len);
 
-static esp_err_t sx1262_spi_write_general(uint8_t *tx_header, uint8_t tx_header_len, uint8_t *data, uint8_t data_len);
+static esp_err_t sx1262_spi_write_general(uint8_t *tx_header, uint8_t tx_header_len, uint8_t *data, uint8_t data_len, bool wait_after);
 static esp_err_t sx1262_spi_read_general(uint8_t *tx_header, uint8_t tx_header_len, uint8_t *rx_data, uint8_t rx_len);
 
 static esp_err_t sx1262_calibrate_image(uint32_t frequency);
@@ -854,8 +855,10 @@ void sx1262_stop_receive_async(void)
 
 esp_err_t sx1262_sleep(void)
 {
-    uint8_t sleep_config = 0x04; // Warm start: retain RAM & calibration (~1.1 µA)
-    return sx1262_write_command(SX1262_CMD_SET_SLEEP, &sleep_config, 1);
+    uint8_t sleep_config = 0x00; // cold start (~0.9 µA)
+    // Nach SET_SLEEP schläft der Chip sofort — BUSY bleibt HIGH.
+    // Kein wait_on_busy() nach diesem Befehl!
+    return sx1262_write_command_nowait(SX1262_CMD_SET_SLEEP, &sleep_config, 1);
 }
 
 esp_err_t sx1262_deinit_bus(void)
@@ -1131,9 +1134,12 @@ static esp_err_t sx1262_calibrate_image(uint32_t frequency)
 
 static esp_err_t sx1262_write_command(uint8_t cmd, uint8_t *data, uint8_t len)
 {
-    // The header is just the single command byte 'cmd'
-    // We pass the address of 'cmd' as a 1-byte header
-    return sx1262_spi_write_general(&cmd, 1, data, len);
+    return sx1262_spi_write_general(&cmd, 1, data, len, true);
+}
+
+static esp_err_t sx1262_write_command_nowait(uint8_t cmd, uint8_t *data, uint8_t len)
+{
+    return sx1262_spi_write_general(&cmd, 1, data, len, false);
 }
 
 static esp_err_t sx1262_read_command(uint8_t cmd, uint8_t *data, uint8_t len)
@@ -1150,14 +1156,11 @@ static esp_err_t sx1262_read_command(uint8_t cmd, uint8_t *data, uint8_t len)
 
 static esp_err_t sx1262_write_register(uint16_t addr, uint8_t *data, uint8_t len)
 {
-    // The header is [CMD, ADDR_H, ADDR_L]
     uint8_t tx_header[3];
     tx_header[0] = SX1262_CMD_WRITE_REGISTER;
     tx_header[1] = (addr >> 8) & 0xFF;
     tx_header[2] = addr & 0xFF;
-    
-    // Header is 3 bytes long
-    return sx1262_spi_write_general(tx_header, 3, data, len);
+    return sx1262_spi_write_general(tx_header, 3, data, len, true);
 }
 
 static esp_err_t sx1262_read_register(uint16_t addr, uint8_t *data, uint8_t len)
@@ -1185,36 +1188,28 @@ static esp_err_t sx1262_read_register(uint16_t addr, uint8_t *data, uint8_t len)
  * @param data_len          Number of optional data bytes
  * @return esp_err_t 
  */
-static esp_err_t sx1262_spi_write_general(uint8_t *tx_header, uint8_t tx_header_len, uint8_t *data, uint8_t data_len)
+static esp_err_t sx1262_spi_write_general(uint8_t *tx_header, uint8_t tx_header_len, uint8_t *data, uint8_t data_len, bool wait_after)
 {
-    // Wait No. 1: Wait until the chip is ready for a command
     sx1262_wait_on_busy();
-    
-    // Total transaction size
+
     uint8_t total_len = tx_header_len + data_len;
-    
-    // We need a single, contiguous buffer for SPI
-    uint8_t tx_buffer[total_len]; 
-    
-    // 1. Copy header into the buffer
+    uint8_t tx_buffer[total_len];
+
     memcpy(tx_buffer, tx_header, tx_header_len);
-    
-    // 2. Copy optional data into the buffer
-    if (data != NULL && data_len > 0) {
+    if (data != NULL && data_len > 0)
         memcpy(&tx_buffer[tx_header_len], data, data_len);
-    }
-    
+
     spi_transaction_t trans = {
-        .length = total_len * 8,
+        .length    = total_len * 8,
         .tx_buffer = tx_buffer,
-        .rx_buffer = NULL
+        .rx_buffer = NULL,
     };
-    
+
     esp_err_t ret = spi_device_transmit(spi_handle, &trans);
-    
-    // Wait No. 2: Wait until the chip has finished executing the command
-    sx1262_wait_on_busy();
-    
+
+    if (wait_after)
+        sx1262_wait_on_busy();
+
     return ret;
 }
 

@@ -34,7 +34,7 @@
  * Constants
  * ============================================================================ */
 
-#define SLEEP_TIME_SECONDS 60
+#define SLEEP_TIME_SECONDS 600
 
 enum MessageType { PAIRING_REQ, PAIRING_RESP, DATA };
 
@@ -68,7 +68,7 @@ enum MessageType { PAIRING_REQ, PAIRING_RESP, DATA };
 /* LoRa (SX1262 / GC1109) — settings that never change */
 #define LORA_FREQUENCY        869525000UL  // 869.525 MHz — G3 band centre
 #define LORA_BANDWIDTH        LORA_BW_125
-#define LORA_SPREADING_FACTOR 7
+#define LORA_SPREADING_FACTOR 9
 #define LORA_CODING_RATE      LORA_CR_4_5
 #define LORA_PREAMBLE_LENGTH  8
 #define LORA_PAYLOAD_LENGTH   0
@@ -202,17 +202,8 @@ static esp_err_t get_voltage(uint32_t *voltage) {
  * ============================================================================ */
 
 static esp_err_t init_lora(int8_t tx_power) {
-    if (sx1262_init_bus() != ESP_OK) return ESP_FAIL;
-
-    bool warm = (esp_reset_reason() == ESP_RST_DEEPSLEEP) &&
-                (sx1262_wakeup() == ESP_OK);
-
-    if (!warm) {
-        ESP_LOGI(TAG, "LoRa: cold start");
-        if (sx1262_init_radio() != ESP_OK) return ESP_FAIL;
-    } else {
-        ESP_LOGI(TAG, "LoRa: warm start");
-    }
+    if (sx1262_init_bus()   != ESP_OK) return ESP_FAIL;
+    if (sx1262_init_radio() != ESP_OK) return ESP_FAIL;
 
     sx1262_config_t config = {
         .modem_mode       = SX1262_MODEM_LORA,
@@ -301,7 +292,6 @@ void app_main(void) {
     
  
     bool show_menu = (esp_reset_reason() != ESP_RST_DEEPSLEEP);
-    show_menu = FALSE;
 
     ESP_LOGI(TAG, "Boot: %s", show_menu ? "reset → config menu" : "timer wake");
 
