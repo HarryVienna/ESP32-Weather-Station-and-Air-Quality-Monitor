@@ -10,9 +10,3 @@ void sensor_driver_get_json(sensor_driver_t *handle, sensor_data_t values, char*
     return handle->get_json(handle, values, message);
 }
 
-void sensor_driver_deinit(sensor_driver_t *handle){
-    if (handle && handle->deinit_sensor) {
-        handle->deinit_sensor(handle);
-    }
-}
-

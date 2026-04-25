@@ -101,7 +101,6 @@ esp_err_t sx1262_init_bus(void)
     return ESP_OK;
 }
 
-
 esp_err_t sx1262_init_radio(void)
 {
     esp_err_t ret;
@@ -860,10 +859,39 @@ void sx1262_stop_receive_async(void)
 
 esp_err_t sx1262_sleep(void)
 {
-    uint8_t sleep_config = 0x04; // Warm start
-    esp_err_t ret = sx1262_write_command(SX1262_CMD_SET_SLEEP, &sleep_config, 1);
-    
-    return ret;
+    uint8_t sleep_config = 0x00; // Cold start: ~0.9 µA, radio must be fully re-initialized on wake
+    return sx1262_write_command(SX1262_CMD_SET_SLEEP, &sleep_config, 1);
+}
+
+esp_err_t sx1262_deinit_bus(void)
+{
+    // 1. NSS SOFORT als Output auf HIGH zwingen, BEVOR SPI loslässt.
+    // So garantieren wir, dass der SX1262 nicht versehentlich aufwacht!
+    gpio_set_direction(LORA_PIN_NSS, GPIO_MODE_OUTPUT);
+    gpio_set_level(LORA_PIN_NSS, 1);
+
+    // 2. SPI Treiber beenden
+    if (spi_handle != NULL) {
+        spi_bus_remove_device(spi_handle);
+        spi_handle = NULL;
+    }
+    spi_bus_free(SPI2_HOST);
+
+    // 3. SPI Pins NICHT floaten lassen (gpio_reset_pin ist hier schlecht).
+    // Besser: Als Input setzen und interne Pull-downs aktivieren.
+    gpio_set_direction(LORA_PIN_MOSI, GPIO_MODE_INPUT);
+    gpio_pullup_dis(LORA_PIN_MOSI);
+    gpio_pulldown_en(LORA_PIN_MOSI);
+
+    gpio_set_direction(LORA_PIN_SCK, GPIO_MODE_INPUT);
+    gpio_pullup_dis(LORA_PIN_SCK);
+    gpio_pulldown_en(LORA_PIN_SCK);
+
+    gpio_set_direction(LORA_PIN_MISO, GPIO_MODE_INPUT);
+    gpio_pullup_dis(LORA_PIN_MISO);
+    gpio_pulldown_en(LORA_PIN_MISO);
+
+    return ESP_OK;
 }
 
 esp_err_t sx1262_standby(void)

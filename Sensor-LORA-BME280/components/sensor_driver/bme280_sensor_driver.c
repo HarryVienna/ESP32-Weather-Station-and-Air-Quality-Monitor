@@ -177,6 +177,26 @@ esp_err_t bme280_read_values(sensor_driver_t *handle, sensor_data_t *values)
     return ESP_OK;
 }
 
+static void bme280_deinit_sensor(sensor_driver_t *handle)
+{
+    sensor_driver_bme280_t *bme280 = __containerof(handle, sensor_driver_bme280_t, parent);
+
+    // Explizit SLEEP MODE schreiben, bevor der I2C-Bus abgebaut wird.
+    // Hintergrund: Der neue i2c_master-Treiber liefert I2C-Fehlercodes im
+    // Bereich 0x6200+. Das Cast (int8_t)0x62XX ergibt 0 = BME280_OK,
+    // wodurch bme280_set_sensor_settings() bei einem stillen I2C-Fehler
+    // Garbage-Daten zurückliest und ctrl_meas[1:0]=11 (NORMAL MODE) schreibt.
+    // Dieser explizite Sleep-Befehl stellt sicher, dass der Chip schläft,
+    // egal in welchem Zustand er sich befindet.
+    bme280_set_sensor_mode(BME280_SLEEP_MODE, &bme280->bme280_device);
+
+    if (bme280->i2c_device_handle) {
+        i2c_master_bus_rm_device(bme280->i2c_device_handle);
+        bme280->i2c_device_handle = NULL;
+    }
+    free(bme280);
+}
+
 sensor_driver_t *sensor_driver_new_bme280(const sensor_driver_bme280_conf_t *config)
 {
     sensor_driver_bme280_t *bme280 = calloc(1, sizeof(sensor_driver_bme280_t));
@@ -187,8 +207,9 @@ sensor_driver_t *sensor_driver_new_bme280(const sensor_driver_bme280_conf_t *con
     bme280->driver_config.filter = config->filter;
     bme280->driver_config.dev_id = config->dev_id;
 
-    bme280->parent.init_sensor = bme280_init_sensor;
-    bme280->parent.read_values = bme280_read_values;
+    bme280->parent.init_sensor  = bme280_init_sensor;
+    bme280->parent.read_values  = bme280_read_values;
+    bme280->parent.deinit_sensor = bme280_deinit_sensor;
 
     return &bme280->parent;
 }

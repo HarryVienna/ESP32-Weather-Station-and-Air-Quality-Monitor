@@ -62,8 +62,6 @@ enum MessageType {
 // Sensor types defined in common/packet_format.h (sensor_type_t enum)
 // SENSOR_TYPE_BME280 = 1, etc.
 
-RTC_DATA_ATTR static int boot_count = 0;
-
 static const char* TAG = "main";
 
 static uint8_t s_broadcast_mac[ESP_NOW_ETH_ALEN] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
@@ -172,14 +170,15 @@ static esp_err_t get_voltage(uint32_t *voltage)
     ESP_ERROR_CHECK(adc_cali_create_scheme_line_fitting(&cali_config, &adc1_cali_chan0_handle));
 
     ESP_ERROR_CHECK(adc_oneshot_read(adc1_handle, ADC_CHANNEL, &adc_raw));
-    ESP_LOGI(TAG, "ADC%d Channel[%d] Raw Data: %d", ADC_UNIT + 1, ADC_CHANNEL, adc_raw);
-  
+    ESP_LOGI(TAG, "ADC raw: %d", adc_raw);
+
     ESP_ERROR_CHECK(adc_cali_raw_to_voltage(adc1_cali_chan0_handle, adc_raw, (int*)voltage));
-    ESP_LOGI(TAG, "ADC%d Channel[%d] Cali Voltage: %lu mV", ADC_UNIT + 1, ADC_CHANNEL, *voltage);
 
-    *voltage = *voltage * ((4.7 + 2.2) / 4.7); // Voltage divider is 2.2 : 4.7
-    ESP_LOGI(TAG, "ADC%d Channel[%d] Korr Voltage: %lu mV", ADC_UNIT + 1, ADC_CHANNEL, *voltage);
+    *voltage = *voltage * ((4.7 + 2.2) / 4.7);  // voltage divider 2.2 : 4.7
+    ESP_LOGI(TAG, "Battery: %lu mV", *voltage);
 
+    adc_cali_delete_scheme_line_fitting(adc1_cali_chan0_handle);
+    adc_oneshot_del_unit(adc1_handle);
     return ESP_OK;
 }
 
@@ -476,25 +475,21 @@ esp_err_t start_pairing(uint8_t *mac_addr, uint8_t *chan, uint8_t sensor_nr)
  * @note This function assumes that ESP_LOGI and esp_sleep_pd_config functions are available.
  * @note SENSOR_SLEEPTIME is a macro defined in a header file and represents the duration of sleep time in seconds.
  */
-void start_deep_sleep() 
+void start_deep_sleep()
 {
-    ESP_LOGI(TAG, "Start Deep Sleep");
-    esp_sleep_pd_config(ESP_PD_DOMAIN_MAX, ESP_PD_OPTION_OFF);
-
-    // https://electronics.stackexchange.com/questions/530151/esp32-wroom32-consuming-77-%c2%b5a-much-too-high-in-deep-sleep
+    // Disable input pull-ups on DIP-switch pins (each internal pull-up draws ~70 µA)
     gpio_reset_pin(SENSOR_NR_0);
     gpio_reset_pin(SENSOR_NR_1);
     gpio_reset_pin(SENSOR_NR_2);
 
-    // https://www.esp32.com/viewtopic.php?t=3634
-    // gpio_pad_select_gpio(GPIO_NUM_32);
-    // gpio_set_direction(GPIO_NUM_32, GPIO_MODE_INPUT);
-    // gpio_set_pull_mode(GPIO_NUM_32, GPIO_PULLUP_ONLY);
+    // Power down all unused domains during deep sleep.
+    // No EXT0/EXT1/touch wakeup, no RTC_DATA_ATTR variables, INT_RC oscillator used.
+    esp_sleep_pd_config(ESP_PD_DOMAIN_RTC_PERIPH,    ESP_PD_OPTION_OFF);
+    esp_sleep_pd_config(ESP_PD_DOMAIN_RTC_SLOW_MEM,  ESP_PD_OPTION_OFF);
+    esp_sleep_pd_config(ESP_PD_DOMAIN_RTC_FAST_MEM,  ESP_PD_OPTION_OFF);
+    esp_sleep_pd_config(ESP_PD_DOMAIN_XTAL,          ESP_PD_OPTION_OFF);
 
-    // gpio_pad_select_gpio(GPIO_NUM_33);
-    // gpio_set_direction(GPIO_NUM_33, GPIO_MODE_INPUT);
-    // gpio_set_pull_mode(GPIO_NUM_33, GPIO_PULLUP_ONLY);
-
+    ESP_LOGI(TAG, "Start Deep Sleep");
     esp_deep_sleep(1000000L * SENSOR_SLEEPTIME);
 }
 
@@ -502,9 +497,6 @@ void start_deep_sleep()
 void app_main(){
 
     //WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0);
-
-    ++boot_count;
-    ESP_LOGI(TAG, "Boot count: %d", boot_count);
 
     esp_err_t ret;
 

@@ -4,8 +4,9 @@ CONFIG_IDF_TARGET="esp32s3"
 # No reboot after panic
 CONFIG_ESP_SYSTEM_PANIC_PRINT_HALT=y
 
-CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ_240=y
-CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ=240
+# 80 MHz is sufficient for I2C/SPI/ADC — saves ~40 mA vs 240 MHz during active phase
+CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ_80=y
+CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ=80
 
 # Flash size (detected 8 MB)
 CONFIG_ESPTOOLPY_FLASHSIZE_8MB=y
@@ -13,3 +14,10 @@ CONFIG_ESPTOOLPY_FLASHSIZE="8mb"
 
 # ADC Calibration: ESP32-S3 uses curve fitting
 CONFIG_ADC_CALI_CURVE_FITTING_ENABLE=y
+
+# Skip firmware SHA256 validation on deep-sleep wake — saves ~200 ms at ~100 mA
+CONFIG_BOOTLOADER_SKIP_VALIDATE_IN_DEEP_SLEEP=y
+
+# Logging — uncomment for production to save active time and binary size
+#CONFIG_LOG_DEFAULT_LEVEL_NONE=y
+#CONFIG_BOOTLOADER_LOG_LEVEL_NONE=y
