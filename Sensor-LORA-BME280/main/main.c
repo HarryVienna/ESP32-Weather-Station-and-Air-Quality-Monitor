@@ -36,7 +36,7 @@
 
 enum MessageType { PAIRING_REQ, PAIRING_RESP, DATA };
 
-#define SLEEP_TIME_SECONDS 60
+#define SLEEP_TIME_SECONDS 600
 
 /* LED */
 #define PIN_LED      GPIO_NUM_35
@@ -354,10 +354,10 @@ void app_main(void) {
     packet.header.sensor_type = SENSOR_TYPE_BME280;
 
     uint8_t off = 0;
-    memcpy(&packet.payload[off], &voltage,                  sizeof(uint32_t)); off += 4;
-    memcpy(&packet.payload[off], &bme280_data.pressure,     sizeof(float));    off += 4;
-    memcpy(&packet.payload[off], &bme280_data.temperature,  sizeof(float));    off += 4;
-    memcpy(&packet.payload[off], &bme280_data.humidity,     sizeof(float));    off += 4;
+    memcpy(&packet.payload[off], &voltage,                  sizeof(uint32_t)); off += sizeof(uint32_t);
+    memcpy(&packet.payload[off], &bme280_data.pressure,     sizeof(float));    off += sizeof(float);
+    memcpy(&packet.payload[off], &bme280_data.temperature,  sizeof(float));    off += sizeof(float);
+    memcpy(&packet.payload[off], &bme280_data.humidity,     sizeof(float));    off += sizeof(float);
     packet.header.payload_len = off;
 
     uint32_t total_len = sizeof(packet_header_t) + packet.header.payload_len;
