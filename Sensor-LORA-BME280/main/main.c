@@ -34,9 +34,12 @@
  * Constants
  * ============================================================================ */
 
-#define SLEEP_TIME_SECONDS 600
-
 enum MessageType { PAIRING_REQ, PAIRING_RESP, DATA };
+
+#define SLEEP_TIME_SECONDS 60
+
+/* LED */
+#define PIN_LED      GPIO_NUM_35
 
 /* Heltec V4 FEM / power pins */
 #define PIN_VEXT     GPIO_NUM_36  // Display power (LOW = on)
@@ -65,6 +68,10 @@ enum MessageType { PAIRING_REQ, PAIRING_RESP, DATA };
 #define I2C_SCL     GPIO_NUM_47
 #define I2C_FREQ_HZ 100000
 
+/* UART */
+#define UART0_RXD     GPIO_NUM_44
+#define UART0_TXD     GPIO_NUM_43
+
 /* LoRa (SX1262 / GC1109) — settings that never change */
 #define LORA_FREQUENCY        869525000UL  // 869.525 MHz — G3 band centre
 #define LORA_BANDWIDTH        LORA_BW_125
@@ -76,9 +83,25 @@ enum MessageType { PAIRING_REQ, PAIRING_RESP, DATA };
 #define LORA_RX_GAIN_BOOSTED  true
 #define LORA_SYNC_WORD        0x1424
 
-#define STATUS_DISPLAY_MS 3000
-
 static const char *TAG = "main";
+
+/* ============================================================================
+ * LED
+ * ============================================================================ */
+
+static void blink(void) {
+    gpio_config_t led_conf = {
+        .pin_bit_mask = (1ULL << PIN_LED),
+        .mode = GPIO_MODE_OUTPUT,
+        .pull_up_en = GPIO_PULLUP_DISABLE,
+        .pull_down_en = GPIO_PULLDOWN_DISABLE,
+        .intr_type = GPIO_INTR_DISABLE,
+    };
+    gpio_config(&led_conf);
+    gpio_set_level(PIN_LED, 1);
+    vTaskDelay(pdMS_TO_TICKS(10));
+    gpio_set_level(PIN_LED, 0);
+}
 
 /* ============================================================================
  * Board init
@@ -194,8 +217,6 @@ static esp_err_t get_voltage(uint32_t *voltage) {
     return ESP_OK;
 }
 
-
-
 /* ============================================================================
  * LoRa
  * ============================================================================ */
@@ -232,46 +253,28 @@ static esp_err_t init_lora(int8_t tx_power, uint8_t sf) {
 
 static void start_deep_sleep(void) {
 
-
-    // PULL-UP KRIECHSTROM VERHINDERN
-    // Zuerst Pegel auf HIGH setzen, DANN als Output definieren.
-    gpio_set_level(I2C_SDA, 1);
-    gpio_set_direction(I2C_SDA, GPIO_MODE_OUTPUT);
-
-    gpio_set_level(I2C_SCL, 1);
-    gpio_set_direction(I2C_SCL, GPIO_MODE_OUTPUT);
-
     // DEN SPI-GLITCH VERHINDERN
     // NSS Pin hart auf HIGH zwingen
-    gpio_set_level(GPIO_NUM_8, 1); 
-    gpio_set_direction(GPIO_NUM_8, GPIO_MODE_OUTPUT);
+    gpio_set_level(LORA_PIN_NSS, 1); 
+    gpio_set_direction(LORA_PIN_NSS, GPIO_MODE_OUTPUT);
 
     // RESTLICHE LORA PINS ISOLIEREN
-    gpio_set_direction(GPIO_NUM_9, GPIO_MODE_INPUT);  // SCK
-    gpio_set_direction(GPIO_NUM_10, GPIO_MODE_INPUT); // MOSI
-    gpio_set_direction(GPIO_NUM_11, GPIO_MODE_INPUT); // MISO
+    gpio_set_direction(LORA_PIN_SCK, GPIO_MODE_INPUT);  // SCK
+    gpio_set_direction(LORA_PIN_MOSI, GPIO_MODE_INPUT); // MOSI
+    gpio_set_direction(LORA_PIN_MISO, GPIO_MODE_INPUT); // MISO
     
-    gpio_set_direction(GPIO_NUM_12, GPIO_MODE_OUTPUT); // RST
-    gpio_set_level(GPIO_NUM_12, 1); // WICHTIG: HIGH lassen!
+    gpio_set_direction(LORA_PIN_RST, GPIO_MODE_OUTPUT); // RST
+    gpio_set_level(LORA_PIN_RST, 1); // HIGH lassen!
 
-    // DIE ERFOLGREICHE BASELINE ANWENDEN
     // VEXT (OLED) hart aus
-    gpio_set_direction(GPIO_NUM_36, GPIO_MODE_OUTPUT);
-    gpio_set_level(GPIO_NUM_36, 1); 
-
-    // ADC Spannungsteiler aus
-    gpio_set_direction(GPIO_NUM_37, GPIO_MODE_OUTPUT);
-    gpio_set_level(GPIO_NUM_37, 0);
-
-    // RGB LED (WS2812) aus
-    gpio_set_direction(GPIO_NUM_42, GPIO_MODE_OUTPUT);
-    gpio_set_level(GPIO_NUM_42, 0);
+    gpio_set_direction(PIN_VEXT, GPIO_MODE_OUTPUT);
+    gpio_set_level(PIN_VEXT, 1); 
 
     // UART / USB-Backfeeding isolieren
-    gpio_set_direction(GPIO_NUM_43, GPIO_MODE_INPUT);
-    gpio_pullup_dis(GPIO_NUM_43);
-    gpio_set_direction(GPIO_NUM_44, GPIO_MODE_INPUT);
-    gpio_pullup_dis(GPIO_NUM_44);
+    gpio_set_direction(UART0_TXD, GPIO_MODE_INPUT);
+    gpio_pullup_dis(UART0_TXD);
+    gpio_set_direction(UART0_RXD, GPIO_MODE_INPUT);
+    gpio_pullup_dis(UART0_RXD);
 
     // ALLES EINFRIEREN UND SCHLAFEN
     gpio_deep_sleep_hold_en();
@@ -289,7 +292,7 @@ static void start_deep_sleep(void) {
 
 void app_main(void) {
  
-    bool show_menu = (esp_reset_reason() != ESP_RST_DEEPSLEEP);
+      bool show_menu = (esp_reset_reason() != ESP_RST_DEEPSLEEP);
 
     ESP_LOGI(TAG, "Boot: %s", show_menu ? "reset → config menu" : "timer wake");
 
@@ -368,7 +371,8 @@ void app_main(void) {
         ESP_LOGE(TAG, "LoRa send failed: %s", esp_err_to_name(send_err));
     }
     sx1262_sleep();
-    vTaskDelay(pdMS_TO_TICKS(10));
+
+    blink();
 
     start_deep_sleep();
 }
