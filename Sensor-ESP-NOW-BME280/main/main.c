@@ -19,7 +19,7 @@
 #include "esp_wifi.h"
 #include "nvs_flash.h"
 
-#include "bme280_sensor_driver.h"
+#include "bme280_sensor.h"
 
 /* Common packet format - shared with receiver project */
 #include "../common/packet_format.h"
@@ -65,8 +65,6 @@ enum MessageType {
 static const char* TAG = "main";
 
 static uint8_t s_broadcast_mac[ESP_NOW_ETH_ALEN] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
-
-static i2c_master_bus_handle_t i2c_master_bus = NULL;
 
 static QueueHandle_t s_espnow_queue;
 static EventGroupHandle_t s_espnow_event_group;
@@ -180,21 +178,6 @@ static esp_err_t get_voltage(uint32_t *voltage)
     adc_cali_delete_scheme_line_fitting(adc1_cali_chan0_handle);
     adc_oneshot_del_unit(adc1_handle);
     return ESP_OK;
-}
-
-/**
- * @brief Initialize I2C communication using given configuration
- *
- * This function initializes the I2C communication by setting the I2C parameters and creating the I2C master bus
- * for the specified I2C peripheral number. The configuration is passed as a pointer to an i2c_master_bus_config_t structure.
- *
- * @param[in] bus_config Pointer to an i2c_master_bus_config_t structure containing the I2C bus configuration
- *
- * @return None
- */
-static void i2c_init(i2c_master_bus_config_t *bus_config)
-{
-	ESP_ERROR_CHECK(i2c_new_master_bus(bus_config, &i2c_master_bus));
 }
 
 /**
@@ -486,7 +469,6 @@ void start_deep_sleep()
     // No EXT0/EXT1/touch wakeup, no RTC_DATA_ATTR variables, INT_RC oscillator used.
     esp_sleep_pd_config(ESP_PD_DOMAIN_RTC_PERIPH,    ESP_PD_OPTION_OFF);
     esp_sleep_pd_config(ESP_PD_DOMAIN_RTC_SLOW_MEM,  ESP_PD_OPTION_OFF);
-    esp_sleep_pd_config(ESP_PD_DOMAIN_RTC_FAST_MEM,  ESP_PD_OPTION_OFF);
     esp_sleep_pd_config(ESP_PD_DOMAIN_XTAL,          ESP_PD_OPTION_OFF);
 
     ESP_LOGI(TAG, "Start Deep Sleep");
@@ -500,9 +482,6 @@ void app_main(){
 
     esp_err_t ret;
 
-    // ------- Blink LED -------
-    blink();
-
     // ------- Read DIP switch value -------
     uint8_t sensor_nr;    
     ret = get_sensor_number(&sensor_nr);
@@ -514,62 +493,26 @@ void app_main(){
     ESP_LOGI(TAG, "voltage: %lu", voltage);
 
 
-    // ------- Read sensors -------
-    ESP_LOGI(TAG, "Initializing I2C bus...");
-    gpio_reset_pin(SDA_PIN);
-    gpio_reset_pin(SCL_PIN);
-
-    i2c_master_bus_config_t i2c_config = {
-        .i2c_port = I2C_NUM_0,
-        .scl_io_num = SCL_PIN,
-        .sda_io_num = SDA_PIN,
-        .clk_source = I2C_CLK_SRC_DEFAULT,
-        .glitch_ignore_cnt = 7,
-        .intr_priority = 0,
-        .trans_queue_depth = 0,
-        .flags.enable_internal_pullup = 1,
+    // ------- Read BME280 -------
+    bme280_data_t bme280_data = {0};
+    bme280_sensor_t bme280    = {0};
+    const bme280_config_t bme280_conf = {
+        .sda_pin = SDA_PIN,
+        .scl_pin = SCL_PIN,
+        .osr_p   = BME280_OVERSAMPLING_1X,
+        .osr_t   = BME280_OVERSAMPLING_1X,
+        .osr_h   = BME280_OVERSAMPLING_1X,
+        .filter  = BME280_FILTER_COEFF_OFF,
+        .dev_id  = BME280_I2C_ADDR_PRIM,
     };
 
-    i2c_init(&i2c_config);
-    ESP_LOGI(TAG, "I2C bus initialized successfully");
-
-    // Set the I2C bus handle for the BME280 driver
-    bme280_set_i2c_bus(i2c_master_bus);
-    ESP_LOGI(TAG, "BME280 I2C bus handle set");
-
-    sensor_data_t values_bme280;
-    const sensor_driver_bme280_conf_t bme280_config = {
-        .osr_p = BME280_OVERSAMPLING_1X,
-        .osr_t = BME280_OVERSAMPLING_1X,
-        .osr_h = BME280_OVERSAMPLING_1X,
-        .filter = BME280_FILTER_COEFF_OFF,
-        .dev_id = BME280_I2C_ADDR_PRIM
-    };
-    ESP_LOGI(TAG, "BME280 config: dev_id=0x%02x, osr_p=%d, osr_t=%d, osr_h=%d, filter=%d",
-             bme280_config.dev_id, bme280_config.osr_p, bme280_config.osr_t, bme280_config.osr_h, bme280_config.filter);
-
-    sensor_driver_t *bme280_driver = sensor_driver_new_bme280(&bme280_config);
-    if (bme280_driver == NULL) {
-        ESP_LOGE(TAG, "Failed to create BME280 driver");
+    if (bme280_sensor_init(&bme280, &bme280_conf) != ESP_OK) {
+        ESP_LOGE(TAG, "BME280 init failed");
+    } else if (bme280_sensor_read(&bme280, &bme280_data) != ESP_OK) {
+        ESP_LOGE(TAG, "BME280 read failed");
     } else {
-        ESP_LOGI(TAG, "BME280 driver created successfully");
-    }
-
-    ESP_LOGI(TAG, "Initializing BME280 sensor...");
-    ret = sensor_driver_init_sensor(bme280_driver);
-    if (ret != ESP_OK) {
-        ESP_LOGE(TAG, "BME280 initialization failed with error: 0x%x", ret);
-    } else {
-        ESP_LOGI(TAG, "BME280 sensor initialized successfully");
-
-        ESP_LOGI(TAG, "Reading BME280 sensor values...");
-        ret = sensor_driver_read_values(bme280_driver, &values_bme280);
-        if (ret != ESP_OK) {
-            ESP_LOGE(TAG, "BME280 read failed with error: 0x%x", ret);
-        } else {
-            ESP_LOGI(TAG, "BME280 sensor read successful");
-            ESP_LOGI(TAG, "bme280 %0.2f C / %.2f %% / %.2f hPa", values_bme280.temperature, values_bme280.humidity, values_bme280.pressure);
-        }
+        ESP_LOGI(TAG, "BME280: %.2f°C / %.2f%% / %.2f hPa",
+                 bme280_data.temperature, bme280_data.humidity, bme280_data.pressure);
     }
 
     // ------- Transmit data -------
@@ -609,22 +552,20 @@ void app_main(){
     // Create message using common packet format
     espnow_sensor_packet_t packet;
     memset(&packet, 0, sizeof(packet));
-    packet.header.msg_type = DATA;  // Original sender msg_type (0=PAIRING_REQ, 1=PAIRING_RESP, 2=DATA)
-    packet.header.sensor_nr = sensor_nr;
+    packet.header.msg_type    = DATA;
+    packet.header.sensor_nr   = sensor_nr;
     packet.header.sensor_type = SENSOR_TYPE_BME280;
-    // Pack sensor data into payload (16 bytes: voltage + 3 floats)
-    uint8_t payload_offset = 0;
-    memcpy(&packet.payload[payload_offset], &voltage, sizeof(uint32_t));
-    payload_offset += sizeof(uint32_t);
-    memcpy(&packet.payload[payload_offset], &values_bme280.pressure, sizeof(float));
-    payload_offset += sizeof(float);
-    memcpy(&packet.payload[payload_offset], &values_bme280.temperature, sizeof(float));
-    payload_offset += sizeof(float);
-    memcpy(&packet.payload[payload_offset], &values_bme280.humidity, sizeof(float));
-    payload_offset += sizeof(float);
-    packet.header.payload_len = payload_offset;
+    
+    uint8_t off = 0;
+    memcpy(&packet.payload[off], &voltage,                  sizeof(uint32_t)); off += sizeof(uint32_t);
+    memcpy(&packet.payload[off], &bme280_data.pressure,     sizeof(float));    off += sizeof(float);
+    memcpy(&packet.payload[off], &bme280_data.temperature,  sizeof(float));    off += sizeof(float);
+    memcpy(&packet.payload[off], &bme280_data.humidity,     sizeof(float));    off += sizeof(float);
+    packet.header.payload_len = off;
 
-    ESP_ERROR_CHECK(esp_now_send(peer_mac, (uint8_t *) &packet, sizeof(packet_header_t) + packet.header.payload_len));
+    uint32_t total_len = sizeof(packet_header_t) + packet.header.payload_len;
+
+    ESP_ERROR_CHECK(esp_now_send(peer_mac, (uint8_t *) &packet, total_len));
 
     EventBits_t bits = xEventGroupWaitBits(s_espnow_event_group,
             ESPNOW_SEND_SUCCESSFUL_BIT | ESPNOW_SEND_FAIL_BIT,
@@ -637,6 +578,9 @@ void app_main(){
         ESP_LOGI(TAG, "Message sent failed");
         delete_peer_nvs(); // There was a problem. WIFI down? Channel changed? Whatever, delete pairing info and start again at the next wake up from deep sleep
     }      
+
+    // ------- Blink LED -------
+    blink();
 
     start_deep_sleep();
    
