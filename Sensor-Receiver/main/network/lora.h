@@ -11,7 +11,7 @@
 
 #define LORA_FREQUENCY          869525000      // 869,525 MHz == Middle of G3 band
 #define LORA_BANDWIDTH          LORA_BW_125
-#define LORA_SPREADING_FACTOR   7
+#define LORA_SPREADING_FACTOR   9
 #define LORA_CODING_RATE        LORA_CR_4_5
 #define LORA_TX_POWER           12             // RX Mode, ignored
 #define LORA_PREAMBLE_LENGTH    8

@@ -7,10 +7,12 @@
 
 #define CONFIG_DEFAULT_SENSOR_NR  0
 #define CONFIG_DEFAULT_TX_POWER   12
+#define CONFIG_DEFAULT_SF         9
 
 typedef struct {
-    uint8_t sensor_nr;  // 0–15
-    int8_t  tx_power;   // –9 to 22 dBm
+    uint8_t sensor_nr;         // 0–15
+    int8_t  tx_power;          // –9 to 22 dBm
+    uint8_t spreading_factor;  // 7–12
 } sensor_config_t;
 
 /**

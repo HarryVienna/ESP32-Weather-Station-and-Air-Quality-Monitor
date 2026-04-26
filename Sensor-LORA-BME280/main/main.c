@@ -68,7 +68,6 @@ enum MessageType { PAIRING_REQ, PAIRING_RESP, DATA };
 /* LoRa (SX1262 / GC1109) — settings that never change */
 #define LORA_FREQUENCY        869525000UL  // 869.525 MHz — G3 band centre
 #define LORA_BANDWIDTH        LORA_BW_125
-#define LORA_SPREADING_FACTOR 9
 #define LORA_CODING_RATE      LORA_CR_4_5
 #define LORA_PREAMBLE_LENGTH  8
 #define LORA_PAYLOAD_LENGTH   0
@@ -201,7 +200,7 @@ static esp_err_t get_voltage(uint32_t *voltage) {
  * LoRa
  * ============================================================================ */
 
-static esp_err_t init_lora(int8_t tx_power) {
+static esp_err_t init_lora(int8_t tx_power, uint8_t sf) {
     if (sx1262_init_bus()   != ESP_OK) return ESP_FAIL;
     if (sx1262_init_radio() != ESP_OK) return ESP_FAIL;
 
@@ -210,7 +209,7 @@ static esp_err_t init_lora(int8_t tx_power) {
         .frequency        = LORA_FREQUENCY,
         .tx_power         = tx_power,
         .bandwidth        = LORA_BANDWIDTH,
-        .spreading_factor = LORA_SPREADING_FACTOR,
+        .spreading_factor = sf,
         .coding_rate      = LORA_CODING_RATE,
         .iq_inverted      = LORA_IQ_INVERTED,
         .rx_gain_boosted  = LORA_RX_GAIN_BOOSTED,
@@ -223,7 +222,7 @@ static esp_err_t init_lora(int8_t tx_power) {
     if (sx1262_configure(&config) != ESP_OK) return ESP_FAIL;
 
     ESP_LOGI(TAG, "LoRa: SF%d BW125 %d dBm @ %lu MHz",
-             LORA_SPREADING_FACTOR, tx_power, LORA_FREQUENCY / 1000000);
+             sf, tx_power, LORA_FREQUENCY / 1000000);
     return ESP_OK;
 }
 
@@ -289,7 +288,6 @@ static void start_deep_sleep(void) {
  * ============================================================================ */
 
 void app_main(void) {
-    
  
     bool show_menu = (esp_reset_reason() != ESP_RST_DEEPSLEEP);
 
@@ -309,7 +307,7 @@ void app_main(void) {
 
     u8g2_t u8g2;
 
-    init_heltec_v3(show_menu);
+    init_heltec_v3(show_menu);                                                                                                                                                                                                                                                                                                                   
 
     if (show_menu) {
         ESP_ERROR_CHECK(init_display(&u8g2));
@@ -344,7 +342,7 @@ void app_main(void) {
     }
 
     /* ── Send ── */
-    ESP_ERROR_CHECK(init_lora(cfg.tx_power));
+    ESP_ERROR_CHECK(init_lora(cfg.tx_power, cfg.spreading_factor));
 
     lora_sensor_packet_t packet;
     memset(&packet, 0, sizeof(packet));

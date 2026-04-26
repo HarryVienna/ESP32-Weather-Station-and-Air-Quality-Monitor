@@ -17,6 +17,7 @@ static const char *TAG = "config";
 #define NVS_NAMESPACE   "sensor_cfg"
 #define NVS_KEY_NR      "sensor_nr"
 #define NVS_KEY_POWER   "tx_power"
+#define NVS_KEY_SF      "sf"
 
 #define BUTTON_GPIO     GPIO_NUM_0
 
@@ -24,30 +25,35 @@ static const char *TAG = "config";
 #define SENSOR_NR_MAX   15
 #define TX_POWER_MIN    (-9)
 #define TX_POWER_MAX    22
+#define SF_MIN          7
+#define SF_MAX          12
 
 /* ============================================================================
  * NVS
  * ============================================================================ */
 
 esp_err_t config_load(sensor_config_t *cfg) {
-    cfg->sensor_nr = CONFIG_DEFAULT_SENSOR_NR;
-    cfg->tx_power  = CONFIG_DEFAULT_TX_POWER;
+    cfg->sensor_nr        = CONFIG_DEFAULT_SENSOR_NR;
+    cfg->tx_power         = CONFIG_DEFAULT_TX_POWER;
+    cfg->spreading_factor = CONFIG_DEFAULT_SF;
 
     nvs_handle_t h;
     esp_err_t ret = nvs_open(NVS_NAMESPACE, NVS_READONLY, &h);
     if (ret != ESP_OK) {
-        ESP_LOGI(TAG, "No saved config, using defaults (nr=%d pwr=%d)",
-                 cfg->sensor_nr, cfg->tx_power);
+        ESP_LOGI(TAG, "No saved config, using defaults (nr=%d pwr=%d sf=%d)",
+                 cfg->sensor_nr, cfg->tx_power, cfg->spreading_factor);
         return ESP_OK;
     }
 
-    uint8_t nr;
+    uint8_t nr, sf;
     int8_t  pwr;
-    if (nvs_get_u8(h, NVS_KEY_NR,    &nr)  == ESP_OK) cfg->sensor_nr = nr;
-    if (nvs_get_i8(h, NVS_KEY_POWER, &pwr) == ESP_OK) cfg->tx_power  = pwr;
+    if (nvs_get_u8(h, NVS_KEY_NR,    &nr)  == ESP_OK) cfg->sensor_nr        = nr;
+    if (nvs_get_i8(h, NVS_KEY_POWER, &pwr) == ESP_OK) cfg->tx_power         = pwr;
+    if (nvs_get_u8(h, NVS_KEY_SF,    &sf)  == ESP_OK) cfg->spreading_factor = sf;
 
     nvs_close(h);
-    ESP_LOGI(TAG, "Config loaded: sensor_nr=%d tx_power=%d", cfg->sensor_nr, cfg->tx_power);
+    ESP_LOGI(TAG, "Config loaded: sensor_nr=%d tx_power=%d sf=%d",
+             cfg->sensor_nr, cfg->tx_power, cfg->spreading_factor);
     return ESP_OK;
 }
 
@@ -56,9 +62,11 @@ esp_err_t config_save(const sensor_config_t *cfg) {
     ESP_ERROR_CHECK(nvs_open(NVS_NAMESPACE, NVS_READWRITE, &h));
     ESP_ERROR_CHECK(nvs_set_u8(h, NVS_KEY_NR,    cfg->sensor_nr));
     ESP_ERROR_CHECK(nvs_set_i8(h, NVS_KEY_POWER, cfg->tx_power));
+    ESP_ERROR_CHECK(nvs_set_u8(h, NVS_KEY_SF,    cfg->spreading_factor));
     ESP_ERROR_CHECK(nvs_commit(h));
     nvs_close(h);
-    ESP_LOGI(TAG, "Config saved: sensor_nr=%d tx_power=%d", cfg->sensor_nr, cfg->tx_power);
+    ESP_LOGI(TAG, "Config saved: sensor_nr=%d tx_power=%d sf=%d",
+             cfg->sensor_nr, cfg->tx_power, cfg->spreading_factor);
     return ESP_OK;
 }
 
@@ -69,6 +77,7 @@ esp_err_t config_save(const sensor_config_t *cfg) {
 typedef enum {
     ITEM_SENSOR_NR = 0,
     ITEM_TX_POWER,
+    ITEM_SF,
     ITEM_SAVE,
     ITEM_COUNT
 } menu_item_t;
@@ -104,27 +113,32 @@ static void menu_draw(u8g2_t *u8g2, menu_item_t item, bool editing,
     u8g2_DrawStr(u8g2, 37, 10, "CONFIG");
     u8g2_DrawHLine(u8g2, 0, 12, 128);
 
-    // Sensor Nr
+    // Sensor Nr  (y=23)
     snprintf(buf, sizeof(buf), "%d", cfg->sensor_nr);
-    draw_value(u8g2, 26, "Sensor Nr:", buf,
+    draw_value(u8g2, 23, "Sensor Nr:", buf,
                item == ITEM_SENSOR_NR, editing && item == ITEM_SENSOR_NR);
 
-    // TX Power
+    // TX Power  (y=34)
     snprintf(buf, sizeof(buf), "%d dBm", cfg->tx_power);
-    draw_value(u8g2, 40, "TX Power:", buf,
+    draw_value(u8g2, 34, "TX Power:", buf,
                item == ITEM_TX_POWER, editing && item == ITEM_TX_POWER);
+
+    // Spreading Factor  (y=45)
+    snprintf(buf, sizeof(buf), "SF%d", cfg->spreading_factor);
+    draw_value(u8g2, 45, "SF:", buf,
+               item == ITEM_SF, editing && item == ITEM_SF);
 
     // Save button (centered, highlighted when active)
     const char *save_str = "[ SAVE ]";
     int sw = u8g2_GetStrWidth(u8g2, save_str);
     int sx = (128 - sw) / 2;
     if (item == ITEM_SAVE) {
-        u8g2_DrawBox(u8g2, sx - 3, 46, sw + 6, 12);
+        u8g2_DrawBox(u8g2, sx - 3, 52, sw + 6, 12);
         u8g2_SetDrawColor(u8g2, 0);
-        u8g2_DrawStr(u8g2, sx, 56, save_str);
+        u8g2_DrawStr(u8g2, sx, 62, save_str);
         u8g2_SetDrawColor(u8g2, 1);
     } else {
-        u8g2_DrawStr(u8g2, sx, 56, save_str);
+        u8g2_DrawStr(u8g2, sx, 62, save_str);
     }
 
     u8g2_SendBuffer(u8g2);
@@ -180,6 +194,9 @@ void config_run_menu(u8g2_t *u8g2, sensor_config_t *cfg) {
                 } else if (current == ITEM_TX_POWER) {
                     cfg->tx_power++;
                     if (cfg->tx_power > TX_POWER_MAX) cfg->tx_power = TX_POWER_MIN;
+                } else if (current == ITEM_SF) {
+                    cfg->spreading_factor++;
+                    if (cfg->spreading_factor > SF_MAX) cfg->spreading_factor = SF_MIN;
                 }
             } else {
                 current = (menu_item_t)((current + 1) % ITEM_COUNT);
