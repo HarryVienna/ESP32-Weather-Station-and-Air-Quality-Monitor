@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include "driver/gpio.h"
+#include "esp_err.h"
 #include "u8g2.h"
 #include "sensor_stack.h"
 
@@ -14,6 +15,13 @@
 #define DISPLAY_PIN_SDA     GPIO_NUM_17
 #define DISPLAY_PIN_SCL     GPIO_NUM_18
 #define DISPLAY_PIN_RST     GPIO_NUM_21
+#define DISPLAY_BUTTON_PIN  GPIO_NUM_0   // PRG button on Heltec V4
+
+/* ============================================================================
+ * Screensaver
+ * ============================================================================ */
+
+#define DISPLAY_SCREENSAVER_TIMEOUT_S   60
 
 /* ============================================================================
  * Display Configuration
@@ -56,9 +64,16 @@ esp_err_t display_init(void);
 
 /**
  * @brief Append a new line for the received sensor packet (scrolls when full)
+ *        Also resets the screensaver timer if the display is on.
  * @param packet Pointer to sensor packet
  * @return ESP_OK on success
  */
 esp_err_t display_update(const sensor_packet_t *packet);
+
+/**
+ * @brief Wake the display (turn on if off) and reset the screensaver timer.
+ *        Call this from the button callback.
+ */
+void display_wake(void);
 
 #endif /* DISPLAY_H */

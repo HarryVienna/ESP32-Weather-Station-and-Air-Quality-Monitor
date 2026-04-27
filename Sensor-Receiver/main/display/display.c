@@ -2,6 +2,7 @@
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "freertos/timers.h"
 #include "u8g2_esp32_hal.h"
 #include <string.h>
 #include <time.h>
@@ -10,10 +11,22 @@ static const char* TAG = "display";
 
 static u8g2_t g_u8g2;
 static SemaphoreHandle_t g_mutex;
+static TimerHandle_t g_screensaver_timer;
+static bool g_display_on;
 
 static display_entry_t g_buffer[DISPLAY_BUFFER_SIZE];
 static uint8_t g_count;      // valid entries (0..DISPLAY_BUFFER_SIZE)
 static uint8_t g_write_idx;  // next write position
+
+static void screensaver_timer_cb(TimerHandle_t xTimer) {
+    if (xSemaphoreTake(g_mutex, pdMS_TO_TICKS(100)) != pdTRUE) {
+        return;
+    }
+    u8g2_SetPowerSave(&g_u8g2, 1);
+    g_display_on = false;
+    xSemaphoreGive(g_mutex);
+    ESP_LOGI(TAG, "Screensaver: display off");
+}
 
 static void get_time_str(char *buf, size_t buf_size) {
     time_t now;
@@ -77,14 +90,29 @@ esp_err_t display_init(void) {
         return ESP_ERR_NO_MEM;
     }
 
-    g_count     = 0;
-    g_write_idx = 0;
+    g_count      = 0;
+    g_write_idx  = 0;
+    g_display_on = true;
     memset(g_buffer, 0, sizeof(g_buffer));
 
     u8g2_ClearBuffer(&g_u8g2);
     u8g2_SendBuffer(&g_u8g2);
 
-    ESP_LOGI(TAG, "Display initialized (SSD1306 128x64, I2C 0x3C)");
+    g_screensaver_timer = xTimerCreate(
+        "screensaver",
+        pdMS_TO_TICKS(DISPLAY_SCREENSAVER_TIMEOUT_S * 1000),
+        pdFALSE,  // one-shot
+        NULL,
+        screensaver_timer_cb);
+
+    if (g_screensaver_timer == NULL) {
+        ESP_LOGE(TAG, "Failed to create screensaver timer");
+        return ESP_ERR_NO_MEM;
+    }
+    xTimerStart(g_screensaver_timer, 0);
+
+    ESP_LOGI(TAG, "Display initialized (SSD1306 128x64, I2C 0x3C, screensaver %ds)",
+             DISPLAY_SCREENSAVER_TIMEOUT_S);
     return ESP_OK;
 }
 
@@ -111,8 +139,25 @@ esp_err_t display_update(const sensor_packet_t *packet) {
         g_count++;
     }
 
-    redraw();
+    if (g_display_on) {
+        redraw();
+        xTimerReset(g_screensaver_timer, 0);
+    }
 
     xSemaphoreGive(g_mutex);
     return ESP_OK;
+}
+
+void display_wake(void) {
+    if (xSemaphoreTake(g_mutex, pdMS_TO_TICKS(100)) != pdTRUE) {
+        return;
+    }
+    if (!g_display_on) {
+        u8g2_SetPowerSave(&g_u8g2, 0);
+        g_display_on = true;
+        redraw();
+        ESP_LOGI(TAG, "Display woken by button");
+    }
+    xTimerReset(g_screensaver_timer, 0);
+    xSemaphoreGive(g_mutex);
 }

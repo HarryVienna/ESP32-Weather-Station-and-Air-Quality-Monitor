@@ -23,8 +23,13 @@
 #include "display/display.h"
 #include "network/lora.h"
 #include "network/esp-now.h"
+#include "button.h"
 
 static const char* TAG = "MAIN";
+
+static void on_button_press(button_press_type_t type) {
+    display_wake();
+}
 
 #define PIN_VEXT     GPIO_NUM_36  // Display power supply (LOW = on)
 
@@ -119,6 +124,7 @@ void app_main(void) {
         return;
     }
 
+    // TODO Later via I2C
     // Set timezone for ESP32 system time (CET/CEST)
     setenv("TZ", "CET-1CEST,M3.5.0,M10.5.0/3", 1);
     tzset();
@@ -149,6 +155,17 @@ void app_main(void) {
         return;
     }
     
+    // Button: wake display on short or long press
+    button_config_t btn_cfg = {
+        .gpio_num             = DISPLAY_BUTTON_PIN,
+        .active_low           = true,
+        .short_press_callback = on_button_press,
+        .long_press_callback  = on_button_press,
+        .double_click_callback = NULL,
+        .enable_repeat        = false,
+    };
+    button_create(&btn_cfg);
+
     // Start I2C Slave Task (for P4 readout)
     xTaskCreate(i2c_slave_task, "i2c_slave", 4096, NULL, 3, NULL);
     
