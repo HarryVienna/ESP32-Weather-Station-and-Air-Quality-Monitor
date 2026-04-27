@@ -17,6 +17,7 @@
 #include "esp_log.h"
 #include "esp_now.h"
 #include "esp_wifi.h"
+#include "esp_mac.h"
 #include "nvs_flash.h"
 
 #include "bme280_sensor.h"
@@ -35,9 +36,7 @@
 
 #define ESPNOW_FIXED_CHANNEL 13
 
-#define NO_OF_SAMPLES 16 
-
-#define LED GPIO_NUM_2
+#define PIN_LED GPIO_NUM_2
 
 #define SENSOR_NR_2 GPIO_NUM_25
 #define SENSOR_NR_1 GPIO_NUM_33
@@ -49,7 +48,6 @@
 
 #define SDA_PIN GPIO_NUM_21
 #define SCL_PIN GPIO_NUM_22
-#define I2C_MASTER_FREQ_HZ 100000
 
 #define SENSOR_SLEEPTIME 600
 
@@ -89,14 +87,18 @@ typedef struct __attribute__((packed)) struct_pairing_request {
 *
 * @note This function assumes that an LED is connected to GPIO pin GPIO_NUM_2.
 */
-static void blink() {
-    gpio_reset_pin(LED);
-    gpio_set_pull_mode(LED, GPIO_PULLDOWN_ONLY);
-    gpio_set_direction(LED, GPIO_MODE_OUTPUT);
-    gpio_set_level(LED, 1);
-    vTaskDelay(50 / portTICK_PERIOD_MS);
-    gpio_set_level(LED, 0);
-    gpio_set_direction(LED, GPIO_MODE_INPUT);
+static void blink(void) {
+    gpio_config_t led_conf = {
+        .pin_bit_mask = (1ULL << PIN_LED),
+        .mode = GPIO_MODE_OUTPUT,
+        .pull_up_en = GPIO_PULLUP_DISABLE,
+        .pull_down_en = GPIO_PULLDOWN_DISABLE,
+        .intr_type = GPIO_INTR_DISABLE,
+    };
+    gpio_config(&led_conf);
+    gpio_set_level(PIN_LED, 1);
+    vTaskDelay(pdMS_TO_TICKS(10));
+    gpio_set_level(PIN_LED, 0);
 }
 
 /**
@@ -165,18 +167,16 @@ static esp_err_t get_voltage(uint32_t *voltage)
         .atten = ADC_ATTEN,
         .bitwidth = ADC_BITWIDTH_DEFAULT,
     };
+
     ESP_ERROR_CHECK(adc_cali_create_scheme_line_fitting(&cali_config, &adc1_cali_chan0_handle));
-
     ESP_ERROR_CHECK(adc_oneshot_read(adc1_handle, ADC_CHANNEL, &adc_raw));
-    ESP_LOGI(TAG, "ADC raw: %d", adc_raw);
-
     ESP_ERROR_CHECK(adc_cali_raw_to_voltage(adc1_cali_chan0_handle, adc_raw, (int*)voltage));
 
     *voltage = *voltage * ((4.7 + 2.2) / 4.7);  // voltage divider 2.2 : 4.7
-    ESP_LOGI(TAG, "Battery: %lu mV", *voltage);
 
     adc_cali_delete_scheme_line_fitting(adc1_cali_chan0_handle);
     adc_oneshot_del_unit(adc1_handle);
+    
     return ESP_OK;
 }
 
@@ -220,7 +220,7 @@ static void wifi_init(void)
     ESP_ERROR_CHECK( esp_wifi_set_storage(WIFI_STORAGE_RAM) );
     ESP_ERROR_CHECK( esp_wifi_set_mode(WIFI_MODE_STA) );
     ESP_ERROR_CHECK( esp_wifi_start());
-    ESP_ERROR_CHECK( esp_wifi_set_protocol(ESP_IF_WIFI_STA, WIFI_PROTOCOL_11B|WIFI_PROTOCOL_11G|WIFI_PROTOCOL_11N|WIFI_PROTOCOL_LR) );
+    //ESP_ERROR_CHECK( esp_wifi_set_protocol(ESP_IF_WIFI_STA, WIFI_PROTOCOL_11B|WIFI_PROTOCOL_11G|WIFI_PROTOCOL_11N|WIFI_PROTOCOL_LR) );
     ESP_ERROR_CHECK( esp_wifi_set_max_tx_power(84) );
 }
 
@@ -485,12 +485,12 @@ void app_main(){
     // ------- Read DIP switch value -------
     uint8_t sensor_nr;    
     ret = get_sensor_number(&sensor_nr);
-    ESP_LOGI(TAG, "sensor: %d", sensor_nr);
+    ESP_LOGI(TAG, "Sensor: %d", sensor_nr);
 
     // ------- Read voltage value -------
     uint32_t voltage = 0;    
     ret = get_voltage(&voltage);
-    ESP_LOGI(TAG, "voltage: %lu", voltage);
+    ESP_LOGI(TAG, "Voltage: %lu", voltage);
 
 
     // ------- Read BME280 -------
@@ -543,8 +543,7 @@ void app_main(){
         }
     }
 
-    ESP_LOGI(TAG, "NVS Channel: %d", chan);
-    //ESP_LOGI(TAG, "NVS MAC "MACSTR"", MAC2STR(peer_mac));
+    ESP_LOGI(TAG, "NVS Channel: %d   MAC "MACSTR"", chan, MAC2STR(peer_mac));
 
     add_peer(peer_mac, chan);
     esp_wifi_set_channel(chan, WIFI_SECOND_CHAN_NONE);

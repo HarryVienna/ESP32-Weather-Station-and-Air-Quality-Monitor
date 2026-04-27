@@ -59,7 +59,7 @@ esp_err_t bme280_sensor_init(bme280_sensor_t *sensor, const bme280_config_t *con
     i2c_device_config_t dev_cfg = {
         .dev_addr_length = I2C_ADDR_BIT_LEN_7,
         .device_address  = config->dev_id,
-        .scl_speed_hz    = 50000,
+        .scl_speed_hz    = 100000,
     };
     ret = i2c_master_bus_add_device(sensor->bus_handle, &dev_cfg, &sensor->i2c_handle);
     if (ret != ESP_OK) {

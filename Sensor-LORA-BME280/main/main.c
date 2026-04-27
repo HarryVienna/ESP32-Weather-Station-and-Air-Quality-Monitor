@@ -66,7 +66,6 @@ enum MessageType { PAIRING_REQ, PAIRING_RESP, DATA };
 /* BME280 I2C bus */
 #define I2C_SDA     GPIO_NUM_48
 #define I2C_SCL     GPIO_NUM_47
-#define I2C_FREQ_HZ 100000
 
 /* UART */
 #define UART0_RXD     GPIO_NUM_44
