@@ -24,13 +24,6 @@
 #define DISPLAY_SCREENSAVER_TIMEOUT_S   60
 
 /* ============================================================================
- * Status LED (blinks while display is sleeping)
- * ============================================================================ */
-
-#define DISPLAY_LED_PIN         GPIO_NUM_35  // Heltec WiFi LoRa 32 V4 onboard LED
-#define DISPLAY_LED_BLINK_MS    500          // blink interval while screensaver active
-
-/* ============================================================================
  * Display Configuration
  * ============================================================================ */
 

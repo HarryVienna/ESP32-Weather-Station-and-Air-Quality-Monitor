@@ -2,64 +2,31 @@
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "freertos/timers.h"
 #include "u8g2_esp32_hal.h"
 #include <string.h>
 #include <time.h>
 
 static const char* TAG = "display";
 
-static u8g2_t           g_u8g2;
+static u8g2_t g_u8g2;
 static SemaphoreHandle_t g_mutex;
-static TaskHandle_t      g_blink_task;
-static bool              g_display_on;
-static TickType_t        g_last_activity;
+static TimerHandle_t g_screensaver_timer;
+static bool g_display_on;
 
 static display_entry_t g_buffer[DISPLAY_BUFFER_SIZE];
-static uint8_t         g_count;
-static uint8_t         g_write_idx;
+static uint8_t g_count;      // valid entries (0..DISPLAY_BUFFER_SIZE)
+static uint8_t g_write_idx;  // next write position
 
-/* ============================================================================
- * LED blink task
- * ============================================================================ */
-
-static void blink_task(void *arg) {
-    while (1) {
-        gpio_set_level(DISPLAY_LED_PIN, 1);
-        vTaskDelay(pdMS_TO_TICKS(DISPLAY_LED_BLINK_MS));
-        gpio_set_level(DISPLAY_LED_PIN, 0);
-        vTaskDelay(pdMS_TO_TICKS(DISPLAY_LED_BLINK_MS));
+static void screensaver_timer_cb(TimerHandle_t xTimer) {
+    if (xSemaphoreTake(g_mutex, pdMS_TO_TICKS(100)) != pdTRUE) {
+        return;
     }
+    u8g2_SetPowerSave(&g_u8g2, 1);
+    g_display_on = false;
+    xSemaphoreGive(g_mutex);
+    ESP_LOGI(TAG, "Screensaver: display off");
 }
-
-/* ============================================================================
- * Screensaver task — polls elapsed time, no timer callbacks
- * ============================================================================ */
-
-static void screensaver_task(void *arg) {
-    const TickType_t timeout = pdMS_TO_TICKS(DISPLAY_SCREENSAVER_TIMEOUT_S * 1000);
-
-    while (1) {
-        vTaskDelay(pdMS_TO_TICKS(1000));
-
-        if (!g_display_on) {
-            continue;
-        }
-
-        if ((xTaskGetTickCount() - g_last_activity) >= timeout) {
-            if (xSemaphoreTake(g_mutex, pdMS_TO_TICKS(200)) == pdTRUE) {
-                u8g2_SetPowerSave(&g_u8g2, 1);
-                g_display_on = false;
-                xSemaphoreGive(g_mutex);
-            }
-            vTaskResume(g_blink_task);
-            ESP_LOGI(TAG, "Screensaver: display off");
-        }
-    }
-}
-
-/* ============================================================================
- * Display rendering
- * ============================================================================ */
 
 static void get_time_str(char *buf, size_t buf_size) {
     time_t now;
@@ -73,6 +40,7 @@ static void redraw(void) {
     u8g2_ClearBuffer(&g_u8g2);
     u8g2_SetFont(&g_u8g2, DISPLAY_FONT);
 
+    // oldest entry first, newest at bottom
     int start_idx = (g_write_idx - g_count + DISPLAY_BUFFER_SIZE) % DISPLAY_BUFFER_SIZE;
 
     for (int i = 0; i < g_count; i++) {
@@ -98,10 +66,6 @@ static void redraw(void) {
     u8g2_SendBuffer(&g_u8g2);
 }
 
-/* ============================================================================
- * Public API
- * ============================================================================ */
-
 esp_err_t display_init(void) {
     u8g2_esp32_hal_t hal = U8G2_ESP32_HAL_DEFAULT;
     hal.bus.i2c.sda = DISPLAY_PIN_SDA;
@@ -126,34 +90,28 @@ esp_err_t display_init(void) {
         return ESP_ERR_NO_MEM;
     }
 
-    g_count        = 0;
-    g_write_idx    = 0;
-    g_display_on   = true;
-    g_last_activity = xTaskGetTickCount();
+    g_count      = 0;
+    g_write_idx  = 0;
+    g_display_on = true;
     memset(g_buffer, 0, sizeof(g_buffer));
-
-    // LED GPIO
-    gpio_config_t led_conf = {
-        .pin_bit_mask = (1ULL << DISPLAY_LED_PIN),
-        .mode         = GPIO_MODE_OUTPUT,
-        .pull_up_en   = GPIO_PULLUP_DISABLE,
-        .pull_down_en = GPIO_PULLDOWN_DISABLE,
-        .intr_type    = GPIO_INTR_DISABLE,
-    };
-    gpio_config(&led_conf);
-    gpio_set_level(DISPLAY_LED_PIN, 0);
 
     u8g2_ClearBuffer(&g_u8g2);
     u8g2_SendBuffer(&g_u8g2);
 
-    // Blink task: created suspended, resumed by screensaver task
-    xTaskCreate(blink_task, "led_blink", 1024, NULL, 1, &g_blink_task);
-    vTaskSuspend(g_blink_task);
+    g_screensaver_timer = xTimerCreate(
+        "screensaver",
+        pdMS_TO_TICKS(DISPLAY_SCREENSAVER_TIMEOUT_S * 1000),
+        pdFALSE,  // one-shot
+        NULL,
+        screensaver_timer_cb);
 
-    // Screensaver task: runs independently, no timer callbacks
-    xTaskCreate(screensaver_task, "screensaver", 2048, NULL, 1, NULL);
+    if (g_screensaver_timer == NULL) {
+        ESP_LOGE(TAG, "Failed to create screensaver timer");
+        return ESP_ERR_NO_MEM;
+    }
+    xTimerStart(g_screensaver_timer, 0);
 
-    ESP_LOGI(TAG, "Display initialized (SSD1306 128x64, screensaver %ds)",
+    ESP_LOGI(TAG, "Display initialized (SSD1306 128x64, I2C 0x3C, screensaver %ds)",
              DISPLAY_SCREENSAVER_TIMEOUT_S);
     return ESP_OK;
 }
@@ -183,34 +141,23 @@ esp_err_t display_update(const sensor_packet_t *packet) {
 
     if (g_display_on) {
         redraw();
+        xTimerReset(g_screensaver_timer, 0);
     }
 
     xSemaphoreGive(g_mutex);
-
-    // Update activity timestamp so screensaver resets
-    g_last_activity = xTaskGetTickCount();
-
     return ESP_OK;
 }
 
 void display_wake(void) {
-    // Suspend blink task and turn LED off
-    vTaskSuspend(g_blink_task);
-    gpio_set_level(DISPLAY_LED_PIN, 0);
-
-    if (xSemaphoreTake(g_mutex, pdMS_TO_TICKS(200)) != pdTRUE) {
+    if (xSemaphoreTake(g_mutex, pdMS_TO_TICKS(100)) != pdTRUE) {
         return;
     }
-
     if (!g_display_on) {
         u8g2_SetPowerSave(&g_u8g2, 0);
         g_display_on = true;
         redraw();
         ESP_LOGI(TAG, "Display woken by button");
     }
-
+    xTimerReset(g_screensaver_timer, 0);
     xSemaphoreGive(g_mutex);
-
-    // Reset activity so screensaver timer restarts from now
-    g_last_activity = xTaskGetTickCount();
 }
