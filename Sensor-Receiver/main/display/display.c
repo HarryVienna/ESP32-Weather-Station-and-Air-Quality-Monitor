@@ -2,8 +2,8 @@
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include "freertos/timers.h"
 #include "u8g2_esp32_hal.h"
+#include "button.h"
 #include <string.h>
 #include <time.h>
 
@@ -11,22 +11,12 @@ static const char* TAG = "display";
 
 static u8g2_t g_u8g2;
 static SemaphoreHandle_t g_mutex;
-static TimerHandle_t g_screensaver_timer;
-static bool g_display_on;
+static bool g_display_on = true;
+static button_handle_t *g_button_handle = NULL;
 
 static display_entry_t g_buffer[DISPLAY_BUFFER_SIZE];
 static uint8_t g_count;      // valid entries (0..DISPLAY_BUFFER_SIZE)
 static uint8_t g_write_idx;  // next write position
-
-static void screensaver_timer_cb(TimerHandle_t xTimer) {
-    if (xSemaphoreTake(g_mutex, pdMS_TO_TICKS(100)) != pdTRUE) {
-        return;
-    }
-    u8g2_SetPowerSave(&g_u8g2, 1);
-    g_display_on = false;
-    xSemaphoreGive(g_mutex);
-    ESP_LOGI(TAG, "Screensaver: display off");
-}
 
 static void get_time_str(char *buf, size_t buf_size) {
     time_t now;
@@ -34,6 +24,11 @@ static void get_time_str(char *buf, size_t buf_size) {
     time(&now);
     localtime_r(&now, &timeinfo);
     strftime(buf, buf_size, "%H:%M", &timeinfo);
+}
+
+static void display_button_callback(button_press_type_t type) {
+    (void)type;
+    display_toggle();
 }
 
 static void redraw(void) {
@@ -90,29 +85,30 @@ esp_err_t display_init(void) {
         return ESP_ERR_NO_MEM;
     }
 
-    g_count      = 0;
-    g_write_idx  = 0;
-    g_display_on = true;
+    g_count     = 0;
+    g_write_idx = 0;
     memset(g_buffer, 0, sizeof(g_buffer));
 
     u8g2_ClearBuffer(&g_u8g2);
     u8g2_SendBuffer(&g_u8g2);
 
-    g_screensaver_timer = xTimerCreate(
-        "screensaver",
-        pdMS_TO_TICKS(DISPLAY_SCREENSAVER_TIMEOUT_S * 1000),
-        pdFALSE,  // one-shot
-        NULL,
-        screensaver_timer_cb);
+    ESP_LOGI(TAG, "Display initialized (SSD1306 128x64, I2C 0x3C)");
 
-    if (g_screensaver_timer == NULL) {
-        ESP_LOGE(TAG, "Failed to create screensaver timer");
+    button_config_t btn_cfg = {
+        .gpio_num             = DISPLAY_BUTTON_PIN,
+        .active_low           = true,
+        .short_press_callback = display_button_callback,
+        .long_press_callback  = display_button_callback,
+        .double_click_callback = NULL,
+        .enable_repeat        = false,
+    };
+    g_button_handle = button_create(&btn_cfg);
+    if (g_button_handle == NULL) {
+        ESP_LOGE(TAG, "Failed to create button handler");
         return ESP_ERR_NO_MEM;
     }
-    xTimerStart(g_screensaver_timer, 0);
 
-    ESP_LOGI(TAG, "Display initialized (SSD1306 128x64, I2C 0x3C, screensaver %ds)",
-             DISPLAY_SCREENSAVER_TIMEOUT_S);
+    ESP_LOGI(TAG, "Button configured on pin %d for display toggle", DISPLAY_BUTTON_PIN);
     return ESP_OK;
 }
 
@@ -139,25 +135,33 @@ esp_err_t display_update(const sensor_packet_t *packet) {
         g_count++;
     }
 
-    if (g_display_on) {
-        redraw();
-        xTimerReset(g_screensaver_timer, 0);
-    }
+    redraw();
 
     xSemaphoreGive(g_mutex);
     return ESP_OK;
 }
 
-void display_wake(void) {
+void display_toggle(void) {
+    if (g_mutex == NULL) {
+        return;
+    }
     if (xSemaphoreTake(g_mutex, pdMS_TO_TICKS(100)) != pdTRUE) {
         return;
     }
-    if (!g_display_on) {
+    
+    // Toggle display state
+    if (g_display_on) {
+        // Display is on, turn it off
+        u8g2_SetPowerSave(&g_u8g2, 1);
+        g_display_on = false;
+        ESP_LOGI(TAG, "Display turned off by button");
+    } else {
+        // Display is off, turn it on
         u8g2_SetPowerSave(&g_u8g2, 0);
         g_display_on = true;
         redraw();
-        ESP_LOGI(TAG, "Display woken by button");
+        ESP_LOGI(TAG, "Display turned on by button");
     }
-    xTimerReset(g_screensaver_timer, 0);
+    
     xSemaphoreGive(g_mutex);
 }

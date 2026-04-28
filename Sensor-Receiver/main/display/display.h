@@ -4,7 +4,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include "driver/gpio.h"
-#include "esp_err.h"
 #include "u8g2.h"
 #include "sensor_stack.h"
 
@@ -15,13 +14,7 @@
 #define DISPLAY_PIN_SDA     GPIO_NUM_17
 #define DISPLAY_PIN_SCL     GPIO_NUM_18
 #define DISPLAY_PIN_RST     GPIO_NUM_21
-#define DISPLAY_BUTTON_PIN  GPIO_NUM_0   // PRG button on Heltec V4
-
-/* ============================================================================
- * Screensaver
- * ============================================================================ */
-
-#define DISPLAY_SCREENSAVER_TIMEOUT_S   60
+#define DISPLAY_BUTTON_PIN  GPIO_NUM_0
 
 /* ============================================================================
  * Display Configuration
@@ -57,23 +50,28 @@ typedef struct {
  * ============================================================================ */
 
 /**
- * @brief Initialize display hardware and driver (owns u8g2 internally)
- * @return ESP_OK on success
- */
-esp_err_t display_init(void);
-
-/**
  * @brief Append a new line for the received sensor packet (scrolls when full)
- *        Also resets the screensaver timer if the display is on.
  * @param packet Pointer to sensor packet
  * @return ESP_OK on success
  */
 esp_err_t display_update(const sensor_packet_t *packet);
 
 /**
- * @brief Wake the display (turn on if off) and reset the screensaver timer.
- *        Call this from the button callback.
+ * @brief Toggle display on/off
+ * 
+ * If the display is currently on, it will be turned off (power save mode).
+ * If the display is currently off, it will be turned on and redrawn.
  */
-void display_wake(void);
+void display_toggle(void);
+
+/**
+ * @brief Initialize display with integrated button for toggle
+ * 
+ * This function initializes the display hardware and creates the button
+ * handler automatically. Use this instead of display_init() if you want
+ * the button to control the display directly from within the display module.
+ * @return ESP_OK on success
+ */
+esp_err_t display_init(void);
 
 #endif /* DISPLAY_H */
