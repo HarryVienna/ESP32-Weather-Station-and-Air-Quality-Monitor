@@ -23,7 +23,7 @@
 #include "display/display.h"
 #include "network/lora.h"
 #include "network/esp-now.h"
-#include "network/i2c_slave.h"
+#include "i2c/i2c_slave.h"
 
 /* I2C Slave configuration for P4 Master readout
  * Migrated to network/i2c_slave.c using ESP-IDF I2C Slave Driver v2
