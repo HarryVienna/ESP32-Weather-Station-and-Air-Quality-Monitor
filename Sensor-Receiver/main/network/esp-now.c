@@ -186,10 +186,11 @@ void on_data_recv(const esp_now_recv_info_t *recv_info, const uint8_t *incoming_
                 // Update display (only needs header + link metadata)
                 display_update(&packet);
                 
-                ESP_LOGI(TAG, "  Sensor %d [Type=%d] payload=%d bytes",
-                         packet.header.sensor_nr,
-                         packet.header.sensor_type,
-                         packet.header.payload_len);
+                ESP_LOGI(TAG, "ESP-NOW RX: Sensor %d [Type=%d] payload=%d bytes, RSSI:%d",
+                        packet.header.sensor_nr,
+                        packet.header.sensor_type,
+                        packet.header.payload_len,
+                        packet.link.rssi);                         
             } else {
                 ESP_LOGW(TAG, "Stack full, ESP-NOW packet dropped");
             }

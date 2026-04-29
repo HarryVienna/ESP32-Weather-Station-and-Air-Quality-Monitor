@@ -32,14 +32,20 @@ typedef enum {
  * Reading a slot (pop) marks it as consumed.
  * ============================================================================ */
 
-#define MAX_SENSORS           16   // Maximum number of distinct sensors
+#define MAX_SENSORS           64   // Maximum number of distinct sensors
 #define I2C_SLAVE_ADDR        0x38
 #define I2C_CLOCK_KHZ         400
 
-/* I2C Register Map for P4 readout */
-#define I2C_REG_SENSOR_COUNT  0x00    // Number of sensors with unread data (1 byte)
-#define I2C_REG_SENSOR_READ   0x01    // Read and consume next available packet
+/* I2C Register Map for P4 master readout */
+#define I2C_REG_COUNT         0x00    // Number of available packets (1 byte)
+#define I2C_REG_PACKET_READ   0x01    // Read & consume next packet (variable length)
 #define I2C_REG_RESET_DROP    0x23    // Write 0x01 to reset dropped counter
+#define I2C_REG_STATS_RECV    0x24    // Total packets received (4 bytes, uint32_t)
+#define I2C_REG_STATS_OVERWR  0x28    // Total overwritten packets (4 bytes, uint32_t)
+
+/* I2C packet size constants */
+#define I2C_MIN_PACKET_SIZE   17  // header(4) + metadata(11) + min_payload(2)
+#define I2C_MAX_PACKET_SIZE   79  // header(4) + metadata(11) + max_payload(64)
 
 typedef struct {
     sensor_packet_t packet;

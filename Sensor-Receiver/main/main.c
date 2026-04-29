@@ -23,6 +23,11 @@
 #include "display/display.h"
 #include "network/lora.h"
 #include "network/esp-now.h"
+#include "network/i2c_slave.h"
+
+/* I2C Slave configuration for P4 Master readout
+ * Migrated to network/i2c_slave.c using ESP-IDF I2C Slave Driver v2
+ */
 
 static const char* TAG = "MAIN";
 
@@ -66,34 +71,12 @@ static esp_err_t init_board(void) {
     return ESP_OK;
 }
 
-/**
- * @brief I2C Slave task for P4 readout
- * 
- * This task handles I2C requests from the ESP32-P4 master.
- * The P4 can read packet count and individual packets.
- */
-static void i2c_slave_task(void *arg) {
-    // TODO: Implement I2C slave interface for P4 readout
-    // The P4 will connect via I2C to GPIO pins (e.g., GPIO20/21)
-    // Register: 0x00 = packet count, 0x01 = read packet (36 bytes)
-    
-    ESP_LOGI(TAG, "I2C slave task started (P4 readout)");
-    
-    // Placeholder: Just monitor stack stats
-    uint32_t last_count = 0;
-    while (1) {
-        uint32_t received, overwritten;
-        sensor_stack_stats(&received, &overwritten);
-
-        if (received != last_count) {
-            ESP_LOGI(TAG, "Stack: %d sensors with data, Total: %lu, Overwritten: %lu",
-                     sensor_stack_count(), received, overwritten);
-            last_count = received;
-        }
-        
-        vTaskDelay(pdMS_TO_TICKS(2000));
-    }
-}
+// I2C Slave Register Map (defined in i2c_slave.h)
+//   0x00: READ  → Count (1 Byte)
+//   0x01: R/W → Packet Read (variable Länge)
+//   0x23: WRITE, 0x01 → Reset Drop-Counter
+//   0x24: READ → Total received (4 Byte, uint32_t LE)
+//   0x28: READ → Total overwritten (4 Byte, uint32_t LE)
 
 void app_main(void) {
     ESP_LOGI(TAG, "=====================================================");
@@ -119,12 +102,6 @@ void app_main(void) {
         return;
     }
 
-    // TODO Later via I2C
-    // Set timezone for ESP32 system time (CET/CEST)
-    setenv("TZ", "CET-1CEST,M3.5.0,M10.5.0/3", 1);
-    tzset();
-    ESP_LOGI(TAG, "Timezone set to CET/CEST");
-    
     // Initialize display with integrated button for toggle
     if (display_init() != ESP_OK) {
         ESP_LOGE(TAG, "Display initialization with button failed!");
@@ -151,8 +128,10 @@ void app_main(void) {
         return;
     }
     
-    // Start I2C Slave Task (for P4 readout)
-    xTaskCreate(i2c_slave_task, "i2c_slave", 4096, NULL, 3, NULL);
+    // Initialize I2C Slave Interface (for P4 readout)
+    if (i2c_slave_init() != ESP_OK) {
+        ESP_LOGW(TAG, "I2C slave init failed (P4 readout unavailable)");
+    }
     
     ESP_LOGI(TAG, "Sensor Receiver is running!");
     ESP_LOGI(TAG, "LoRa: Receiving on 868.1 MHz, SF10, BW125");

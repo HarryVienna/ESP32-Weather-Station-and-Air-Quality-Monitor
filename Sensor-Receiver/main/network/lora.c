@@ -60,7 +60,7 @@ static void lora_rx_callback(uint8_t *data, uint8_t len, sx1262_packet_status_t 
                  packet.header.sensor_nr,
                  packet.header.sensor_type,
                  packet.header.payload_len,
-                 status->rssi_pkt, status->snr_pkt);
+                 packet.link.rssi, packet.link.snr);
     } else {
         ESP_LOGW(TAG, "Stack full, LoRa packet dropped");
     }
