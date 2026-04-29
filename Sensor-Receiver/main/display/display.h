@@ -15,6 +15,7 @@
 #define DISPLAY_PIN_SCL     GPIO_NUM_18
 #define DISPLAY_PIN_RST     GPIO_NUM_21
 #define DISPLAY_BUTTON_PIN  GPIO_NUM_0
+#define DISPLAY_LED_PIN     GPIO_NUM_35
 
 /* ============================================================================
  * Display Configuration

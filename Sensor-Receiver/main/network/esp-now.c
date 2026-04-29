@@ -18,7 +18,7 @@
 #define MAC_STR_LEN 18
 #define ESPNOW_FIXED_CHANNEL 13
 
-static const char* TAG = "WIFI";
+static const char* TAG = "ESP-NOW";
 
 /* ============================================================================
  * ESP-NOW Packet Format
@@ -186,7 +186,7 @@ void on_data_recv(const esp_now_recv_info_t *recv_info, const uint8_t *incoming_
                 // Update display (only needs header + link metadata)
                 display_update(&packet);
                 
-                ESP_LOGI(TAG, "ESP-NOW RX: Sensor %d [Type=%d] payload=%d bytes, RSSI:%d",
+                ESP_LOGI(TAG, "RX: Sensor %d [Type=%d] payload=%d bytes, RSSI:%d",
                         packet.header.sensor_nr,
                         packet.header.sensor_type,
                         packet.header.payload_len,

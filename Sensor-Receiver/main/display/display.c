@@ -4,8 +4,17 @@
 #include "freertos/task.h"
 #include "u8g2_esp32_hal.h"
 #include "button.h"
+#include "driver/ledc.h"
 #include <string.h>
 #include <time.h>
+
+/* LED PWM-Konfiguration */
+#define LED_LEDC_TIMER      LEDC_TIMER_1
+#define LED_LEDC_CHANNEL    LEDC_CHANNEL_1
+#define LED_LEDC_FREQ_HZ    1000
+#define LED_LEDC_RESOLUTION LEDC_TIMER_8_BIT   /* Duty 0-255 */
+#define LED_DUTY_ON         40                 /* ~31% Helligkeit, kein blendendes Weiß */
+#define LED_DUTY_OFF        0
 
 static const char* TAG = "display";
 
@@ -24,6 +33,34 @@ static void get_time_str(char *buf, size_t buf_size) {
     time(&now);
     localtime_r(&now, &timeinfo);
     strftime(buf, buf_size, "%H:%M", &timeinfo);
+}
+
+static void led_init(void)
+{
+    ledc_timer_config_t timer = {
+        .speed_mode      = LEDC_LOW_SPEED_MODE,
+        .timer_num       = LED_LEDC_TIMER,
+        .duty_resolution = LED_LEDC_RESOLUTION,
+        .freq_hz         = LED_LEDC_FREQ_HZ,
+        .clk_cfg         = LEDC_AUTO_CLK,
+    };
+    ledc_timer_config(&timer);
+
+    ledc_channel_config_t channel = {
+        .speed_mode = LEDC_LOW_SPEED_MODE,
+        .channel    = LED_LEDC_CHANNEL,
+        .timer_sel  = LED_LEDC_TIMER,
+        .gpio_num   = DISPLAY_LED_PIN,
+        .duty       = LED_DUTY_OFF,
+        .hpoint     = 0,
+    };
+    ledc_channel_config(&channel);
+}
+
+static void led_set(bool on)
+{
+    ledc_set_duty(LEDC_LOW_SPEED_MODE, LED_LEDC_CHANNEL, on ? LED_DUTY_ON : LED_DUTY_OFF);
+    ledc_update_duty(LEDC_LOW_SPEED_MODE, LED_LEDC_CHANNEL);
 }
 
 static void display_button_callback(button_press_type_t type) {
@@ -92,6 +129,7 @@ esp_err_t display_init(void) {
     u8g2_ClearBuffer(&g_u8g2);
     u8g2_SendBuffer(&g_u8g2);
 
+    led_init();
     ESP_LOGI(TAG, "Display initialized (SSD1306 128x64, I2C 0x3C)");
 
     button_config_t btn_cfg = {
@@ -151,16 +189,16 @@ void display_toggle(void) {
     
     // Toggle display state
     if (g_display_on) {
-        // Display is on, turn it off
         u8g2_SetPowerSave(&g_u8g2, 1);
         g_display_on = false;
-        ESP_LOGI(TAG, "Display turned off by button");
+        led_set(true);   /* LED an — zeigt dass das Board noch läuft */
+        ESP_LOGI(TAG, "Display off, LED on");
     } else {
-        // Display is off, turn it on
         u8g2_SetPowerSave(&g_u8g2, 0);
         g_display_on = true;
         redraw();
-        ESP_LOGI(TAG, "Display turned on by button");
+        led_set(false);  /* LED aus — Display übernimmt die Anzeige */
+        ESP_LOGI(TAG, "Display on, LED off");
     }
     
     xSemaphoreGive(g_mutex);

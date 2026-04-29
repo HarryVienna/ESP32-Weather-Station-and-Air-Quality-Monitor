@@ -4,7 +4,7 @@
 #include "esp_log.h"
 #include "sx1262.h"
 
-static const char* TAG = "lora_rx";
+static const char* TAG = "LORA";
 
 /* ============================================================================
  * SX1262 Receive Callback
@@ -56,7 +56,7 @@ static void lora_rx_callback(uint8_t *data, uint8_t len, sx1262_packet_status_t 
         // Update display (only needs header + link metadata)
         display_update(&packet);
         
-        ESP_LOGI(TAG, "LoRa RX: Sensor %d [Type=%d] payload=%d bytes, RSSI:%d, SNR:%.1f",
+        ESP_LOGI(TAG, "RX: Sensor %d [Type=%d] payload=%d bytes, RSSI:%d, SNR:%.1f",
                  packet.header.sensor_nr,
                  packet.header.sensor_type,
                  packet.header.payload_len,
