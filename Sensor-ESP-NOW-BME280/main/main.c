@@ -555,12 +555,14 @@ void app_main(){
     packet.header.sensor_nr   = sensor_nr;
     packet.header.sensor_type = SENSOR_TYPE_BME280;
     
-    uint8_t off = 0;
-    memcpy(&packet.payload[off], &voltage,                  sizeof(uint32_t)); off += sizeof(uint32_t);
-    memcpy(&packet.payload[off], &bme280_data.pressure,     sizeof(float));    off += sizeof(float);
-    memcpy(&packet.payload[off], &bme280_data.temperature,  sizeof(float));    off += sizeof(float);
-    memcpy(&packet.payload[off], &bme280_data.humidity,     sizeof(float));    off += sizeof(float);
-    packet.header.payload_len = off;
+    bme280_payload_t bme280_payload = {
+        .voltage     = voltage,
+        .pressure    = (float)bme280_data.pressure,
+        .temperature = (float)bme280_data.temperature,
+        .humidity    = (float)bme280_data.humidity,
+    };
+    memcpy(packet.payload, &bme280_payload, sizeof(bme280_payload_t));
+    packet.header.payload_len = sizeof(bme280_payload_t);
 
     uint32_t total_len = sizeof(packet_header_t) + packet.header.payload_len;
 

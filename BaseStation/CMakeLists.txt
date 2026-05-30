@@ -1,5 +1,6 @@
-cmake_minimum_required(VERSION 3.16)
+# Hello World - ESP32-P4 + LVGL + MIPI DSI Display
+cmake_minimum_required(VERSION 3.5)
 
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 
-project(Weatherstation-2.0)
+project(lvgl_demo)

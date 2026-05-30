@@ -1,8 +1,24 @@
+## IDF Component Manager Manifest File
+##
+## Only espressif and lvgl components are used.
+##
 dependencies:
-  ## Required IDF version
   idf:
     version: '>=5.5.0'
     
+  ## LVGL 8.x graphics library
   lvgl/lvgl:
-    version: "^8.4.0"
-    
+    version: "8.4.*"
+
+  ## ESP LVGL Port - integrates LVGL with ESP-IDF
+  ## Handles LVGL task, display driver, touch input
+  espressif/esp_lvgl_port:
+    version: "^2"
+
+  ## GT911 capacitive touch controller driver
+  espressif/esp_lcd_touch_gt911:
+    version: "^1"
+
+  ## JD9365 MIPI DSI LCD panel driver (handles DBI commands + DPI panel)
+  espressif/esp_lcd_jd9365:
+    version: "^2"

@@ -6,6 +6,8 @@
 #include "driver/gpio.h"
 #include "u8g2.h"
 #include "sensor_stack.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/queue.h"
 
 /* ============================================================================
  * Hardware Pins (Heltec WiFi LoRa 32 V3.x / V4)
@@ -32,8 +34,8 @@
 #define DISPLAY_ENTRY_START_Y   9
 
 /* ============================================================================
- * Display Entry Structure (metadata only, no payload)
- * ============================================================================ */
+  * Display Entry Structure (metadata only, no payload)
+  * ============================================================================ */
 
 typedef struct {
     uint8_t source;             // SENSOR_SOURCE_LORA or SENSOR_SOURCE_ESPNOW
@@ -47,8 +49,32 @@ typedef struct {
 } display_entry_t;
 
 /* ============================================================================
- * API Functions
- * ============================================================================ */
+  * Display Async Update via Queue
+  * ============================================================================
+   * Sensor-Callback (LoRa/ESP-NOW) ruft display_update_async() auf, das eine
+   * Kopie der Packet-Daten in eine FreeRTOS-Queue schreibt. Ein separater
+   * Display-Task liest von dieser Queue und aktualisiert das Display.
+   *
+   * Vorteil: Der Sensor-Callback muss NICHT auf den Display-Mutex warten
+   * und kehnt sofort nach dem Queue-Eintritt zurueck.
+  * ============================================================================ */
+
+#define DISPLAY_QUEUE_MAX_ENTRIES  8  // Max pending display updates
+
+typedef struct {
+    uint8_t source;
+    uint8_t sensor_nr;
+    uint8_t sensor_type;
+    uint8_t payload_len;
+    int16_t rssi;
+    float   snr;
+    uint32_t timestamp;
+    char    time_str[6];
+} display_queue_entry_t;
+
+/* ============================================================================
+  * API Functions
+  * ============================================================================ */
 
 /**
  * @brief Append a new line for the received sensor packet (scrolls when full)
@@ -56,6 +82,17 @@ typedef struct {
  * @return ESP_OK on success
  */
 esp_err_t display_update(const sensor_packet_t *packet);
+
+/**
+ * @brief Async display update - non-blocking, writes to internal queue
+ * @param packet Pointer to sensor packet
+ * @return ESP_OK if enqueued successfully, ESP_ERR_TIMEOUT if queue full
+ * 
+ * This function copies packet metadata into a FreeRTOS queue. A separate
+ * display task reads from the queue and updates the display. The caller
+ * does NOT wait for the actual display update.
+ */
+esp_err_t display_update_async(const sensor_packet_t *packet);
 
 /**
  * @brief Toggle display on/off

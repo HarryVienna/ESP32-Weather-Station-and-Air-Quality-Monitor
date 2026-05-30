@@ -10,15 +10,15 @@
 //
 
 void init_style_weatherstation_button_MAIN_DEFAULT(lv_style_t *style) {
-    lv_style_set_bg_color(style, lv_color_hex(0xfff56101));
-    lv_style_set_bg_grad_color(style, lv_color_hex(0xff000000));
+    lv_style_set_bg_color(style, lv_color_hex(0xf56101));
+    lv_style_set_bg_grad_color(style, lv_color_hex(0x000000));
     lv_style_set_text_font(style, &ui_font_free_sans24);
 };
 
 lv_style_t *get_style_weatherstation_button_MAIN_DEFAULT() {
     static lv_style_t *style;
     if (!style) {
-        style = (lv_style_t *)lv_mem_alloc(sizeof(lv_style_t));
+        style = (lv_style_t *)lv_malloc(sizeof(lv_style_t));
         lv_style_init(style);
         init_style_weatherstation_button_MAIN_DEFAULT(style);
     }

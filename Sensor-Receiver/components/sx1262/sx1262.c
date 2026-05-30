@@ -402,14 +402,14 @@ esp_err_t sx1262_configure(const sx1262_config_t *config)
     // Datasheet 15.4 Workaround: Optimizing Inverted IQ Operation
     if (config->modem_mode == SX1262_MODEM_LORA) {
         uint8_t iq_reg;
-        sx1262_read_register(SY1262_REG_IQ_POLARITY_SETUP, &iq_reg, 1); // Register IQ Polarity Setup
+        sx1262_read_register(SX1262_REG_IQ_POLARITY_SETUP, &iq_reg, 1); // Register IQ Polarity Setup
         
         if (config->iq_inverted) {
             iq_reg &= ~(1 << 2); // Bit 2 auf 0 setzen
         } else {
             iq_reg |= (1 << 2);  // Bit 2 auf 1 setzen (Standard)
         }
-        sx1262_write_register(SY1262_REG_IQ_POLARITY_SETUP, &iq_reg, 1);
+        sx1262_write_register(SX1262_REG_IQ_POLARITY_SETUP, &iq_reg, 1);
     }
 
     if (config->modem_mode == SX1262_MODEM_LORA) {
@@ -1035,7 +1035,7 @@ static void sx1262_wait_on_busy(void)
             ESP_LOGW(TAG, "BUSY Timeout");
             return;
         }
-        vTaskDelay(pdMS_TO_TICKS(1));
+        taskYIELD();
     }
 }
 

@@ -32,11 +32,10 @@ extern "C" {
 #endif
 
 /* I2C Slave Configuration */
-#define I2C_SLAVE_SDA         GPIO_NUM_47   /* I2C SDA Pin */
-#define I2C_SLAVE_SCL         GPIO_NUM_48   /* I2C SCL Pin */
+#define I2C_SLAVE_SDA         GPIO_NUM_41   /* I2C SDA Pin */
+#define I2C_SLAVE_SCL         GPIO_NUM_42   /* I2C SCL Pin */
 #define I2C_SLAVE_ADDR        0x38          /* 7-bit I2C Slave Address */
 #define I2C_SLAVE_PORT        I2C_NUM_0     /* I2C Port */
-#define I2C_CLOCK_KHZ         400           /* I2C Clock Frequency (kHz) */
 
 /* I2C Register Map */
 #define I2C_REG_COUNT         0x00          /* Number of available packets (1 byte) */

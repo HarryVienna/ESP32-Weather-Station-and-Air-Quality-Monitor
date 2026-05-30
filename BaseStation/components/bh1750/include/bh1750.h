@@ -2,7 +2,7 @@
 #define __BH1750_H__
 
 #include <stdint.h>
-#include <driver/i2c.h>
+#include <driver/i2c_master.h>
 #include <esp_err.h>
 
 #ifdef __cplusplus
@@ -27,13 +27,11 @@ typedef enum{
 } bh1750_opcode_t;
 
 
-
 typedef struct {
-    uint8_t i2c_addr;
-    i2c_port_t i2c_port;
+    i2c_master_dev_handle_t dev_handle;
 } bh_1750_t;
 
-esp_err_t bh1750_init(bh_1750_t *sensor, i2c_port_t i2c_port, uint8_t i2c_addr);
+esp_err_t bh1750_init(bh_1750_t *sensor, i2c_master_bus_handle_t bus_handle, uint8_t i2c_addr);
 
 esp_err_t bh1750_power_down(bh_1750_t *sensor);
 esp_err_t bh1750_power_on(bh_1750_t *sensor);

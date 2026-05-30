@@ -53,9 +53,9 @@ static void lora_rx_callback(uint8_t *data, uint8_t len, sx1262_packet_status_t 
     // Push to stack
     esp_err_t ret = sensor_stack_push(&packet, SENSOR_SOURCE_LORA);
     if (ret == ESP_OK) {
-        // Update display (only needs header + link metadata)
-        display_update(&packet);
-        
+        // Update display asynchronously (non-blocking, writes to queue)
+        display_update_async(&packet);
+
         ESP_LOGI(TAG, "RX: Sensor %d [Type=%d] payload=%d bytes, RSSI:%d, SNR:%.1f",
                  packet.header.sensor_nr,
                  packet.header.sensor_type,

@@ -32,29 +32,33 @@
  *        │
  *        ├─ EVT_RX: Register auswerten
  *        │    ├─ Write-Register (0x10, 0x11, 0x23): Aktion sofort ausführen
- *        │    └─ Read-Register  (0x00, 0x01, 0x24, 0x28): TX-FIFO befüllen
+ *        │    └─ Read-Register  (0x00, 0x01, 0x24, 0x28): Daten in Ring-Buffer laden
  *        │
- *        └─ EVT_TX: kein Handlungsbedarf (Daten bereits im FIFO)
+ *        └─ EVT_TX: nichts tun (Daten bereits beim EVT_RX geladen)
  *
  * =============================================================================
- * WARUM TX-FIFO BEIM RX-EVENT BEFÜLLEN, NICHT BEIM TX-EVENT?
+ * WARUM DATEN BEIM EVT_RX LADEN, NICHT BEIM EVT_TX?
  * =============================================================================
  *
- * ESP-IDF I2C Slave Driver v2 hat kein Clock Stretching. Ohne Clock Stretching
- * kann der Slave den Master nicht warten lassen — der Master beginnt sofort mit
- * dem Auslesen des Hardware-FIFOs, sobald er die Leseanfrage gesendet hat.
+ * ESP-IDF I2C Slave Driver v2 hat kein Clock Stretching. Der Master beginnt
+ * sofort mit dem Auslesen des Hardware-FIFOs, sobald er die READ-Transaktion
+ * startet.
  *
- * Wenn man erst beim TX-Event den FIFO befüllt, ist es zu spät: der FreeRTOS-Task
- * hat keine Zeit mehr zu reagieren bevor der Master bereits liest.
+ * Der direkte FIFO-Bypass über Low-Level-Register (i2c_ll_write_txfifo) führt
+ * zu ESP_ERR_INVALID_STATE und Bus-Stuck (SDA=0, SCL=0).
  *
- * Deshalb muss der Master zwei GETRENNTE Transaktionen verwenden (kein Repeated-Start):
+ * Lösung: Der Task lädt die Daten beim EVT_RX (nach dem WRITE des Masters) in
+ * den Software-Ring-Buffer des Slave-Treibers. Der Treiber schiebt sie automatisch
+ * in den Hardware-FIFO wenn der Master die READ-Transaktion startet.
  *
- *   Master: WRITE 0x00, STOP          ← on_receive feuert → Task befüllt FIFO
- *   (kurze Pause, ~5ms)               ← Task hat Zeit zu laufen
- *   Master: READ, STOP                ← Daten bereits im FIFO → korrekte Antwort
+ * Der Master muss zwei GETRENNTE Transaktionen mit ausreichend Pause verwenden:
+ *
+ *   Master: WRITE 0x00, STOP          ← on_receive feuert → Task lädt Ring-Buffer
+ *   (Pause, ~50ms)                    ← Daten sind bereits im Buffer
+ *   Master: READ, STOP                ← Treiber schiebt automatisch in FIFO
  *
  * Mit Repeated-Start (WRITE → ohne STOP → READ) würde der Master lesen bevor
- * der Task den FIFO befüllen konnte → Master bekommt 0xFF.
+ * der Task den Ring-Buffer gefüllt hat → Master bekommt 0xFF.
  *
  * =============================================================================
  * PROTOKOLL (Register Map)
@@ -76,6 +80,7 @@
 #include "freertos/task.h"
 #include "freertos/queue.h"
 #include "esp_log.h"
+#include "driver/gpio.h"
 #include "driver/i2c_slave.h"
 
 #include "sensor_stack.h"
@@ -97,7 +102,7 @@ typedef enum {
  * Interner Zustand des I2C Slaves.
  * Wird sowohl von den ISR-Callbacks als auch vom Task verwendet.
  * Die Callbacks schreiben nur current_reg/rx_data (aus ISR-Kontext, atomare Writes),
- * der Task liest diese Werte und schreibt write_data/write_len/has_pending_data.
+ * der Task liest diese Werte und schreibt write_data/write_len.
  */
 typedef struct {
     QueueHandle_t event_queue;               /* ISR → Task Kommunikation */
@@ -107,7 +112,6 @@ typedef struct {
     uint8_t rx_data_len;                     /* Anzahl empfangener Write-Bytes (ohne Registeradresse) */
     uint8_t write_data[I2C_MAX_PACKET_SIZE]; /* Puffer mit den Daten die zum Master gesendet werden */
     uint32_t write_len;                      /* Anzahl gültiger Bytes in write_data */
-    bool has_pending_data;                   /* true = write_data enthält gültige Daten */
 } i2c_slave_context_t;
 
 static i2c_slave_context_t g_i2c_ctx = {0};
@@ -175,15 +179,19 @@ static bool i2c_slave_receive_cb(i2c_slave_dev_handle_t i2c_slave,
 }
 
 /* ==========================================================================
- * TX-FIFO Befüllung für Read-Register
+ * Antwort-Daten für Read-Register vorbereiten
  * ========================================================================== */
 
 /*
  * Bereitet die Antwortdaten für das aktuelle Read-Register vor.
- * Schreibt das Ergebnis in context->write_data / write_len / has_pending_data.
+ * Schreibt das Ergebnis in context->write_data / write_len.
  * Wird im Task-Kontext aufgerufen (nicht ISR), darf daher alles verwenden.
+ *
+ * WICHTIG: Die Daten werden NICHT sofort gesendet, sondern erst wenn der
+ * Master eine READ-Transaktion startet (EVT_TX). Dann werden sie über
+ * i2c_slave_write() in den Ring-Buffer geladen.
  */
-static void i2c_slave_fill_register_data(void)
+static void i2c_slave_prepare_register_data(void)
 {
     i2c_slave_context_t *context = &g_i2c_ctx;
 
@@ -192,25 +200,37 @@ static void i2c_slave_fill_register_data(void)
         case I2C_REG_COUNT:
             context->write_data[0] = (uint8_t)sensor_stack_count();
             context->write_len = 1;
-            context->has_pending_data = true;
             ESP_LOGD(TAG, "Reg COUNT -> %d Pakete", context->write_data[0]);
             break;
 
         case I2C_REG_PACKET_READ: {
-            /* Nächstes Paket vom Stack holen und in den Sendepuffer kopieren.
-             * write_len = feste Header+Metadata-Größe (15 Byte) + variable Payload. */
+            /*
+             * Nächstes Paket vom Stack holen und in den Sendepuffer kopieren.
+             *
+             * WICHTIG: Der Master liest IMMER PACKET_MAX_SIZE (79 Byte).
+             * Wir müssen daher immer 79 Byte senden - entweder ein vollständiges
+             * Paket (auf 79 Byte aufgefüllt) oder 79 Byte mit 0xFF als "leer" Signal.
+             *
+             * Das Padding ist notwendig weil der Master i2c_master_receive(dev, buf, 79, ...)
+             * aufruft und sonst undefinierte Bytes aus dem FIFO liest.
+             */
             sensor_packet_t packet;
             if (sensor_stack_pop(&packet) == ESP_OK) {
-                memcpy(context->write_data, &packet, sizeof(packet));
-                context->write_len = PACKET_MIN_SIZE + packet.header.payload_len;
-                context->has_pending_data = true;
-                ESP_LOGD(TAG, "Reg PACKET -> sensor=%d type=%d payload=%dB total=%dB",
+                /* Paket kopieren und den Rest des Puffers mit 0x00 füllen */
+                memset(context->write_data, 0x00, I2C_MAX_PACKET_SIZE);
+                memcpy(context->write_data, &packet, sizeof(sensor_packet_t));
+                context->write_len = I2C_MAX_PACKET_SIZE;
+                ESP_LOGD(TAG, "Reg PACKET -> sensor=%d type=%d payload=%dB (padded to %dB)",
                          packet.header.sensor_nr, packet.header.sensor_type,
                          packet.header.payload_len, context->write_len);
             } else {
-                context->write_len = 0;
-                context->has_pending_data = false;
-                ESP_LOGD(TAG, "Reg PACKET -> Stack leer");
+                /*
+                 * Kein Paket verfügbar - den gesamten Puffer mit 0xFF füllen.
+                 * Der Master erkennt dies an payload_len=0xFF im Header (Byte 3).
+                 */
+                memset(context->write_data, 0xFF, I2C_MAX_PACKET_SIZE);
+                context->write_len = I2C_MAX_PACKET_SIZE;
+                ESP_LOGD(TAG, "Reg PACKET -> Stack leer (79x 0xFF)");
             }
             break;
         }
@@ -224,7 +244,6 @@ static void i2c_slave_fill_register_data(void)
             context->write_data[2] = (uint8_t)((received >> 16) & 0xFF);
             context->write_data[3] = (uint8_t)((received >> 24) & 0xFF);
             context->write_len = 4;
-            context->has_pending_data = true;
             ESP_LOGD(TAG, "Reg STATS_RECV -> %lu", received);
             break;
         }
@@ -237,7 +256,6 @@ static void i2c_slave_fill_register_data(void)
             context->write_data[2] = (uint8_t)((overwritten >> 16) & 0xFF);
             context->write_data[3] = (uint8_t)((overwritten >> 24) & 0xFF);
             context->write_len = 4;
-            context->has_pending_data = true;
             ESP_LOGD(TAG, "Reg STATS_OVERWR -> %lu", overwritten);
             break;
         }
@@ -247,13 +265,11 @@ static void i2c_slave_fill_register_data(void)
         case I2C_REG_SET_TZ:
         case I2C_REG_RESET_DROP:
             context->write_len = 0;
-            context->has_pending_data = false;
             ESP_LOGW(TAG, "Reg 0x%02X ist write-only, kein Read möglich", context->current_reg);
             break;
 
         default:
             context->write_len = 0;
-            context->has_pending_data = false;
             ESP_LOGE(TAG, "Unbekanntes Register: 0x%02X", context->current_reg);
             break;
     }
@@ -277,100 +293,121 @@ static void i2c_slave_task(void *arg)
         xQueueReceive(context->event_queue, &evt, portMAX_DELAY);
 
         if (evt == I2C_SLAVE_EVT_RX) {
-                /*
-                 * Master hat eine WRITE-Transaktion abgeschlossen.
-                 * context->current_reg enthält die Register-Adresse.
-                 * context->rx_data / rx_data_len enthalten optionale Write-Bytes.
-                 *
-                 * Write-Register: Aktion sofort ausführen.
-                 * Read-Register:  TX-FIFO jetzt befüllen, damit die Daten bereit sind
-                 *                 wenn der Master die folgende READ-Transaktion sendet.
-                 */
+            /*
+             * Master hat eine WRITE-Transaktion abgeschlossen.
+             * context->current_reg enthält die Register-Adresse.
+             * context->rx_data / rx_data_len enthalten optionale Write-Bytes.
+             *
+             * Write-Register: Aktion sofort ausführen.
+             * Read-Register:  Daten nur vorbereiten (in write_data kopieren),
+             *                 aber NOCH NICHT senden.
+             */
 
-                if (context->current_reg == I2C_REG_SET_TIME) {
-                    /* UTC Unix-Timestamp setzen (4 Byte Little-Endian) */
-                    if (context->rx_data_len >= 4) {
-                        uint32_t ts = (uint32_t)context->rx_data[0]
-                                    | ((uint32_t)context->rx_data[1] << 8)
-                                    | ((uint32_t)context->rx_data[2] << 16)
-                                    | ((uint32_t)context->rx_data[3] << 24);
-                        struct timeval tv = { .tv_sec = (time_t)ts, .tv_usec = 0 };
-                        settimeofday(&tv, NULL);
-                        ESP_LOGI(TAG, "Systemzeit gesetzt: %lu (UTC)", (unsigned long)ts);
-                    } else {
-                        ESP_LOGE(TAG, "SET_TIME: erwartet 4 Byte, erhalten %d", context->rx_data_len);
-                    }
-
-                } else if (context->current_reg == I2C_REG_SET_TZ) {
-                    /* POSIX Timezone-String setzen, z.B. "CET-1CEST,M3.5.0,M10.5.0/3" */
-                    if (context->rx_data_len >= 1) {
-                        /* Null-Terminierung sicherstellen */
-                        uint8_t idx = context->rx_data_len < sizeof(context->rx_data)
-                                      ? context->rx_data_len
-                                      : sizeof(context->rx_data) - 1;
-                        context->rx_data[idx] = '\0';
-                        setenv("TZ", (const char *)context->rx_data, 1);
-                        tzset();
-                        ESP_LOGI(TAG, "Timezone gesetzt: '%s'", context->rx_data);
-                    } else {
-                        ESP_LOGE(TAG, "SET_TZ: keine Daten empfangen");
-                    }
-
-                } else if (context->current_reg == I2C_REG_RESET_DROP) {
-                    /* Drop-Counter zurücksetzen (Master muss 0x01 als Datenbyte senden) */
-                    if (context->rx_data_len >= 1 && context->rx_data[0] == 0x01) {
-                        sensor_stack_reset_dropped();
-                        ESP_LOGD(TAG, "Drop-Counter zurückgesetzt");
-                    } else {
-                        ESP_LOGE(TAG, "RESET_DROP: erwartet 0x01, erhalten 0x%02X",
-                                 context->rx_data_len > 0 ? context->rx_data[0] : 0x00);
-                    }
-
-                } else if (context->current_reg == I2C_REG_COUNT      ||
-                           context->current_reg == I2C_REG_PACKET_READ ||
-                           context->current_reg == I2C_REG_STATS_RECV  ||
-                           context->current_reg == I2C_REG_STATS_OVERWR) {
-                    /*
-                     * Read-Register: Antwortdaten vorbereiten und in den Hardware-FIFO schreiben.
-                     * Die Daten müssen VOR der nächsten READ-Transaktion des Masters im FIFO sein,
-                     * da Driver v2 kein Clock Stretching unterstützt.
-                     */
-                    i2c_slave_fill_register_data();
-
-                    if (context->has_pending_data && context->write_len > 0) {
-                        uint32_t total_written = 0;
-                        while (total_written < context->write_len) {
-                            uint32_t written = 0;
-                            esp_err_t err = i2c_slave_write(
-                                context->handle,
-                                context->write_data + total_written,
-                                context->write_len - total_written,
-                                &written,
-                                pdMS_TO_TICKS(100)
-                            );
-                            if (err != ESP_OK || written == 0) {
-                                ESP_LOGE(TAG, "FIFO-Befüllung fehlgeschlagen (err=%d)", err);
-                                break;
-                            }
-                            total_written += written;
-                        }
-                        ESP_LOGD(TAG, "FIFO befüllt: %lu Byte für Reg 0x%02X",
-                                 total_written, context->current_reg);
-                    }
-
+            if (context->current_reg == I2C_REG_SET_TIME) {
+                /* UTC Unix-Timestamp setzen (4 Byte Little-Endian) */
+                if (context->rx_data_len >= 4) {
+                    uint32_t ts = (uint32_t)context->rx_data[0]
+                                | ((uint32_t)context->rx_data[1] << 8)
+                                | ((uint32_t)context->rx_data[2] << 16)
+                                | ((uint32_t)context->rx_data[3] << 24);
+                    struct timeval tv = { .tv_sec = (time_t)ts, .tv_usec = 0 };
+                    settimeofday(&tv, NULL);
+                    ESP_LOGI(TAG, "Systemzeit gesetzt: %lu (UTC)", (unsigned long)ts);
                 } else {
-                    ESP_LOGE(TAG, "Unbekanntes Register 0x%02X empfangen", context->current_reg);
+                    ESP_LOGE(TAG, "SET_TIME: erwartet 4 Byte, erhalten %d", context->rx_data_len);
                 }
 
-            } else if (evt == I2C_SLAVE_EVT_TX) {
+            } else if (context->current_reg == I2C_REG_SET_TZ) {
+                /* POSIX Timezone-String setzen, z.B. "CET-1CEST,M3.5.0,M10.5.0/3" */
+                if (context->rx_data_len >= 1) {
+                    /* Null-Terminierung sicherstellen */
+                    uint8_t idx = context->rx_data_len < sizeof(context->rx_data)
+                                  ? context->rx_data_len
+                                  : sizeof(context->rx_data) - 1;
+                    context->rx_data[idx] = '\0';
+                    setenv("TZ", (const char *)context->rx_data, 1);
+                    tzset();
+                    ESP_LOGI(TAG, "Timezone gesetzt: '%s'", context->rx_data);
+                } else {
+                    ESP_LOGE(TAG, "SET_TZ: keine Daten empfangen");
+                }
+
+            } else if (context->current_reg == I2C_REG_RESET_DROP) {
+                /* Drop-Counter zurücksetzen (Master muss 0x01 als Datenbyte senden) */
+                if (context->rx_data_len >= 1 && context->rx_data[0] == 0x01) {
+                    sensor_stack_reset_dropped();
+                    ESP_LOGD(TAG, "Drop-Counter zurückgesetzt");
+                } else {
+                    ESP_LOGE(TAG, "RESET_DROP: erwartet 0x01, erhalten 0x%02X",
+                             context->rx_data_len > 0 ? context->rx_data[0] : 0x00);
+                }
+                /* Wichtig: write_len auf 0 setzen damit es nicht als Read-Register behandelt wird */
+                context->write_len = 0;
+
+            } else if (context->current_reg == I2C_REG_COUNT      ||
+                       context->current_reg == I2C_REG_PACKET_READ ||
+                       context->current_reg == I2C_REG_STATS_RECV  ||
+                       context->current_reg == I2C_REG_STATS_OVERWR) {
                 /*
-                 * Master hat eine READ-Transaktion gestartet.
-                 * Die Daten wurden bereits beim EVT_RX in den FIFO geschrieben —
-                 * hier ist nichts mehr zu tun.
+                 * Read-Register: Antwortdaten NUR vorbereiten (in write_data kopieren).
+                 * Das eigentliche Senden erfolgt beim EVT_TX-Event wenn der Master
+                 * eine READ-Transaktion startet.
                  */
-                ESP_LOGD(TAG, "TX-Request für Reg 0x%02X (FIFO bereits befüllt)", context->current_reg);
+                i2c_slave_prepare_register_data();
+                ESP_LOGD(TAG, "RX: Daten für Reg 0x%02X vorbereitet (%lu Byte)",
+                         context->current_reg, context->write_len);
+
+            } else {
+                ESP_LOGE(TAG, "Unbekanntes Register 0x%02X empfangen", context->current_reg);
             }
 
+        } else if (evt == I2C_SLAVE_EVT_TX) {
+            /*
+             * Master hat eine READ-Transaktion gestartet.
+             * Daten wurden bereits beim EVT_RX in write_data[] vorbereitet.
+             * Jetzt laden wir sie in den Slave-Treiber.
+             *
+             * Wie beim Espressif I2C Slave Beispiel: Loop der sicherstellt
+             * dass ALLE Daten gesendet werden, mit großzügigem Timeout.
+             */
+            if (context->write_len > 0) {
+                uint8_t *data_buffer = context->write_data;
+                uint32_t buffer_size = context->write_len;
+                uint32_t total_written = 0;
+                uint32_t written = 0;
+                esp_err_t err;
+
+                while (total_written < buffer_size) {
+                    err = i2c_slave_write(
+                        context->handle,
+                        data_buffer + total_written,
+                        buffer_size - total_written,
+                        &written,
+                        pdMS_TO_TICKS(1000)  /* 1000ms Timeout wie Espressif Beispiel */
+                    );
+
+                    if (err != ESP_OK) {
+                        ESP_LOGE(TAG, "TX: i2c_slave_write fehlgeschlagen (Reg 0x%02X): %s",
+                                 context->current_reg, esp_err_to_name(err));
+                        break;
+                    }
+
+                    if (written == 0) {
+                        ESP_LOGW(TAG, "TX: Keine weiteren Bytes geschrieben (Reg 0x%02X)",
+                                 context->current_reg);
+                        break;
+                    }
+
+                    total_written += written;
+                }
+
+                if (total_written == buffer_size) {
+                    ESP_LOGD(TAG, "TX: %lu Byte für Reg 0x%02X gesendet",
+                             buffer_size, context->current_reg);
+                }
+            }
+            /* write_len == 0 bedeutet write-only Register - nichts zu senden */
+        }
     }
 
     vTaskDelete(NULL);
@@ -383,6 +420,15 @@ static void i2c_slave_task(void *arg)
 esp_err_t i2c_slave_init(void)
 {
     esp_err_t err;
+
+    /* Pins zuerst als Inputs konfigurieren, damit ein evtl. hängender
+     * Bus-Zustand (SDA stuck low) aus vorherigen Sessions freigegeben wird.
+     * Der I2C-Treiber konfiguriert die Pins danach selbst um. */
+    gpio_reset_pin(I2C_SLAVE_SDA);
+    gpio_reset_pin(I2C_SLAVE_SCL);
+    gpio_set_direction(I2C_SLAVE_SDA, GPIO_MODE_INPUT);
+    gpio_set_direction(I2C_SLAVE_SCL, GPIO_MODE_INPUT);
+    vTaskDelay(pdMS_TO_TICKS(50));
 
     /* Schritt 1: Queue anlegen (16 Slots à 1 Byte reichen, Events kommen sequenziell) */
     g_i2c_ctx.event_queue = xQueueCreate(16, sizeof(i2c_slave_event_t));
@@ -429,7 +475,7 @@ esp_err_t i2c_slave_init(void)
 
     /* Schritt 4: Task starten der die Queue-Events verarbeitet */
     TaskHandle_t task_handle;
-    err = xTaskCreate(i2c_slave_task, "i2c_slave", 4096, &g_i2c_ctx, 5, &task_handle);
+    err = xTaskCreate(i2c_slave_task, "i2c_slave", 4096, &g_i2c_ctx, 10, &task_handle);
     if (err != pdPASS) {
         ESP_LOGE(TAG, "Task-Erstellung fehlgeschlagen (err=%d)", err);
         i2c_del_slave_device(g_i2c_ctx.handle);

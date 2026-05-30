@@ -1,27 +1,32 @@
-# WeatherStation-ESP32-BaseStation 2.0
+# Waveshare ESP32-P4-Module-DEV-KIT-C Demo
 
-New implementation for MaTouch IPS (1024x600) panel. I migrate the whole code from Arduino to ESP-IDF to be able to use the newest display drivers for parallel displays
+This repository contains a demonstration project for the **Waveshare ESP32-P4-Module-DEV-KIT-C**, showcasing how to implement a high-performance GUI using the **ESP-IDF** and **LVGL**.
 
-- Base station with ESP32-S3 and 7-inch IPS display.
-- Setup screen for configuring the weather station.
-- Wireless sensors based on ESP32. There are three possible sensor variants.
-- Battery of the wireless sensors is charged via solar cells.
-- Very low power consumption of the wireless sensors thanks to deep-sleep mode and ESP-NOW protocol.
-- Depending on the wireless sensor, 4 or 8 sensors can be configured using a DIP switch.
-- Wireless sensors connect to the base station fully automatically.
-- Each wireless sensor measures temperature, humidity and air pressure.
-- The base station provides temperature, humidity, VOC index, particulate matter, NOx and CO2 content.
-- Detailed weather forecast via the Open-Meteo API for the next 48 hours or 7 days.
-- The display automatically adjusts to the brightness of the surroundings.
-- If nobody is near the weather station, the display is automatically dimmed.
-- Housing from the 3D printer, so that the weather station is also suitable for the living room.
+The project features a complete initialization of the **10.1-inch MIPI-DSI display (JD9365)** and **GT911 touch controller** using pure Espressif components and the latest DSI stack.
 
+## 🚀 Key Features
 
-You can find a detailed description of the project [on my website](https://www.haraldkreuzer.net/en/news/esp32-weather-station-20-radio-sensors-open-meteo-api-ips-display-mmwave-radar-fine-dust-sensor-and-much-more) 
+* **MIPI-DSI Integration**: Full initialization of the JD9365 controller using 2-lane DSI.
+* **LVGL Integration**: High-performance rendering with double buffering in PSRAM.
+* **Software Rotation**: Configured for 1280x800 Landscape mode via LVGL software rotation.
+* **Touch Support**: GT911 I2C touch controller integration with coordinate transformation.
 
-![DSCF4802](https://github.com/user-attachments/assets/74ae9b6d-ce46-412a-83e6-d0010ac6d0b0)
+## 📖 Detailed Guide
 
+For a comprehensive breakdown of the hardware, the paged register model of the JD9365, and a step-by-step guide on the software setup, please read the full article:
 
+👉 **[Review & Guide: Waveshare ESP32-P4 with 10.1" DSI Display](https://www.haraldkreuzer.net/en/news/waveshare-esp32-p4-module-dev-kit-c-compact-development-board-101-inch-dsi-display)**
 
+## 🛠️ Requirements
 
+* **Hardware**: Waveshare ESP32-P4-Module-DEV-KIT-C (10.1" version).
+* **Framework**: ESP-IDF v5.5 or later.
 
+## 🔧 Quick Start
+
+1.  Clone this repository.
+2.  Set the target to ESP32-P4: `idf.py set-target esp32p4`.
+3.  Build and flash: `idf.py build flash monitor`.
+
+## 📝 License
+This project is licensed under the MIT License - see the LICENSE file for details.

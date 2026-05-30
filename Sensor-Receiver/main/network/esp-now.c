@@ -183,9 +183,9 @@ void on_data_recv(const esp_now_recv_info_t *recv_info, const uint8_t *incoming_
             // Push to stack
             esp_err_t ret = sensor_stack_push(&packet, SENSOR_SOURCE_ESPNOW);
             if (ret == ESP_OK) {
-                // Update display (only needs header + link metadata)
-                display_update(&packet);
-                
+                // Update display asynchronously (non-blocking, writes to queue)
+                display_update_async(&packet);
+
                 ESP_LOGI(TAG, "RX: Sensor %d [Type=%d] payload=%d bytes, RSSI:%d",
                         packet.header.sensor_nr,
                         packet.header.sensor_type,

@@ -88,6 +88,17 @@ typedef struct __attribute__((packed)) {
 #define PACKET_MAX_SIZE      (PACKET_HEADER_SIZE + PACKET_METADATA_SIZE + MAX_PAYLOAD_SIZE) // 79 bytes
 
 /* ============================================================================
+ * Payload definitions per sensor type
+ * ============================================================================ */
+
+typedef struct __attribute__((packed)) {
+    uint32_t voltage;      // mV
+    float    pressure;     // hPa
+    float    temperature;  // °C
+    float    humidity;     // %
+} bme280_payload_t;
+
+/* ============================================================================
  * Sender packet types (header + payload only, no link_metadata)
  * ============================================================================ */
 

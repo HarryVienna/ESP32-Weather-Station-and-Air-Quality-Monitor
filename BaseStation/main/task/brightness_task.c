@@ -3,21 +3,26 @@
 #include <math.h>
 
 #include "esp_log.h"
-
-// #include "esp_adc/adc_oneshot.h"
-// #include "esp_adc/adc_cali.h"
-// #include "esp_adc/adc_cali_scheme.h"
-
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
+
+#include "i2c/i2c_manager.h"
+#include "brightness_task.h"
+#include "display/display.h"
 #include "sen0610.h"
 #include "bh1750.h"
 
-#include "brightness_task.h"
+/*
 
-#include "gui/gui.h"
-#include "config/config.h"
+25 Lux - 50
+28        75
+170 Lux - 100
+190 Lux - 122
+213       132
+250       150
+*/
+
 
 static const char* TAG = "brightness_task";
 
@@ -61,13 +66,13 @@ static const char* TAG = "brightness_task";
  */
 uint16_t map_brightness(uint16_t lux, bool presence) {
 
-  float a = 170.33f;
-  float b = 1.00f;
+  float a = 83.33f;
+  float b = 5.00f;
 
   uint16_t brightness;
   
   if (lux == 0 || !presence) {
-    brightness = 1;
+    brightness = 5;
   }
   else {
     brightness = (uint16_t)(a * log10(lux) + b);
@@ -95,7 +100,7 @@ void brightness_task(void *pvParameter){
 
   // Init Lux sensor
   bh_1750_t lux_sensor;
-  bh1750_init(&lux_sensor, I2C_NUM, BH1750_ADDR_0);
+  bh1750_init(&lux_sensor, i2c_manager_get_bus(), BH1750_ADDR_0);
 
   bh1750_power_on(&lux_sensor);
   bh1750_set_measure_time(&lux_sensor, 254);
@@ -104,7 +109,7 @@ void brightness_task(void *pvParameter){
 
   // Init presence sensor
   sen0610_t presence_sensor;
-  sen0610_init(&presence_sensor, I2C_NUM, C4001_ADDR_0);
+  sen0610_init(&presence_sensor, i2c_manager_get_bus(), C4001_ADDR_0);
 
   sen0610_set_sensor(&presence_sensor, RECOVER_SEN);
 
@@ -114,28 +119,35 @@ void brightness_task(void *pvParameter){
   // Set sensor mode
   sen0610_set_mode(&presence_sensor, PRESENCE_MODE);
 
-  if(sen0610_set_detect_range(&presence_sensor, /*min*/30, /*max*/400, /*trig*/300)){
+  sen0610_set_sensor(&presence_sensor, START_SEN);
+
+  if(sen0610_set_detect_range(&presence_sensor, /*min*/30, /*max*/400, /*trig*/300) == ESP_OK){
     ESP_LOGI(TAG, "set detection range successfully");
   }
 
   // set trigger sensitivity 0 - 9
-  if(sen0610_set_trig_sensitivity(&presence_sensor, 2)){
+  if(sen0610_set_trig_sensitivity(&presence_sensor, 2) == ESP_OK){
     ESP_LOGI(TAG, "set trig sensitivity successfully");
   }
 
   // set keep sensitivity 0 - 9
-  if(sen0610_set_keep_sensitivity(&presence_sensor, 2)){
+  if(sen0610_set_keep_sensitivity(&presence_sensor, 4) == ESP_OK){
     ESP_LOGI(TAG, "set keep sensitivity successfully");
   }
 
+  // set delay  - keep ist in Einheiten von 0.5 Sekunden, trig ist in 10ms-Einheiten
+  if(sen0610_set_delay(&presence_sensor, /*trig*/ 100, /*keep*/ 60) == ESP_OK){
+    ESP_LOGI(TAG, "set delay successfully");
+  }
 
+ 
   uint16_t lux;
   presence_data_t presence_data;
 
   // Hysteresis thresholds
-  const uint8_t threshold = 10; 
+  const uint8_t threshold = 10;
 
-  uint16_t target_brightness, current_brightness;   
+  uint16_t target_brightness, current_brightness;
   current_brightness = 127;
 
   for (;;) {
@@ -145,7 +157,7 @@ void brightness_task(void *pvParameter){
 
     target_brightness = map_brightness(lux, presence_data.presence);
 
-    //ESP_LOGI(TAG, "Lux = %d   Brightness  = %d   Presence= %d", lux, target_brightness, presence_data.presence);
+    ESP_LOGI(TAG, "Lux = %d   Brightness  = %d   Presence= %d", lux, target_brightness, presence_data.presence);
 
     int16_t brightness_difference = target_brightness - current_brightness;
 
@@ -155,7 +167,7 @@ void brightness_task(void *pvParameter){
       while (current_brightness != target_brightness) {
         current_brightness += direction;
 
-        set_brightness(current_brightness);
+        display_set_brightness(current_brightness);
         vTaskDelay(pdMS_TO_TICKS(25));
       }
     }

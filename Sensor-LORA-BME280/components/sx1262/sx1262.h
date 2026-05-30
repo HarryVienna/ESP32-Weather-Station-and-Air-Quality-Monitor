@@ -81,7 +81,7 @@
 #define SX1262_PACKET_TYPE_LORA             0x01
 
 // Register Addresses
-#define SY1262_REG_IQ_POLARITY_SETUP        0x0736
+#define SX1262_REG_IQ_POLARITY_SETUP        0x0736
 #define SX1262_REG_LORA_SYNC_WORD_MSB       0x0740
 #define SX1262_REG_LORA_SYNC_WORD_LSB       0x0741
 #define SX1262_REG_RANDOM_NUMBER_GEN        0x0819
