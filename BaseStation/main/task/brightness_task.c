@@ -170,8 +170,8 @@ void brightness_task(void *pvParameter){
   presence_data_t presence_data = {0};
 
   uint16_t lux = 0;
-  uint16_t target_brightness = 127;
-  uint16_t current_brightness = 127;
+  uint16_t target_brightness = 0;
+  uint16_t current_brightness = 0;
   uint8_t sensor_tick = 0;
 
   for (;;) {

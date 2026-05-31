@@ -378,10 +378,10 @@ static esp_err_t init_backlight(void)
                         TAG, "Backlight off failed");
 
     vTaskDelay(pdMS_TO_TICKS(100));
-    display_set_brightness(50);
+    display_set_brightness(0);
     vTaskDelay(pdMS_TO_TICKS(1000));
 
-    ESP_LOGI(TAG, "Backlight initialized (full brightness)");
+    ESP_LOGI(TAG, "Backlight initialized");
     return ESP_OK;
 }
 
@@ -389,7 +389,7 @@ static esp_err_t init_backlight(void)
 esp_err_t display_set_brightness(uint8_t val)
 {
     uint8_t cmd[] = {BL_BRIGHTNESS_REG, val};
-    return i2c_master_transmit(s_bl_dev, cmd, sizeof(cmd), 50);
+    return i2c_master_transmit(s_bl_dev, cmd, sizeof(cmd), 50/*ms*/);
 }
 
 
