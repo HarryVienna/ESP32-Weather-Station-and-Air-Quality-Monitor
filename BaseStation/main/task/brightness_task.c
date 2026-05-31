@@ -14,13 +14,13 @@
 #include "bh1750.h"
 
 /*
-
+0   Lux - 15
 25 Lux - 50
-28        75
+28  Lux -  75
 170 Lux - 100
 190 Lux - 122
-213       132
-250       150
+213 Lux -  132
+250  Lux -  150
 */
 
 
@@ -84,6 +84,32 @@ uint16_t map_brightness(uint16_t lux, bool presence) {
 }
 
 
+uint16_t map_brightness_power(uint16_t lux, bool presence) {
+  if (!presence) {
+    return 0;
+  }
+  const float a = 9.658973f;
+  const float b = 0.461319f;
+  int brightness = (int)(a * powf((float)lux, b) + 15.0f);
+  if (brightness < 5)   brightness = 5;
+  if (brightness > 255) brightness = 255;
+  return (uint16_t)brightness;
+}
+
+
+uint16_t map_brightness_linear(uint16_t lux, bool presence) {
+  if (!presence) {
+    return 5;
+  }
+  const float m = 0.432f;
+  const float c = 12.0f;
+  int brightness = (int)(m * lux + c);
+  if (brightness < 5)   brightness = 5;
+  if (brightness > 255) brightness = 255;
+  return (uint16_t)brightness;
+}
+
+
 /**
  * @brief     Task for adjusting brightness based on sensor readings
  *
@@ -141,38 +167,48 @@ void brightness_task(void *pvParameter){
   }
 
  
-  uint16_t lux;
-  presence_data_t presence_data;
+  presence_data_t presence_data = {0};
 
-  // Hysteresis thresholds
-  const uint8_t threshold = 10;
-
-  uint16_t target_brightness, current_brightness;
-  current_brightness = 127;
+  uint16_t lux = 0;
+  uint16_t target_brightness = 127;
+  uint16_t current_brightness = 127;
+  uint8_t sensor_tick = 0;
 
   for (;;) {
 
-    bh1750_read(&lux_sensor, &lux);
-    sen0610_get_presence_status(&presence_sensor, &presence_data);
-
-    target_brightness = map_brightness(lux, presence_data.presence);
-
-    ESP_LOGI(TAG, "Lux = %d   Brightness  = %d   Presence= %d", lux, target_brightness, presence_data.presence);
-
-    int16_t brightness_difference = target_brightness - current_brightness;
-
-    if (abs(brightness_difference) >= threshold) {
-      int direction = (brightness_difference > 0) ? 1 : -1;
-
-      while (current_brightness != target_brightness) {
-        current_brightness += direction;
-
-        display_set_brightness(current_brightness);
-        vTaskDelay(pdMS_TO_TICKS(25));
-      }
+    // Sensor alle 250ms lesen (10 * 25ms)
+    if (sensor_tick++ >= 10) {
+      sensor_tick = 0;
+      bh1750_read(&lux_sensor, &lux);
+      sen0610_get_presence_status(&presence_sensor, &presence_data);
+      target_brightness = map_brightness_power(lux, presence_data.presence);
     }
 
-    vTaskDelay(pdMS_TO_TICKS(250));
+    uint16_t diff = (target_brightness > current_brightness)
+                    ? target_brightness - current_brightness
+                    : current_brightness - target_brightness;
+    uint16_t hysteresis = current_brightness / 10;  // 10%
+
+    if (diff > hysteresis) {
+      //          Brightness	Step
+      //          < 20	      1
+      //          40          2
+      //          100         5
+      //          150         7
+      //          200         10
+      uint16_t step = (current_brightness < 20) ? 1 : current_brightness / 20;
+
+      if (current_brightness < target_brightness) {
+        current_brightness = (target_brightness - current_brightness > step)
+                             ? current_brightness + step : target_brightness;
+      } else {
+        current_brightness = (current_brightness - target_brightness > step)
+                             ? current_brightness - step : target_brightness;
+      }
+      display_set_brightness(current_brightness);
+    }
+
+    vTaskDelay(pdMS_TO_TICKS(25));
   }
 
 
