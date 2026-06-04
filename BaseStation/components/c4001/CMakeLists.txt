@@ -1,3 +1,3 @@
-idf_component_register(SRCS "sen0610.c"
+idf_component_register(SRCS "c4001.c"
                        INCLUDE_DIRS "include"
                        REQUIRES "driver" "esp_driver_i2c")

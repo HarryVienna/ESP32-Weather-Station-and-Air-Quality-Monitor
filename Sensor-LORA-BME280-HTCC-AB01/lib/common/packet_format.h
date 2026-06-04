@@ -36,6 +36,7 @@ typedef enum {
     SENSOR_TYPE_DHT22   = 3,   // Temperature, Humidity
     SENSOR_TYPE_WIND    = 4,   // Wind speed, direction
     SENSOR_TYPE_RAIN    = 5,   // Rain collector
+    SENSOR_TYPE_GEIGER  = 6,   // Geiger counter: µSv/h, CPM
     SENSOR_TYPE_CUSTOM  = 255  // Proprietary format
 } sensor_type_t;
 
@@ -96,6 +97,12 @@ typedef struct __attribute__((packed)) {
     float    temperature;  // °C
     float    humidity;     // %
 } bme280_payload_t;
+
+typedef struct __attribute__((packed)) {
+    uint32_t voltage;      // mV
+    float    usvh;         // µSv/h (60-Sekunden gleitender Mittelwert)
+    float    cpm;          // Counts Per Minute
+} geiger_payload_t;
 
 /* ============================================================================
  * Sender packet types (header + payload only, no link_metadata)

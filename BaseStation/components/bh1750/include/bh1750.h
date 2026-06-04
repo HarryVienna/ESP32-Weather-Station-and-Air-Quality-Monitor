@@ -9,8 +9,6 @@
 extern "C" {
 #endif
 
-#define BH1750_ADDR_0 0x23
-#define BH1750_ADDR_1 0x5c
 
 typedef enum{
   POWER_DOWN               = 0b00000000,
@@ -31,7 +29,7 @@ typedef struct {
     i2c_master_dev_handle_t dev_handle;
 } bh_1750_t;
 
-esp_err_t bh1750_init(bh_1750_t *sensor, i2c_master_bus_handle_t bus_handle, uint8_t i2c_addr);
+esp_err_t bh1750_init(bh_1750_t *sensor, i2c_master_bus_handle_t bus_handle);
 
 esp_err_t bh1750_power_down(bh_1750_t *sensor);
 esp_err_t bh1750_power_on(bh_1750_t *sensor);

@@ -117,7 +117,7 @@ static const char *sensor_type_str(uint8_t type)
         case 3: return "DHT22";
         case 4: return "WIND";
         case 5: return "RAIN";
-        case 6: return "LIGHT";
+        case 6: return "GEIGER";
         default: return "unknown";
     }
 }
@@ -146,6 +146,14 @@ static void print_packet(const uint8_t *buf, size_t buf_len)
                     const bme280_payload_t *d = (const bme280_payload_t *)pkt->payload;
                     ESP_LOGI(TAG, "  Temp=%.2f°C  Hum=%.2f%%  Press=%.2f hPa  Voltage=%lumV",
                              d->temperature, d->humidity, d->pressure, (unsigned long)d->voltage);
+                }
+                break;
+            }
+            case SENSOR_TYPE_GEIGER: {
+                if (pkt->header.payload_len >= sizeof(geiger_payload_t)) {
+                    const geiger_payload_t *d = (const geiger_payload_t *)pkt->payload;
+                    ESP_LOGI(TAG, "  uSv/h=%.3f  CPM=%.1f  Voltage=%lumV",
+                             d->usvh, d->cpm, (unsigned long)d->voltage);
                 }
                 break;
             }

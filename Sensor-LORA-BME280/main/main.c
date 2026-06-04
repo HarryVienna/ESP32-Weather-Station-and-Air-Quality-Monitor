@@ -61,7 +61,8 @@ enum MessageType { PAIRING_REQ, PAIRING_RESP, DATA };
 #define ADC_ATTEN      ADC_ATTEN_DB_2_5
 #define ADC_VBAT_R1    390.0f
 #define ADC_VBAT_R2    100.0f
-#define ADC_VBAT_CALIB (4076.0f / 4204.0f)   // empirical correction
+#define ADC_VBAT_CALIB (4140.0f / 4037.0f)    // empirical correction (avg 4037 mV, multimeter 4140 mV)
+#define ADC_SAMPLES    16                      // average N readings to reduce noise
 
 /* BME280 I2C bus */
 #define I2C_SDA     GPIO_NUM_48
@@ -177,8 +178,6 @@ static esp_err_t init_display(u8g2_t *u8g2) {
  * ============================================================================ */
 
 static esp_err_t get_voltage(uint32_t *voltage) {
-    int adc_raw;
-
     gpio_set_direction(ADC_CTRL, GPIO_MODE_OUTPUT);
     gpio_set_level(ADC_CTRL, 1);
     vTaskDelay(pdMS_TO_TICKS(10));
@@ -201,12 +200,18 @@ static esp_err_t get_voltage(uint32_t *voltage) {
     };
     ESP_ERROR_CHECK(adc_cali_create_scheme_curve_fitting(&cali_cfg, &cali_handle));
 
-    ESP_ERROR_CHECK(adc_oneshot_read(adc_handle, ADC_CHANNEL, &adc_raw));
-    ESP_LOGI(TAG, "ADC raw: %d", adc_raw);
+    int32_t sum = 0;
+    for (int i = 0; i < ADC_SAMPLES; i++) {
+        int adc_raw;
+        ESP_ERROR_CHECK(adc_oneshot_read(adc_handle, ADC_CHANNEL, &adc_raw));
+        int adc_mv;
+        ESP_ERROR_CHECK(adc_cali_raw_to_voltage(cali_handle, adc_raw, &adc_mv));
+        sum += adc_mv;
+    }
+    int adc_avg_mv = sum / ADC_SAMPLES;
+    ESP_LOGI(TAG, "ADC avg: %d mV (%d samples)", adc_avg_mv, ADC_SAMPLES);
 
-    ESP_ERROR_CHECK(adc_cali_raw_to_voltage(cali_handle, adc_raw, (int *)voltage));
-
-    *voltage = (uint32_t)(*voltage * (ADC_VBAT_R1 + ADC_VBAT_R2) / ADC_VBAT_R2 * ADC_VBAT_CALIB);
+    *voltage = (uint32_t)(adc_avg_mv * (ADC_VBAT_R1 + ADC_VBAT_R2) / ADC_VBAT_R2 * ADC_VBAT_CALIB);
     ESP_LOGI(TAG, "Battery: %lu mV", *voltage);
 
     gpio_set_level(ADC_CTRL, 0);

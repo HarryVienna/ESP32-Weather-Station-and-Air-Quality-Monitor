@@ -10,7 +10,7 @@
 #include "i2c/i2c_manager.h"
 #include "brightness_task.h"
 #include "display/display.h"
-#include "sen0610.h"
+#include "c4001.h"
 #include "bh1750.h"
 
 /*
@@ -126,7 +126,7 @@ void brightness_task(void *pvParameter){
 
   // Init Lux sensor
   bh_1750_t lux_sensor;
-  bh1750_init(&lux_sensor, i2c_manager_get_bus(), BH1750_ADDR_0);
+  bh1750_init(&lux_sensor, i2c_manager_get_bus());
 
   bh1750_power_on(&lux_sensor);
   bh1750_set_measure_time(&lux_sensor, 254);
@@ -134,35 +134,35 @@ void brightness_task(void *pvParameter){
 
 
   // Init presence sensor
-  sen0610_t presence_sensor;
-  sen0610_init(&presence_sensor, i2c_manager_get_bus(), C4001_ADDR_0);
+  c4001_t presence_sensor;
+  c4001_init(&presence_sensor, i2c_manager_get_bus());
 
-  sen0610_set_sensor(&presence_sensor, RECOVER_SEN);
+  c4001_set_sensor(&presence_sensor, RECOVER_SEN);
 
-  uint32_t soft_version = sen0610_get_soft_version(&presence_sensor);
+  uint32_t soft_version = c4001_get_soft_version(&presence_sensor);
   ESP_LOGI(TAG, "Software version  = %lu", soft_version);
 
   // Set sensor mode
-  sen0610_set_mode(&presence_sensor, PRESENCE_MODE);
+  c4001_set_mode(&presence_sensor, PRESENCE_MODE);
 
-  sen0610_set_sensor(&presence_sensor, START_SEN);
+  c4001_set_sensor(&presence_sensor, START_SEN);
 
-  if(sen0610_set_detect_range(&presence_sensor, /*min*/30, /*max*/400, /*trig*/300) == ESP_OK){
+  if(c4001_set_detect_range(&presence_sensor, /*min*/30, /*max*/400, /*trig*/300) == ESP_OK){
     ESP_LOGI(TAG, "set detection range successfully");
   }
 
   // set trigger sensitivity 0 - 9
-  if(sen0610_set_trig_sensitivity(&presence_sensor, 2) == ESP_OK){
+  if(c4001_set_trig_sensitivity(&presence_sensor, 2) == ESP_OK){
     ESP_LOGI(TAG, "set trig sensitivity successfully");
   }
 
   // set keep sensitivity 0 - 9
-  if(sen0610_set_keep_sensitivity(&presence_sensor, 4) == ESP_OK){
+  if(c4001_set_keep_sensitivity(&presence_sensor, 4) == ESP_OK){
     ESP_LOGI(TAG, "set keep sensitivity successfully");
   }
 
   // set delay  - keep ist in Einheiten von 0.5 Sekunden, trig ist in 10ms-Einheiten
-  if(sen0610_set_delay(&presence_sensor, /*trig*/ 100, /*keep*/ 60) == ESP_OK){
+  if(c4001_set_delay(&presence_sensor, /*trig*/ 100, /*keep*/ 60) == ESP_OK){
     ESP_LOGI(TAG, "set delay successfully");
   }
 
@@ -180,7 +180,7 @@ void brightness_task(void *pvParameter){
     if (sensor_tick++ >= 10) {
       sensor_tick = 0;
       bh1750_read(&lux_sensor, &lux);
-      sen0610_get_presence_status(&presence_sensor, &presence_data);
+      c4001_get_presence_status(&presence_sensor, &presence_data);
       target_brightness = map_brightness_power(lux, presence_data.presence);
     }
 
@@ -206,23 +206,25 @@ void brightness_task(void *pvParameter){
                              ? current_brightness - step : target_brightness;
       }
       display_set_brightness(current_brightness);
+      ESP_LOGI(TAG, "Brightness: %d", current_brightness);
     }
 
     vTaskDelay(pdMS_TO_TICKS(25));
+      
   }
 
 
 
 
   // Set sensor mode
-  sen0610_set_mode(&presence_sensor, SPEED_MODE);
+  c4001_set_mode(&presence_sensor, SPEED_MODE);
 
-  ESP_LOGI(TAG, "speed min range = %d", sen0610_get_tmin_range(&presence_sensor));
-  ESP_LOGI(TAG, "speed max range = %d", sen0610_get_tmax_range(&presence_sensor));
-  ESP_LOGI(TAG, "threshold range = %d", sen0610_get_thres_range(&presence_sensor));
+  ESP_LOGI(TAG, "speed min range = %d", c4001_get_tmin_range(&presence_sensor));
+  ESP_LOGI(TAG, "speed max range = %d", c4001_get_tmax_range(&presence_sensor));
+  ESP_LOGI(TAG, "threshold range = %d", c4001_get_thres_range(&presence_sensor));
 
   sensor_status_t data;
-  data = sen0610_get_status(&presence_sensor);
+  data = c4001_get_status(&presence_sensor);
   
   //  0 stop  1 start
   ESP_LOGI(TAG, "work status  = %d", data.work_status);
@@ -233,23 +235,23 @@ void brightness_task(void *pvParameter){
   //  0 no init    1 init success
   ESP_LOGI(TAG, "init status  = %d", data.init_status);
 
-  if (sen0610_set_detect_thres(&presence_sensor, /*min*/ 30, /*max*/ 1000, /*thres*/ 400 )) {
+  if (c4001_set_detect_thres(&presence_sensor, /*min*/ 30, /*max*/ 1000, /*thres*/ 400 )) {
     ESP_LOGI(TAG, "set detect threshold successfully");
   }
 
   // set Fretting Detection
-  sen0610_set_micro_detection(&presence_sensor, MICRO_OFF);
+  c4001_set_micro_detection(&presence_sensor, MICRO_OFF);
 
   
-  ESP_LOGI(TAG, "speed min range = %d", sen0610_get_tmin_range(&presence_sensor));
-  ESP_LOGI(TAG, "speed max range = %d", sen0610_get_tmax_range(&presence_sensor));
-  ESP_LOGI(TAG, "threshold range = %d", sen0610_get_thres_range(&presence_sensor));
+  ESP_LOGI(TAG, "speed min range = %d", c4001_get_tmin_range(&presence_sensor));
+  ESP_LOGI(TAG, "speed max range = %d", c4001_get_tmax_range(&presence_sensor));
+  ESP_LOGI(TAG, "threshold range = %d", c4001_get_thres_range(&presence_sensor));
   
-  ESP_LOGI(TAG, "micro detection = %d", sen0610_get_micro_detection(&presence_sensor));
+  ESP_LOGI(TAG, "micro detection = %d", c4001_get_micro_detection(&presence_sensor));
 
   speed_data_t speed_data;
   for (;;) {
-    sen0610_get_speed_status(&presence_sensor, &speed_data);
+    c4001_get_speed_status(&presence_sensor, &speed_data);
 
     ESP_LOGI(TAG, "Number %d    Speed %d     Distance %d     Energy %d", speed_data.number, speed_data.speed, speed_data.range, speed_data.energy);
 

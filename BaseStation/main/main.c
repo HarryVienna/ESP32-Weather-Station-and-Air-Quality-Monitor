@@ -23,6 +23,7 @@
 #include "receiver/receiver.h"
 #include "ui/ui.h"
 #include "task/brightness_task.h"
+#include "task/sensor_sen66_task.h"
 
 static const char *TAG = "main";
 
@@ -65,9 +66,18 @@ void app_main(void)
 
     receiver_start();
 
-      xTaskCreatePinnedToCore(
+    xTaskCreatePinnedToCore(
       brightness_task,
       "Brightness Task",
+      4096,
+      NULL,
+      1,
+      NULL,
+      1);
+
+    xTaskCreatePinnedToCore(
+      sensor_sen66_task,
+      "SEN66 Task",
       4096,
       NULL,
       1,

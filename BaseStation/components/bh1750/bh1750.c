@@ -8,6 +8,9 @@
 
 static const char *TAG = "bh1750";
 
+#define BH1750_I2C_ADDR    0x23
+#define BH1750_I2C_FREQ_HZ 50000
+
 
 static esp_err_t write_reg_i2c(bh_1750_t *sensor, uint8_t *data, uint8_t len) {
     return i2c_master_transmit(sensor->dev_handle, data, len, 1000);
@@ -20,11 +23,11 @@ static esp_err_t read_reg_i2c(bh_1750_t *sensor, uint8_t *data, uint8_t len) {
     return i2c_master_receive(sensor->dev_handle, data, len, 1000);
 }
 
-esp_err_t bh1750_init(bh_1750_t *sensor, i2c_master_bus_handle_t bus_handle, uint8_t i2c_addr) {
+esp_err_t bh1750_init(bh_1750_t *sensor, i2c_master_bus_handle_t bus_handle) {
     i2c_device_config_t dev_cfg = {
         .dev_addr_length = I2C_ADDR_BIT_LEN_7,
-        .device_address  = i2c_addr,
-        .scl_speed_hz    = 50000,
+        .device_address  = BH1750_I2C_ADDR,
+        .scl_speed_hz    = BH1750_I2C_FREQ_HZ,
     };
     return i2c_master_bus_add_device(bus_handle, &dev_cfg, &sensor->dev_handle);
 }
