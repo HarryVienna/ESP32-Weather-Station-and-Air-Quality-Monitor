@@ -39,12 +39,6 @@ typedef struct __attribute__((packed)) struct_pairing_request {
     uint8_t sensor_nr;
 } struct_pairing_request;
 
-enum MessageType {
-    PAIRING_REQ,
-    PAIRING_RESP,
-    DATA,
-};
-
 /**
  * @brief     Print MAC address to Serial monitor
  *

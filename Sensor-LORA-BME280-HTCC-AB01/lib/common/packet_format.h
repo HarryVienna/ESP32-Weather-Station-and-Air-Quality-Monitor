@@ -18,6 +18,16 @@
 #include <stdbool.h>
 
 /* ============================================================================
+ * Message Types (msg_type field of packet_header_t)
+ * ============================================================================ */
+
+typedef enum {
+    PAIRING_REQ  = 0,   // Sensor → Empfänger: Pairing-Anfrage (ESP-NOW)
+    PAIRING_RESP = 1,   // Empfänger → Sensor: Pairing-Antwort mit zugewiesener sensor_nr
+    DATA         = 2    // Sensor → Empfänger: Nutzdaten im payload[]
+} message_type_t;
+
+/* ============================================================================
  * Sensor Source (how data reached the receiver)
  * ============================================================================ */
 
@@ -45,7 +55,7 @@ typedef enum {
  * ============================================================================ */
 
 typedef struct __attribute__((packed)) {
-    uint8_t msg_type;     // DATA=2, PAIRING_REQ=0, etc.
+    uint8_t msg_type;     // siehe message_type_t (PAIRING_REQ/PAIRING_RESP/DATA)
     uint8_t sensor_nr;    // 1-254 (0 and 255 reserved)
     uint8_t sensor_type;  // sensor_type_t
     uint8_t payload_len;  // Length of payload[] in bytes (0-64)

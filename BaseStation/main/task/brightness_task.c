@@ -86,7 +86,7 @@ uint16_t map_brightness(uint16_t lux, bool presence) {
 
 uint16_t map_brightness_power(uint16_t lux, bool presence) {
   if (!presence) {
-    return 0;
+    return 10;
   }
   const float a = 9.658973f;
   const float b = 0.461319f;
@@ -162,7 +162,7 @@ void brightness_task(void *pvParameter){
   }
 
   // set delay  - keep ist in Einheiten von 0.5 Sekunden, trig ist in 10ms-Einheiten
-  if(c4001_set_delay(&presence_sensor, /*trig*/ 100, /*keep*/ 60) == ESP_OK){
+  if(c4001_set_delay(&presence_sensor, /*trig*/ 10, /*keep*/ 60) == ESP_OK){
     ESP_LOGI(TAG, "set delay successfully");
   }
 
@@ -212,51 +212,5 @@ void brightness_task(void *pvParameter){
     vTaskDelay(pdMS_TO_TICKS(25));
       
   }
-
-
-
-
-  // Set sensor mode
-  c4001_set_mode(&presence_sensor, SPEED_MODE);
-
-  ESP_LOGI(TAG, "speed min range = %d", c4001_get_tmin_range(&presence_sensor));
-  ESP_LOGI(TAG, "speed max range = %d", c4001_get_tmax_range(&presence_sensor));
-  ESP_LOGI(TAG, "threshold range = %d", c4001_get_thres_range(&presence_sensor));
-
-  sensor_status_t data;
-  data = c4001_get_status(&presence_sensor);
-  
-  //  0 stop  1 start
-  ESP_LOGI(TAG, "work status  = %d", data.work_status);
-
-  //  0 is presence   1 speed
-  ESP_LOGI(TAG, "work mode  = %d", data.work_mode);
-
-  //  0 no init    1 init success
-  ESP_LOGI(TAG, "init status  = %d", data.init_status);
-
-  if (c4001_set_detect_thres(&presence_sensor, /*min*/ 30, /*max*/ 1000, /*thres*/ 400 )) {
-    ESP_LOGI(TAG, "set detect threshold successfully");
-  }
-
-  // set Fretting Detection
-  c4001_set_micro_detection(&presence_sensor, MICRO_OFF);
-
-  
-  ESP_LOGI(TAG, "speed min range = %d", c4001_get_tmin_range(&presence_sensor));
-  ESP_LOGI(TAG, "speed max range = %d", c4001_get_tmax_range(&presence_sensor));
-  ESP_LOGI(TAG, "threshold range = %d", c4001_get_thres_range(&presence_sensor));
-  
-  ESP_LOGI(TAG, "micro detection = %d", c4001_get_micro_detection(&presence_sensor));
-
-  speed_data_t speed_data;
-  for (;;) {
-    c4001_get_speed_status(&presence_sensor, &speed_data);
-
-    ESP_LOGI(TAG, "Number %d    Speed %d     Distance %d     Energy %d", speed_data.number, speed_data.speed, speed_data.range, speed_data.energy);
-
-    vTaskDelay(pdMS_TO_TICKS(100)); // Sleep for 1 second
-  }
-
 
 }

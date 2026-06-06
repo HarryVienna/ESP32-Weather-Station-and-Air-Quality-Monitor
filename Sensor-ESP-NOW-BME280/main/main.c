@@ -51,12 +51,6 @@
 
 #define SENSOR_SLEEPTIME 600
 
-enum MessageType {
-    PAIRING_REQ,
-    PAIRING_RESP,
-    DATA,
-};
-
 // Sensor types defined in common/packet_format.h (sensor_type_t enum)
 // SENSOR_TYPE_BME280 = 1, etc.
 

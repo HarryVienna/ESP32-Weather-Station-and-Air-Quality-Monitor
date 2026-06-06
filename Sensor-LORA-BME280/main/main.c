@@ -34,8 +34,6 @@
  * Constants
  * ============================================================================ */
 
-enum MessageType { PAIRING_REQ, PAIRING_RESP, DATA };
-
 #define SLEEP_TIME_SECONDS 600
 
 /* LED */

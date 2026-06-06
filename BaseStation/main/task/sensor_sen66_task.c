@@ -55,12 +55,11 @@ void sensor_sen66_task(void *pvParameter) {
         ESP_LOGI(TAG, "Serial number: %s", serial_number);
     }
 
-
-
-
+// 21.97
+// 4838
     // Temperature offset: T_compensated = T_ambient + (slope * T_ambient) + offset
     // offset scaled by 200, slope scaled by 10000, time_constant in seconds (0 = immediate)
-    float temp_offset = -1.6f;
+    float temp_offset = 0.0f;
     error = sen66_set_temperature_offset_parameters(
         (int16_t)(200.0f * temp_offset), /*slope=*/0, /*time_constant=*/0, /*slot=*/0);
     if (error) {
@@ -72,7 +71,7 @@ void sensor_sen66_task(void *pvParameter) {
     // Start Measurement
     error = sen66_start_continuous_measurement();
     if (error) {
-        ESP_LOGE(TAG, "Error executing sen5x_start_measurement(): %i", error);
+        ESP_LOGE(TAG, "Error executing sen5x_start_measurement(): %i", error);  
     }
 
     uint16_t mass_concentration_pm1p0;
