@@ -57,6 +57,31 @@ void sensor_sen66_task(void *pvParameter) {
 
 // 21.97
 // 4838
+
+//23.79°
+//5086
+
+// 24.12°C 
+// 5115
+
+//24.21°C
+//5310 
+
+//24.25°C
+//5326
+
+//24.16°C
+//5292
+
+// 24.03°C
+// 5041
+
+// 22.58°
+// 4645
+
+// 23.67°
+// 5239
+
     // Temperature offset: T_compensated = T_ambient + (slope * T_ambient) + offset
     // offset scaled by 200, slope scaled by 10000, time_constant in seconds (0 = immediate)
     float temp_offset = 0.0f;

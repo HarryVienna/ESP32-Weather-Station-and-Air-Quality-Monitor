@@ -21,6 +21,14 @@ CONFIG_ESPTOOLPY_FLASHFREQ_80M=y
 # ADC Calibration: ESP32-S3 uses curve fitting
 CONFIG_ADC_CALI_CURVE_FITTING_ENABLE=y
 
+# ULP-FSM für Geiger-Impulszählung im Deep Sleep
+CONFIG_ULP_COPROC_ENABLED=y
+CONFIG_ULP_COPROC_TYPE_FSM=y
+CONFIG_ULP_COPROC_RESERVE_MEM=512
+
+# Primäre Console auf USB Serial/JTAG (idf.py monitor)
+CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG=y
+
 # Skip firmware SHA256 validation on deep-sleep wake
 CONFIG_BOOTLOADER_SKIP_VALIDATE_ALWAYS=y
 
