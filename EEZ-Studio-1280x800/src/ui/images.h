@@ -18,6 +18,7 @@ extern const lv_img_dsc_t img_humidity;
 extern const lv_img_dsc_t img_pressure;
 extern const lv_img_dsc_t img_battery;
 extern const lv_img_dsc_t img_clock;
+extern const lv_img_dsc_t img_snr;
 extern const lv_img_dsc_t img_0d;
 extern const lv_img_dsc_t img_0n;
 extern const lv_img_dsc_t img_1d;
@@ -57,7 +58,7 @@ typedef struct _ext_img_desc_t {
 } ext_img_desc_t;
 #endif
 
-extern const ext_img_desc_t images[41];
+extern const ext_img_desc_t images[42];
 
 #ifdef __cplusplus
 }

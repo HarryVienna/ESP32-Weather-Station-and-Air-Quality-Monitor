@@ -3,7 +3,14 @@
 
 #include <lvgl.h>
 
+#include <string.h>
 #include "screens.h"
+#include "images.h"
+#include "fonts.h"
+#include "actions.h"
+#include "structs.h"
+#include "styles.h"
+#include "vars.h"
 
 #ifdef __cplusplus
 extern "C" {

@@ -30,7 +30,7 @@ void loadScreen(enum ScreensEnum screenId) {
 
 void ui_init() {
     create_screens();
-    loadScreen(SCREEN_ID_SCREEN_TEST);
+    loadScreen(SCREEN_ID_SETUP_SCREEN);
 }
 
 void ui_tick() {

@@ -47,6 +47,7 @@
     "images/ui_image_cloud.c",
     "images/ui_image_humidity.c",
     "images/ui_image_pressure.c",
+    "images/ui_image_snr.c",
     "images/ui_image_sunrise.c",
     "images/ui_image_sunset.c",
     "images/ui_image_uv.c",

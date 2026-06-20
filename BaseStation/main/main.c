@@ -22,25 +22,27 @@
 #include "display/display.h"
 #include "receiver/receiver.h"
 #include "ui/ui.h"
+#include "gui/gui.h"
 #include "task/brightness_task.h"
 #include "task/sensor_sen66_task.h"
+#include "wifi/network.h"
 
 static const char *TAG = "main";
 
 
-void set_brightness(int32_t value) {
-    display_set_brightness(value);
+// void set_brightness(int32_t value) {
+//     display_set_brightness(value);
 
-    char str[10];
-    sprintf(str, "%lu", value);
-    lv_label_set_text(objects.label_brightness, str);
-}
+//     char str[10];
+//     sprintf(str, "%lu", value);
+//     //lv_label_set_text(objects.label_brightness, str);
+// }
 
-void action_slider_set_backlight_brightness(lv_event_t *e) {
-    lv_obj_t *slider = lv_event_get_target(e);
-    int32_t value = lv_slider_get_value(slider);
-    set_brightness(value);
-}
+// void action_slider_set_backlight_brightness(lv_event_t *e) {
+//     lv_obj_t *slider = lv_event_get_target(e);
+//     int32_t value = lv_slider_get_value(slider);
+//     set_brightness(value);
+// }
 
 
 void app_main(void)
@@ -51,8 +53,14 @@ void app_main(void)
 
     ESP_ERROR_CHECK(display_init());
 
+    // Brings up NVS (needed by the setup screen's preferences) and the Wi-Fi
+    // driver/netif/event loop (needed before the setup screen's Scan button
+    // can call esp_wifi_start()) before the UI starts reading/using either.
+    wifi_init();
+
     lvgl_port_lock(0);
     ui_init();
+    init_charts();
     lvgl_port_unlock();
 
     vTaskDelay(pdMS_TO_TICKS(1000));
@@ -75,12 +83,12 @@ void app_main(void)
       NULL,
       1);
 
-    xTaskCreatePinnedToCore(
-      sensor_sen66_task,
-      "SEN66 Task",
-      4096,
-      NULL,
-      1,
-      NULL,
-      1);
+    // xTaskCreatePinnedToCore(
+    //   sensor_sen66_task,
+    //   "SEN66 Task",
+    //   4096,
+    //   NULL,
+    //   1,
+    //   NULL,
+    //   1);
 }

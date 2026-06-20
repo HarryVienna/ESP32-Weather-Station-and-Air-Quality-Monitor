@@ -25,7 +25,7 @@ static const char* TAG = "display";
 
 static u8g2_t g_u8g2;
 static SemaphoreHandle_t g_mutex;
-static bool g_display_on = true;
+static bool g_display_on = false;
 static button_handle_t *g_button_handle = NULL;
 
 /* Display update queue (async from sensor callbacks) */
@@ -210,7 +210,7 @@ esp_err_t display_init(void) {
 
     u8x8_SetI2CAddress(&g_u8g2.u8x8, 0x3C << 1);
     u8g2_InitDisplay(&g_u8g2);
-    u8g2_SetPowerSave(&g_u8g2, 0);
+    u8g2_SetPowerSave(&g_u8g2, 1);  /* Display nach Start standardmäßig aus */
 
     g_mutex = xSemaphoreCreateMutex();
     if (g_mutex == NULL) {
@@ -236,7 +236,8 @@ esp_err_t display_init(void) {
     u8g2_SendBuffer(&g_u8g2);
 
     led_init();
-    ESP_LOGI(TAG, "Display initialized (SSD1306 128x64, I2C 0x3C)");
+    led_set(true);  /* Display ist initial aus -> LED an */
+    ESP_LOGI(TAG, "Display initialized (SSD1306 128x64, I2C 0x3C), default off");
 
     button_config_t btn_cfg = {
         .gpio_num             = DISPLAY_BUTTON_PIN,

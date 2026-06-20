@@ -8,7 +8,7 @@ dependencies:
     
   ## LVGL 8.x graphics library
   lvgl/lvgl:
-    version: "8.4.*"
+    version: "9.5.*"
 
   ## ESP LVGL Port - integrates LVGL with ESP-IDF
   ## Handles LVGL task, display driver, touch input
@@ -22,3 +22,12 @@ dependencies:
   ## JD9365 MIPI DSI LCD panel driver (handles DBI commands + DPI panel)
   espressif/esp_lcd_jd9365:
     version: "^2"
+
+  ## ESP32-P4 has no native Wi-Fi radio: these route the esp_wifi API to the
+  ## ESP32-C6 co-processor over the ESP-Hosted transport (SDIO/SPI).
+  espressif/esp_wifi_remote:
+    version: ">=0.10,<2.0"
+
+  espressif/esp_hosted:
+    version: "~2"
+

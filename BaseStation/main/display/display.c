@@ -552,7 +552,7 @@ static esp_err_t init_lvgl(void)
     ESP_RETURN_ON_FALSE(s_lvgl_display, ESP_FAIL, TAG, "Failed to add display to LVGL");
 
     lvgl_port_lock(0);
-    lv_disp_set_rotation(s_lvgl_display, LV_DISP_ROT_270);
+    lv_disp_set_rotation(s_lvgl_display, LV_DISP_ROTATION_270);
     lvgl_port_unlock();
     ESP_LOGI(TAG, "Display set to landscape rotated 270 (1280x800)");
 

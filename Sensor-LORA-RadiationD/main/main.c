@@ -344,7 +344,6 @@ static void start_ulp(void) {
     ulp_next_edge        = 0;
     ulp_debounce_counter = 0;
     ESP_ERROR_CHECK(ulp_run(&ulp_entry - RTC_SLOW_MEM));
-    /* ulp_set_wakeup_period entfällt, da pulse_cnt.S via Endlosschleife (jump) läuft */
 }
 
 /* ============================================================================
