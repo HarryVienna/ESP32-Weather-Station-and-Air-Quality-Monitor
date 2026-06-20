@@ -4702,116 +4702,6 @@
               "groupIndex": 0
             },
             {
-              "objID": "fd390a07-a9c8-4050-d5d2-630649ee5e55",
-              "type": "LVGLUserWidgetWidget",
-              "left": 0,
-              "top": 0,
-              "width": 198,
-              "height": 336,
-              "customInputs": [],
-              "customOutputs": [],
-              "style": {
-                "objID": "411e2bd0-c2a7-437b-d70d-976aa80f7350",
-                "useStyle": "default",
-                "conditionalStyles": [],
-                "childStyles": []
-              },
-              "hiddenInEditor": true,
-              "timeline": [],
-              "eventHandlers": [],
-              "leftUnit": "px",
-              "topUnit": "px",
-              "widthUnit": "content",
-              "heightUnit": "px",
-              "children": [],
-              "widgetFlags": "CLICK_FOCUSABLE|GESTURE_BUBBLE|PRESS_LOCK|SCROLLABLE|SCROLL_CHAIN_HOR|SCROLL_CHAIN_VER|SCROLL_ELASTIC|SCROLL_MOMENTUM|SCROLL_WITH_ARROW|SNAPPABLE",
-              "hiddenFlagType": "literal",
-              "clickableFlag": true,
-              "clickableFlagType": "literal",
-              "flagScrollbarMode": "",
-              "flagScrollDirection": "",
-              "scrollSnapX": "",
-              "scrollSnapY": "",
-              "checkedStateType": "literal",
-              "disabledStateType": "literal",
-              "states": "",
-              "localStyles": {
-                "objID": "7969c5ac-63da-4bf3-9889-5658d31248f0",
-                "definition": {
-                  "MAIN": {
-                    "DEFAULT": {
-                      "margin_top": 12,
-                      "margin_left": 12,
-                      "shadow_color": "lighten(#000000, 25%)",
-                      "shadow_width": 20
-                    }
-                  }
-                }
-              },
-              "group": "",
-              "groupIndex": 0,
-              "userWidgetPageName": "Base_2",
-              "userPropertyValues": {
-                "objID": "382a922f-b5f5-4f38-c8b5-18a4a7514840",
-                "values": {}
-              }
-            },
-            {
-              "objID": "d68a92d7-e195-40ff-a6d8-dfb8d8c278e6",
-              "type": "LVGLUserWidgetWidget",
-              "left": 0,
-              "top": 0,
-              "width": 198,
-              "height": 336,
-              "customInputs": [],
-              "customOutputs": [],
-              "style": {
-                "objID": "adfaa8c1-de5f-4033-95df-cf9f2ef58cd3",
-                "useStyle": "default",
-                "conditionalStyles": [],
-                "childStyles": []
-              },
-              "hiddenInEditor": true,
-              "timeline": [],
-              "eventHandlers": [],
-              "leftUnit": "px",
-              "topUnit": "px",
-              "widthUnit": "px",
-              "heightUnit": "px",
-              "children": [],
-              "widgetFlags": "CLICK_FOCUSABLE|GESTURE_BUBBLE|PRESS_LOCK|SCROLLABLE|SCROLL_CHAIN_HOR|SCROLL_CHAIN_VER|SCROLL_ELASTIC|SCROLL_MOMENTUM|SCROLL_WITH_ARROW|SNAPPABLE",
-              "hiddenFlagType": "literal",
-              "clickableFlag": true,
-              "clickableFlagType": "literal",
-              "flagScrollbarMode": "",
-              "flagScrollDirection": "",
-              "scrollSnapX": "",
-              "scrollSnapY": "",
-              "checkedStateType": "literal",
-              "disabledStateType": "literal",
-              "states": "",
-              "localStyles": {
-                "objID": "1f98b9bd-4cc9-463d-aefe-bb7995acb11e",
-                "definition": {
-                  "MAIN": {
-                    "DEFAULT": {
-                      "margin_top": 12,
-                      "margin_left": 12,
-                      "shadow_width": 20,
-                      "shadow_color": "lighten(#000000, 25%)"
-                    }
-                  }
-                }
-              },
-              "group": "",
-              "groupIndex": 0,
-              "userWidgetPageName": "Base_1",
-              "userPropertyValues": {
-                "objID": "ea262bc7-9849-4dd8-8822-6fac0d04a646",
-                "values": {}
-              }
-            },
-            {
               "objID": "b9697b6b-95c1-41b7-efdb-0a47db8da76c",
               "type": "LVGLUserWidgetWidget",
               "left": 0,
@@ -5433,7 +5323,7 @@
                     "DEFAULT": {
                       "pad_bottom": 35,
                       "pad_top": 15,
-                      "pad_left": 15,
+                      "pad_left": 30,
                       "pad_right": 30,
                       "border_width": 0,
                       "shadow_width": 20,
