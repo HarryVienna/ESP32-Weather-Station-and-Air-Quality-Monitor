@@ -5,7 +5,9 @@
 extern "C" {
 #endif
 
-void wifistart_start(void);
+typedef void (*wifistart_done_cb_t)(void);
+
+void wifistart_start(wifistart_done_cb_t on_done);
 
 #ifdef __cplusplus
 }

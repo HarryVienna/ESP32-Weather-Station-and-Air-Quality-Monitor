@@ -653,27 +653,15 @@ void disp_wifi_networks(char* allNetworks)
   lv_dropdown_set_options(objects.dropdown_networks, allNetworks);
 }
 
-void disp_disable_scanbutton(bool is_disabled)
+void disp_show_setup_spinner(bool show)
 {
-  if (is_disabled)
+  if (show)
   {
-    lv_obj_add_state( objects.button_scan, LV_STATE_DISABLED ); 
+    lv_obj_clear_flag(objects.panel_setup_spinner, LV_OBJ_FLAG_HIDDEN);
   }
   else
   {
-    lv_obj_clear_state( objects.button_scan, LV_STATE_DISABLED ); 
-  }
-}
-
-void disp_disable_connectbutton(bool is_disabled)
-{
-  if (is_disabled)
-  {
-    lv_obj_add_state( objects.button_connect, LV_STATE_DISABLED ); 
-  }
-  else
-  {
-    lv_obj_clear_state( objects.button_connect, LV_STATE_DISABLED ); 
+    lv_obj_add_flag(objects.panel_setup_spinner, LV_OBJ_FLAG_HIDDEN);
   }
 }
 
@@ -833,6 +821,8 @@ void start_tasks()
 
 void action_event_setup_screen_loaded(lv_event_t *e)
 {
+  // EEZ Studio doesn't mark this panel hidden by default, unlike the keyboards
+  disp_show_setup_spinner(false);
 
   nvs_handle_t nvs_handle;
   nvs_open("weatherstation", NVS_READONLY, &nvs_handle);
@@ -888,13 +878,13 @@ static void on_wifiscan_done(char *networks)
 {
   lvgl_port_lock(0);
   disp_wifi_networks(networks);
-  disp_disable_scanbutton(false);
+  disp_show_setup_spinner(false);
   lvgl_port_unlock();
 }
 
 void action_event_wifi_scan(lv_event_t *e)
 {
-  disp_disable_scanbutton(true);
+  disp_show_setup_spinner(true);
   wifiscan_start(on_wifiscan_done);
 }
 
@@ -902,7 +892,7 @@ static void on_wificonnect_done(bool connected)
 {
   lvgl_port_lock(0);
   disp_connect_status(connected);
-  disp_disable_connectbutton(false);
+  disp_show_setup_spinner(false);
   lvgl_port_unlock();
 }
 
@@ -912,7 +902,7 @@ void action_event_wifi_connect(lv_event_t *e)
   lv_dropdown_get_selected_str(objects.dropdown_networks, network, sizeof(network));
   const char *password = lv_textarea_get_text(objects.text_area_password);
 
-  disp_disable_connectbutton(true);
+  disp_show_setup_spinner(true);
   wificonnect_start(network, password, on_wificonnect_done);
 }
 
@@ -931,6 +921,16 @@ void action_event_timezone_value_changed(lv_event_t *e)
 }
 
 
+
+static void on_wifistart_done(void)
+{
+  start_tasks();
+
+  lvgl_port_lock(0);
+  disp_show_setup_spinner(false);
+  loadScreen(SCREEN_ID_WEATHERSTATION_SCREEN);
+  lvgl_port_unlock();
+}
 
 void action_event_weatherstation_start(lv_event_t *e)
 {
@@ -991,13 +991,8 @@ void action_event_weatherstation_start(lv_event_t *e)
 
   set_labels();
 
-  wifistart_start();
-  start_tasks();
-
-  lvgl_port_lock(0);
-  loadScreen(SCREEN_ID_WEATHERSTATION_SCREEN);
-  lvgl_port_unlock();
-
+  disp_show_setup_spinner(true);
+  wifistart_start(on_wifistart_done);
 }
 
 void action_event_text_area_password(lv_event_t * e)

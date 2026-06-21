@@ -14,9 +14,8 @@ void disp_weather(current_weather_data_t *current_weather, hourly_weather_data_t
 void set_brightness(uint16_t brightness);
 
 void disp_wifi_networks(char* allNetworks);
-void disp_disable_scanbutton(bool is_disabled);
-void disp_disable_connectbutton(bool is_disabled);
 void disp_connect_status(bool is_connected);
+void disp_show_setup_spinner(bool show);
 
 void init_charts(void);
 

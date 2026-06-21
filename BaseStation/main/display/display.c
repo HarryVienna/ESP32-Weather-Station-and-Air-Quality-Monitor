@@ -379,7 +379,7 @@ static esp_err_t init_backlight(void)
 
     vTaskDelay(pdMS_TO_TICKS(100));
     display_set_brightness(0);
-    vTaskDelay(pdMS_TO_TICKS(1000));
+    //vTaskDelay(pdMS_TO_TICKS(1000));
 
     ESP_LOGI(TAG, "Backlight initialized");
     return ESP_OK;

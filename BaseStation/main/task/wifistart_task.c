@@ -27,13 +27,15 @@ static void sync_callback(struct timeval *tv) {
 /**
  * @brief     Task: start WiFi connection and setup time synchronization
  *
- * @param     pvParameter   Pointer to task parameters (not used in this function)
+ * @param     pvParameter   wifistart_done_cb_t, called once Wi-Fi/NTP are
+ *                           done (may be NULL)
  *
  * @details   Initializes WiFi connection using stored credentials.
  *            Connects to the specified SSID using the provided password.
  *            Configures time synchronization based on the given timezone and NTP server.
  */
 static void wifistart_task(void *pvParameter) {
+    wifistart_done_cb_t on_done = (wifistart_done_cb_t)pvParameter;
 
     nvs_handle_t nvs_handle;
     nvs_open("weatherstation", NVS_READONLY, &nvs_handle);
@@ -65,21 +67,30 @@ static void wifistart_task(void *pvParameter) {
         ESP_LOGW(TAG, "Time synchronization timeout");
     }
 
+    if (on_done) {
+        on_done();
+    }
+
     vTaskDelete(NULL); // Delete the task when done
 }
 
 /**
  * @brief     Bring up Wi-Fi and NTP time sync in its own task
  *
+ * @param     on_done   called from the task once Wi-Fi is connected and NTP
+ *                       sync has finished (or timed out) (may be NULL)
+ *
  * @details   Runs wifistart_task() on a dedicated task so the (slow, blocking)
- *            Wi-Fi connect and NTP sync don't run on the caller's task.
+ *            Wi-Fi connect and NTP sync don't run on the caller's task. on_done
+ *            runs on that task, not the caller's - lock around any UI access
+ *            inside it.
  */
-void wifistart_start(void) {
+void wifistart_start(wifistart_done_cb_t on_done) {
     xTaskCreatePinnedToCore(
         wifistart_task,    // Task function
         "WiFiStart Task",  // Task name
         4096,              // Stack size (bytes)
-        NULL,              // Task input parameter
+        (void *)on_done,   // Task input parameter
         1,                 // Task priority
         NULL,              // Task handle
         1                  // Core to run the task on (0 or 1)
