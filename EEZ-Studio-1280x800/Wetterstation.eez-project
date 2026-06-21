@@ -4783,17 +4783,15 @@
                       "pad_right": 0,
                       "pad_row": 0,
                       "pad_column": 0,
-                      "border_side": "FULL",
-                      "border_width": 0,
+                      "border_width": 1,
                       "clip_corner": true,
                       "radius": 10,
-                      "shadow_color": "lighten(#000000, 25%)",
-                      "shadow_width": 20,
                       "margin_bottom": 0,
                       "margin_right": 0,
                       "bg_color": "#ffffff",
                       "margin_top": 12,
-                      "margin_left": 12
+                      "margin_left": 12,
+                      "border_color": "#000000"
                     }
                   }
                 }
@@ -4802,16 +4800,16 @@
               "groupIndex": 0
             },
             {
-              "objID": "b9697b6b-95c1-41b7-efdb-0a47db8da76c",
+              "objID": "6e1a2c79-4b6c-43f1-9458-c5d3e31f8428",
               "type": "LVGLUserWidgetWidget",
               "left": 0,
               "top": 0,
               "width": 198,
-              "height": 336,
+              "height": 212,
               "customInputs": [],
               "customOutputs": [],
               "style": {
-                "objID": "270b4b62-ea26-4e80-8571-24b8337df3f5",
+                "objID": "b08e7eec-ae89-4a27-86e7-8e873e7eb110",
                 "useStyle": "default",
                 "conditionalStyles": [],
                 "childStyles": []
@@ -4821,7 +4819,7 @@
               "leftUnit": "px",
               "topUnit": "px",
               "widthUnit": "px",
-              "heightUnit": "px",
+              "heightUnit": "content",
               "children": [],
               "widgetFlags": "CLICK_FOCUSABLE|GESTURE_BUBBLE|PRESS_LOCK|SCROLLABLE|SCROLL_CHAIN_HOR|SCROLL_CHAIN_VER|SCROLL_ELASTIC|SCROLL_MOMENTUM|SCROLL_WITH_ARROW|SNAPPABLE",
               "hiddenFlagType": "literal",
@@ -4835,23 +4833,21 @@
               "disabledStateType": "literal",
               "states": "",
               "localStyles": {
-                "objID": "021a8fda-d37a-46d1-d2d5-59ad91b56dcd",
+                "objID": "ed30e7c3-bcd6-4730-91c1-e18c26ab43c3",
                 "definition": {
                   "MAIN": {
                     "DEFAULT": {
                       "margin_top": 12,
-                      "margin_left": 12,
-                      "shadow_width": 20,
-                      "shadow_color": "lighten(#000000, 25%)"
+                      "margin_left": 12
                     }
                   }
                 }
               },
               "group": "",
               "groupIndex": 0,
-              "userWidgetPageName": "Base_3",
+              "userWidgetPageName": "Base_0",
               "userPropertyValues": {
-                "objID": "22c20403-debd-4ff2-b8e3-75f60023e305",
+                "objID": "7cff1eef-1b40-4285-ee81-52f38e6dc41f",
                 "values": {}
               }
             },
@@ -4916,9 +4912,7 @@
                       "MAIN": {
                         "DEFAULT": {
                           "pad_row": 0,
-                          "pad_column": 0,
-                          "shadow_color": "lighten(#000000, 25%)",
-                          "shadow_width": 20
+                          "pad_column": 0
                         }
                       }
                     }
@@ -5028,9 +5022,7 @@
                       "MAIN": {
                         "DEFAULT": {
                           "margin_top": 0,
-                          "margin_left": 12,
-                          "shadow_color": "darken(#d9eafa, 25%)",
-                          "shadow_width": 25
+                          "margin_left": 12
                         }
                       }
                     }
@@ -5081,9 +5073,7 @@
                     "definition": {
                       "MAIN": {
                         "DEFAULT": {
-                          "margin_top": 12,
-                          "shadow_color": "lighten(#000000, 25%)",
-                          "shadow_width": 20
+                          "margin_top": 12
                         }
                       }
                     }
@@ -5135,9 +5125,7 @@
                       "MAIN": {
                         "DEFAULT": {
                           "margin_top": 12,
-                          "margin_left": 12,
-                          "shadow_color": "lighten(#000000, 25%)",
-                          "shadow_width": 20
+                          "margin_left": 12
                         }
                       }
                     }
@@ -5189,9 +5177,7 @@
                       "MAIN": {
                         "DEFAULT": {
                           "margin_top": 12,
-                          "margin_left": 12,
-                          "shadow_color": "lighten(#000000, 25%)",
-                          "shadow_width": 20
+                          "margin_left": 12
                         }
                       }
                     }
@@ -5251,7 +5237,7 @@
               "type": "LVGLPanelWidget",
               "left": 0,
               "top": 0,
-              "width": 552,
+              "width": 626,
               "height": 426,
               "customInputs": [],
               "customOutputs": [],
@@ -5330,10 +5316,9 @@
                       "pad_right": 25,
                       "pad_top": 15,
                       "pad_bottom": 35,
-                      "border_width": 0,
-                      "shadow_color": "darken(#d9eafa, 25%)",
-                      "shadow_width": 25,
-                      "margin_left": 12
+                      "border_width": 1,
+                      "margin_left": 12,
+                      "border_color": "#000000"
                     }
                   }
                 }
@@ -5346,7 +5331,7 @@
               "type": "LVGLPanelWidget",
               "left": 0,
               "top": 0,
-              "width": 693,
+              "width": 618,
               "height": 426,
               "customInputs": [],
               "customOutputs": [],
@@ -5425,10 +5410,9 @@
                       "pad_top": 15,
                       "pad_left": 30,
                       "pad_right": 30,
-                      "border_width": 0,
-                      "shadow_width": 20,
-                      "shadow_color": "lighten(#000000, 25%)",
-                      "margin_left": 12
+                      "border_width": 1,
+                      "margin_left": 12,
+                      "border_color": "#000000"
                     }
                   }
                 }
@@ -6309,7 +6293,7 @@
                   "left": 0,
                   "top": 0,
                   "width": 71,
-                  "height": 29,
+                  "height": 100,
                   "customInputs": [],
                   "customOutputs": [],
                   "style": {
@@ -6325,7 +6309,7 @@
                   "leftUnit": "px",
                   "topUnit": "px",
                   "widthUnit": "content",
-                  "heightUnit": "content",
+                  "heightUnit": "%",
                   "children": [],
                   "widgetFlags": "CLICK_FOCUSABLE|GESTURE_BUBBLE|PRESS_LOCK|SCROLLABLE|SCROLL_CHAIN_HOR|SCROLL_CHAIN_VER|SCROLL_ELASTIC|SCROLL_MOMENTUM|SCROLL_WITH_ARROW|SNAPPABLE",
                   "hiddenFlagType": "literal",
@@ -6342,7 +6326,8 @@
                     "definition": {
                       "MAIN": {
                         "DEFAULT": {
-                          "grid_row_align": "START"
+                          "grid_row_align": "START",
+                          "text_font": "FreeSans24"
                         }
                       }
                     }
@@ -6562,7 +6547,7 @@
               "left": 0,
               "top": 0,
               "width": 100,
-              "height": 46,
+              "height": 44,
               "customInputs": [],
               "customOutputs": [],
               "style": {
@@ -7053,12 +7038,13 @@
                   "pad_row": 0,
                   "pad_column": 0,
                   "radius": 10,
-                  "border_width": 0,
+                  "border_width": 1,
                   "clip_corner": true,
                   "margin_top": 15,
                   "margin_bottom": 0,
                   "margin_left": 15,
-                  "margin_right": 0
+                  "margin_right": 0,
+                  "border_color": "#000000"
                 }
               }
             }
@@ -9132,8 +9118,8 @@
           "type": "LVGLPanelWidget",
           "left": 0,
           "top": 0,
-          "width": 180,
-          "height": 222,
+          "width": 198,
+          "height": 212,
           "customInputs": [],
           "customOutputs": [],
           "style": {
@@ -9155,7 +9141,7 @@
               "type": "LVGLPanelWidget",
               "left": 0,
               "top": 0,
-              "width": 178,
+              "width": 100,
               "height": 31,
               "customInputs": [],
               "customOutputs": [],
@@ -9170,7 +9156,7 @@
               "eventHandlers": [],
               "leftUnit": "px",
               "topUnit": "px",
-              "widthUnit": "px",
+              "widthUnit": "%",
               "heightUnit": "px",
               "children": [
                 {
@@ -9178,8 +9164,8 @@
                   "type": "LVGLLabelWidget",
                   "left": 0,
                   "top": 0,
-                  "width": 115,
-                  "height": 25,
+                  "width": 137,
+                  "height": 29,
                   "customInputs": [],
                   "customOutputs": [],
                   "style": {
@@ -9213,7 +9199,7 @@
                       "MAIN": {
                         "DEFAULT": {
                           "grid_row_align": "START",
-                          "text_font": "FreeSans20"
+                          "text_font": "FreeSans24"
                         }
                       }
                     }
@@ -9270,8 +9256,8 @@
               "type": "LVGLPanelWidget",
               "left": 0,
               "top": 0,
-              "width": 178,
-              "height": 65,
+              "width": 100,
+              "height": 55,
               "customInputs": [],
               "customOutputs": [],
               "style": {
@@ -9284,7 +9270,7 @@
               "eventHandlers": [],
               "leftUnit": "px",
               "topUnit": "px",
-              "widthUnit": "px",
+              "widthUnit": "%",
               "heightUnit": "px",
               "children": [
                 {
@@ -9407,7 +9393,7 @@
                 "definition": {
                   "MAIN": {
                     "DEFAULT": {
-                      "pad_top": 0,
+                      "pad_top": 6,
                       "pad_bottom": 0,
                       "pad_left": 0,
                       "pad_right": 0,
@@ -9431,7 +9417,7 @@
               "type": "LVGLPanelWidget",
               "left": 0,
               "top": 0,
-              "width": 178,
+              "width": 100,
               "height": 44,
               "customInputs": [],
               "customOutputs": [],
@@ -9445,7 +9431,7 @@
               "eventHandlers": [],
               "leftUnit": "px",
               "topUnit": "px",
-              "widthUnit": "px",
+              "widthUnit": "%",
               "heightUnit": "px",
               "children": [
                 {
@@ -9641,7 +9627,7 @@
               "type": "LVGLPanelWidget",
               "left": 0,
               "top": 0,
-              "width": 178,
+              "width": 100,
               "height": 77,
               "customInputs": [],
               "customOutputs": [],
@@ -9655,7 +9641,7 @@
               "eventHandlers": [],
               "leftUnit": "px",
               "topUnit": "px",
-              "widthUnit": "px",
+              "widthUnit": "%",
               "heightUnit": "px",
               "children": [
                 {
