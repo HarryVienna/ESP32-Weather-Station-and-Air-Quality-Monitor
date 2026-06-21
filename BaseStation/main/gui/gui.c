@@ -15,8 +15,7 @@
 #include "task/sensor_sen66_task.h"
 #include "task/weather_task.h"
 #include "task/brightness_task.h"
-
-#include "wifi/network.h"
+#include "task/wifistart_task.h"
 
 #include "config/config.h"
 #include "gui.h"
@@ -885,18 +884,26 @@ void action_event_setup_screen_loaded(lv_event_t *e)
   lv_textarea_set_text(objects.text_area_sensor_name3, name_sensor_3);
 }
 
+static void on_wifiscan_done(char *networks)
+{
+  lvgl_port_lock(0);
+  disp_wifi_networks(networks);
+  disp_disable_scanbutton(false);
+  lvgl_port_unlock();
+}
+
 void action_event_wifi_scan(lv_event_t *e)
 {
-    xTaskCreatePinnedToCore(
-        wifiscan_task,   // Task function
-        "WiFiScan Task", // Task name
-        16000,            // Stack size (bytes)
-        NULL,            // Task input parameter
-        16,              // Task priority
-        NULL,            // Task handle
-        0                // Core to run the task on (0 or 1)
-    );
- 
+  disp_disable_scanbutton(true);
+  wifiscan_start(on_wifiscan_done);
+}
+
+static void on_wificonnect_done(bool connected)
+{
+  lvgl_port_lock(0);
+  disp_connect_status(connected);
+  disp_disable_connectbutton(false);
+  lvgl_port_unlock();
 }
 
 void action_event_wifi_connect(lv_event_t *e)
@@ -905,21 +912,8 @@ void action_event_wifi_connect(lv_event_t *e)
   lv_dropdown_get_selected_str(objects.dropdown_networks, network, sizeof(network));
   const char *password = lv_textarea_get_text(objects.text_area_password);
 
-  // Allocate memory for ssid and password in the struct
-  local_wifi_sta_config_t *wifiParams = (local_wifi_sta_config_t *)malloc(sizeof(local_wifi_sta_config_t));
-  wifiParams->ssid = strdup(network);
-  wifiParams->password = strdup(password);
-
-  xTaskCreatePinnedToCore(
-      wificonnect_task,   // Task function
-      "WiFiConnect Task", // Task name
-      4096,               // Stack size (bytes)
-      wifiParams,         // Task input parameter
-      16,                 // Task priority
-      NULL,               // Task handle
-      0                   // Core to run the task on (0 or 1)
-  );
-
+  disp_disable_connectbutton(true);
+  wificonnect_start(network, password, on_wificonnect_done);
 }
 
 void action_event_timezone_value_changed(lv_event_t *e)
@@ -937,27 +931,6 @@ void action_event_timezone_value_changed(lv_event_t *e)
 }
 
 
-/**
- * @brief     Task run once after the setup screen's "Start" button is pressed
- *
- * @details   wifi_start() blocks on Wi-Fi association and NTP sync, so this
- *            runs on its own task instead of inside the button's LVGL event
- *            callback - that keeps the LVGL task free to keep redrawing/
- *            responding to touch input while we wait. Once Wi-Fi/NTP are up,
- *            it starts the periodic application tasks and switches to the
- *            weather screen.
- */
-static void startup_task(void *pvParameter)
-{
-  wifi_start();
-  start_tasks();
-
-  lvgl_port_lock(0);
-  loadScreen(SCREEN_ID_WEATHERSTATION_SCREEN);
-  lvgl_port_unlock();
-
-  vTaskDelete(NULL);
-}
 
 void action_event_weatherstation_start(lv_event_t *e)
 {
@@ -1018,14 +991,13 @@ void action_event_weatherstation_start(lv_event_t *e)
 
   set_labels();
 
-  xTaskCreatePinnedToCore(
-      startup_task,
-      "Startup Task",
-      8192,
-      NULL,
-      1,
-      NULL,
-      1);
+  wifistart_start();
+  start_tasks();
+
+  lvgl_port_lock(0);
+  loadScreen(SCREEN_ID_WEATHERSTATION_SCREEN);
+  lvgl_port_unlock();
+
 }
 
 void action_event_text_area_password(lv_event_t * e)

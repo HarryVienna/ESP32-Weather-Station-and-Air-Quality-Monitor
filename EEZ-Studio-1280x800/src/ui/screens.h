@@ -48,6 +48,7 @@ typedef struct _objects_t {
     lv_obj_t *label_scan_2;
     lv_obj_t *keyboard_text;
     lv_obj_t *keyboard_numeric;
+    lv_obj_t *panel_setup_spinner;
     lv_obj_t *current;
     lv_obj_t *obj0;
     lv_obj_t *date_time;

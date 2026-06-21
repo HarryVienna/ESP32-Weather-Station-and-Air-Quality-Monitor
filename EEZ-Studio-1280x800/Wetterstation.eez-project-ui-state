@@ -75,7 +75,7 @@
           },
           {
             "type": "border",
-            "size": 97.64062309265137,
+            "size": 264.64062309265137,
             "location": "bottom",
             "children": [
               {
@@ -171,7 +171,8 @@
                       "enableClose": false,
                       "icon": "svg:hierarchy"
                     }
-                  ]
+                  ],
+                  "active": true
                 },
                 {
                   "type": "tabset",
@@ -194,11 +195,22 @@
             {
               "type": "tabset",
               "id": "EDITORS",
-              "weight": 51.366228003715634,
-              "selected": 3,
+              "weight": 57.97904539301063,
+              "selected": 5,
               "enableDeleteWhenEmpty": false,
               "enableClose": false,
               "children": [
+                {
+                  "type": "tab",
+                  "id": "#0c80f483-45ed-4d3d-ae03-c74731245ffb",
+                  "name": "SetupScreen",
+                  "component": "editor",
+                  "config": {
+                    "objectPath": "[Wetterstation.eez-project]:/userPages/0",
+                    "permanent": true
+                  },
+                  "icon": "svg:page"
+                },
                 {
                   "type": "tab",
                   "id": "#5404a09b-a700-4170-b35a-bb575dbff475",
@@ -254,18 +266,17 @@
                   },
                   "icon": "svg:page"
                 }
-              ],
-              "active": true
+              ]
             },
             {
               "type": "row",
               "id": "#c868a29f-91bb-4ff7-9e6f-e8b94cefd0ac",
-              "weight": 28.855930426014503,
+              "weight": 22.243113036719514,
               "children": [
                 {
                   "type": "tabset",
                   "id": "#9b10bf15-0b64-4e4e-a4ea-d0c702a4df13",
-                  "weight": 2,
+                  "weight": 2.242021276595745,
                   "children": [
                     {
                       "type": "tab",
@@ -280,7 +291,7 @@
                 {
                   "type": "tabset",
                   "id": "#bde4cd98-bdc4-405f-8ee3-ccbe1daf33f1",
-                  "weight": 1,
+                  "weight": 0.7579787234042553,
                   "children": [
                     {
                       "type": "tab",
@@ -1145,8 +1156,8 @@
       },
       "transform": {
         "translate": {
-          "x": -300.2858739454208,
-          "y": -208.09898066691858
+          "x": -377.6573033887802,
+          "y": -241.81339717082483
         },
         "scale": 0.67
       },
@@ -1160,7 +1171,18 @@
       "selectionBack": {
         "0": {
           "0": {
-            "$selected": true
+            "0": {
+              "1": {
+                "0": {
+                  "$selected": true
+                }
+              }
+            },
+            "2": {},
+            "4": {
+              "1": {},
+              "2": {}
+            }
           }
         }
       }
@@ -1182,10 +1204,10 @@
       },
       "transform": {
         "translate": {
-          "x": -504.05274843479447,
-          "y": -285.51224604836204
+          "x": -429.19047627182374,
+          "y": -491.1875583921826
         },
-        "scale": 0.9
+        "scale": 0.67
       },
       "timeline": {
         "isEditorActive": false,
@@ -1198,18 +1220,19 @@
         "0": {
           "0": {
             "1": {
-              "0": {
-                "$selected": true
-              }
+              "0": {}
             }
           },
-          "2": {},
-          "4": {
+          "2": {
             "0": {},
             "2": {}
           },
-          "5": {},
-          "6": {}
+          "3": {},
+          "4": {
+            "0": {
+              "$selected": true
+            }
+          }
         }
       }
     },
@@ -1258,7 +1281,7 @@
           "x": -255.4370084526795,
           "y": -151.47645229763515
         },
-        "scale": 0.9
+        "scale": 0.67
       },
       "timeline": {
         "isEditorActive": false,
@@ -1278,9 +1301,9 @@
       "transform": {
         "translate": {
           "x": -389.71429443359375,
-          "y": -345.7142333984375
+          "y": -145.7142333984375
         },
-        "scale": 0.9
+        "scale": 0.67
       },
       "timeline": {
         "isEditorActive": false,
@@ -1302,7 +1325,7 @@
           "x": -245.00882466634002,
           "y": -289.0371167924674
         },
-        "scale": 0.9
+        "scale": 0.67
       },
       "timeline": {
         "isEditorActive": false,
@@ -1326,7 +1349,7 @@
           "x": -310.5759060718213,
           "y": -230.66346946037413
         },
-        "scale": 0.9
+        "scale": 0.67
       },
       "timeline": {
         "isEditorActive": false,
@@ -1401,18 +1424,12 @@
   "lvglPart": "MAIN",
   "lvglState": "DEFAULT",
   "lvglExpandedPropertiesGroup": [
-    "BORDER",
-    "MISCELLANEOUS",
-    "PADDING",
-    "MARGIN",
-    "BACKGROUND",
     "TEXT",
-    "LAYOUT",
-    "SHADOW"
+    "PADDING"
   ],
   "showInactiveFlowsInDebugger": true,
   "globalFlowZoom": true,
-  "flowZoom": 0.9,
+  "flowZoom": 0.67,
   "implementationLanguage": "C",
   "openDialogDefaultPath": "C:\\Users\\Harald\\Documents\\Projekte\\Wetterstation-ESP32-3.0\\Code\\EEZ-Studio-1280x800 - Kopie - Kopie\\images\\snr.png"
 }

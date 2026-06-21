@@ -5,7 +5,9 @@
 extern "C" {
 #endif
 
-void wifiscan_task(void *pvParameter);
+typedef void (*wifiscan_done_cb_t)(char *networks);
+
+void wifiscan_start(wifiscan_done_cb_t on_done);
 
 #ifdef __cplusplus
 }

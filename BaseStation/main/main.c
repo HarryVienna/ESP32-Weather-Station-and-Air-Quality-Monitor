@@ -53,9 +53,6 @@ void app_main(void)
 
     ESP_ERROR_CHECK(display_init());
 
-    // Brings up NVS (needed by the setup screen's preferences) and the Wi-Fi
-    // driver/netif/event loop (needed before the setup screen's Scan button
-    // can call esp_wifi_start()) before the UI starts reading/using either.
     wifi_init();
 
     lvgl_port_lock(0);
@@ -63,16 +60,11 @@ void app_main(void)
     init_charts();
     lvgl_port_unlock();
 
-    vTaskDelay(pdMS_TO_TICKS(1000));
-    
     ESP_ERROR_CHECK(i2c_manager_init());
+
     ESP_ERROR_CHECK(receiver_init());
-
-    ESP_LOGI(TAG, "============================================");
-    ESP_LOGI(TAG, " Initialization complete!");
-    ESP_LOGI(TAG, "============================================");
-
     receiver_start();
+
 
     xTaskCreatePinnedToCore(
       brightness_task,
@@ -83,12 +75,11 @@ void app_main(void)
       NULL,
       1);
 
-    // xTaskCreatePinnedToCore(
-    //   sensor_sen66_task,
-    //   "SEN66 Task",
-    //   4096,
-    //   NULL,
-    //   1,
-    //   NULL,
-    //   1);
+
+    
+
+    ESP_LOGI(TAG, "============================================");
+    ESP_LOGI(TAG, " Initialization complete!");
+    ESP_LOGI(TAG, "============================================");
+
 }

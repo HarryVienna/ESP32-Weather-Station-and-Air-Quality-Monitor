@@ -32,15 +32,15 @@ void clock_task(void *pvParameter){
   struct tm timeinfo;
   time_t now;
 
-  char str_ftime[18];
-  char date_time[21];
+  char str_ftime[24];
+  char date_time[32];
 
   for (;;) {
 
     time(&now);
     localtime_r(&now, &timeinfo);
 
-    strftime(str_ftime, sizeof(str_ftime), "%d.%m.%Y  %H:%M", &timeinfo);
+    strftime(str_ftime, sizeof(str_ftime), "%d.%m.%Y  %H:%M:%S", &timeinfo);
     snprintf(date_time, sizeof(date_time), "%s %s", DAY_NAMES[timeinfo.tm_wday], str_ftime);
 
     lvgl_port_lock(0);
