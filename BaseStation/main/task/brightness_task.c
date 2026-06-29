@@ -86,12 +86,12 @@ uint16_t map_brightness(uint16_t lux, bool presence) {
 
 uint16_t map_brightness_power(uint16_t lux, bool presence) {
   if (!presence) {
-    return 10;
+    return 5;
   }
   const float a = 9.658973f;
   const float b = 0.461319f;
-  int brightness = (int)(a * powf((float)lux, b) + 15.0f);
-  if (brightness < 5)   brightness = 5;
+  int brightness = (int)(a * powf((float)lux, b) + 10.0f);
+  if (brightness < 10)   brightness = 10;
   if (brightness > 255) brightness = 255;
   return (uint16_t)brightness;
 }
@@ -206,7 +206,7 @@ void brightness_task(void *pvParameter){
                              ? current_brightness - step : target_brightness;
       }
       display_set_brightness(current_brightness);
-      ESP_LOGI(TAG, "Brightness: %d", current_brightness);
+      ESP_LOGI(TAG, "Lux/Brightness: %d  %d", lux, current_brightness);
     }
 
     vTaskDelay(pdMS_TO_TICKS(25));

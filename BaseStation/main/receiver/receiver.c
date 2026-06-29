@@ -113,11 +113,8 @@ static const char *sensor_type_str(uint8_t type)
 {
     switch (type) {
         case 1: return "BME280";
-        case 2: return "HDC1080";
-        case 3: return "DHT22";
-        case 4: return "WIND";
-        case 5: return "RAIN";
-        case 6: return "GEIGER";
+        case 2: return "SHT45";
+        case 3: return "GEIGER";
         default: return "unknown";
     }
 }
@@ -149,6 +146,14 @@ static void print_packet(const uint8_t *buf, size_t buf_len)
                 }
                 break;
             }
+            case SENSOR_TYPE_SHT45: {
+                if (pkt->header.payload_len >= sizeof(sht45_payload_t)) {
+                    const sht45_payload_t *d = (const sht45_payload_t *)pkt->payload;
+                    ESP_LOGI(TAG, "  Temp=%.2f°C  Hum=%.2f%%  Voltage=%lumV",
+                             d->temperature, d->humidity, (unsigned long)d->voltage);
+                }
+                break;
+            }            
             case SENSOR_TYPE_GEIGER: {
                 if (pkt->header.payload_len >= sizeof(geiger_payload_t)) {
                     const geiger_payload_t *d = (const geiger_payload_t *)pkt->payload;
@@ -178,8 +183,7 @@ static void i2c_scan(void)
     int found = 0;
     for (uint8_t addr = 0x08; addr <= 0x77; addr++) {
         if (i2c_master_probe(i2c_manager_get_bus(), addr, 20) == ESP_OK) {
-            ESP_LOGI(TAG, "  Device found at 0x%02X%s", addr,
-                     addr == I2C_SLAVE_ADDR ? "  <-- S3 Slave (erwartet)" : "");
+            ESP_LOGI(TAG, "  Device found at 0x%02X", addr);
             found++;
         }
     }

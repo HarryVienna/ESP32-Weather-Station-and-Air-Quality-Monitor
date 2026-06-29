@@ -11,6 +11,8 @@ static const char *TAG = "bh1750";
 #define BH1750_I2C_ADDR    0x23
 #define BH1750_I2C_FREQ_HZ 50000
 
+#define BH1750_LUX_OFFSET  5  // Eigenlicht der Gehäuse-LEDs
+
 
 static esp_err_t write_reg_i2c(bh_1750_t *sensor, uint8_t *data, uint8_t len) {
     return i2c_master_transmit(sensor->dev_handle, data, len, 1000);
@@ -80,6 +82,7 @@ esp_err_t bh1750_read(bh_1750_t *sensor, uint16_t *lux)
     }
 
     uint16_t raw = ((uint16_t)buf[0] << 8) | buf[1];
-    *lux = (raw * 10) / 12; // division by 1.2
+    uint16_t lux_raw = (raw * 10) / 12; // division by 1.2
+    *lux = (lux_raw > BH1750_LUX_OFFSET) ? (lux_raw - BH1750_LUX_OFFSET) : 0;
     return ESP_OK;
 }

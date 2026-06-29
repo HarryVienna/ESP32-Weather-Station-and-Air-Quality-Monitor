@@ -1,0 +1,6 @@
+.claude
+.vscode
+build
+managed_components
+sdkconfig
+

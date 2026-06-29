@@ -620,8 +620,13 @@ esp_err_t sx1262_receive(uint8_t *data, uint8_t *len, uint32_t timeout_ms)
     
     while ((xTaskGetTickCount() - start) < pdMS_TO_TICKS(wait_timeout)) {
         uint16_t irq_status = sx1262_get_irq_status();
-        
-        if (irq_status & SX1262_IRQ_RX_DONE) {
+               
+        if (irq_status & (SX1262_IRQ_CRC_ERROR | SX1262_IRQ_HEADER_ERROR)) {
+            sx1262_clear_irq_status(SX1262_IRQ_CRC_ERROR | SX1262_IRQ_HEADER_ERROR | SX1262_IRQ_RX_DONE);
+            ESP_LOGW(TAG, "CRC/Header Error");
+            ret = ESP_FAIL;
+            return ret;
+        } else if (irq_status & SX1262_IRQ_RX_DONE) {
             sx1262_clear_irq_status(SX1262_IRQ_RX_DONE);
             
             // Read Buffer Status
@@ -662,23 +667,10 @@ esp_err_t sx1262_receive(uint8_t *data, uint8_t *len, uint32_t timeout_ms)
             ret = ESP_OK;
             return ret;
 
-        }
-        
-        if (irq_status & SX1262_IRQ_TIMEOUT) {
+        } else if (irq_status & SX1262_IRQ_TIMEOUT) {
             sx1262_clear_irq_status(SX1262_IRQ_TIMEOUT);
             ESP_LOGD(TAG, "RX Timeout");
             ret = ESP_ERR_TIMEOUT;
-            return ret;
-        }
-        
-        if (irq_status & SX1262_IRQ_CRC_ERROR) {
-            ret = sx1262_clear_irq_status(SX1262_IRQ_CRC_ERROR);
-            if (ret != ESP_OK) {
-                return ret;
-            }
-
-            ESP_LOGW(TAG, "CRC Error");
-            ret = ESP_FAIL;
             return ret;
         }
         
@@ -720,9 +712,11 @@ static void sx1262_rx_task(void *arg)
         // Check what happened (read IRQ status)
         uint16_t irq_status = sx1262_get_irq_status();
 
-        // If RX Done
-        if (irq_status & SX1262_IRQ_RX_DONE) {
-            
+        if (irq_status & (SX1262_IRQ_CRC_ERROR | SX1262_IRQ_HEADER_ERROR)) {
+            ESP_LOGW(TAG, "RX Error (CRC/Header), record dropped");
+            sx1262_clear_irq_status(SX1262_IRQ_CRC_ERROR | SX1262_IRQ_HEADER_ERROR | SX1262_IRQ_RX_DONE);
+        } else if (irq_status & SX1262_IRQ_RX_DONE) {
+
             // Clear IRQ
             sx1262_clear_irq_status(SX1262_IRQ_RX_DONE);
 
@@ -735,7 +729,7 @@ static void sx1262_rx_task(void *arg)
                 // Read data
                 uint8_t tx_header[3] = {SX1262_CMD_READ_BUFFER, rx_start_ptr, 0x00};
                 if (sx1262_spi_read_general(tx_header, 3, rx_buffer, payload_len) == ESP_OK) {
-                    
+
                     // Get packet info (RSSI/SNR)
                     sx1262_get_packet_status(&pkt_status);
 
@@ -745,12 +739,6 @@ static void sx1262_rx_task(void *arg)
                     }
                 }
             }
-        }
-
-        // Error handling (CRC, Timeout)
-        if (irq_status & (SX1262_IRQ_CRC_ERROR | SX1262_IRQ_HEADER_ERROR)) {
-            ESP_LOGW(TAG, "RX Error (CRC/Header)");
-            sx1262_clear_irq_status(SX1262_IRQ_CRC_ERROR | SX1262_IRQ_HEADER_ERROR);
         }
 
         // Important: REACTIVATE reception mode (Continuous Mode)
@@ -1190,12 +1178,18 @@ static esp_err_t sx1262_read_register(uint16_t addr, uint8_t *data, uint8_t len)
  */
 static esp_err_t sx1262_spi_write_general(uint8_t *tx_header, uint8_t tx_header_len, uint8_t *data, uint8_t data_len, bool wait_after)
 {
+    // Wait until the chip is ready for a command
     sx1262_wait_on_busy();
 
+    // Total transaction size
     uint8_t total_len = tx_header_len + data_len;
+
+    // We need a single, contiguous buffer for SPI
     uint8_t tx_buffer[total_len];
 
+    // Copy header into the buffer
     memcpy(tx_buffer, tx_header, tx_header_len);
+    // Copy optional data into the buffer
     if (data != NULL && data_len > 0)
         memcpy(&tx_buffer[tx_header_len], data, data_len);
 
@@ -1207,6 +1201,7 @@ static esp_err_t sx1262_spi_write_general(uint8_t *tx_header, uint8_t tx_header_
 
     esp_err_t ret = spi_device_transmit(spi_handle, &trans);
 
+     // Wait until the chip has finished executing the command
     if (wait_after)
         sx1262_wait_on_busy();
 

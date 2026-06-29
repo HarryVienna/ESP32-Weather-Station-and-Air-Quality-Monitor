@@ -14,6 +14,8 @@ extern const lv_font_t ui_font_free_sans_bold62;
 extern const lv_font_t ui_font_free_sans36;
 extern const lv_font_t ui_font_free_sans14;
 extern const lv_font_t ui_font_free_sans10;
+extern const lv_font_t ui_font_free_sans16;
+extern const lv_font_t ui_font_free_sans18;
 
 #ifndef EXT_FONT_DESC_T
 #define EXT_FONT_DESC_T

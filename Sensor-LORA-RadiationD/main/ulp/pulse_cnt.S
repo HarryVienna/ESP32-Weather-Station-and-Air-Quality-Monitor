@@ -32,8 +32,6 @@ edge_count:
 io_number:
     .long 0
 
-    /* edge_count_to_wake_up wurde entfernt */
-
     .text
     .global entry
 entry:
@@ -69,12 +67,12 @@ read_done:
     and r3, r3, 1
     jump changed, eq
 
-    /* Keine Änderung — Debounce-Zähler zurücksetzen */
+    /* Debounce-Zähler zurücksetzen */
     move r3, debounce_max_count
     move r2, debounce_counter
     ld r3, r3, 0
     st r3, r2, 0
-    jump entry      /* Endlosschleife statt halt */
+    jump entry      /* Endlosschleife */
 
     .global changed
 changed:
@@ -84,7 +82,7 @@ changed:
     jump edge_detected, eq
     sub r2, r2, 1
     st r2, r3, 0
-    jump entry      /* Endlosschleife statt halt */
+    jump entry      /* Endlosschleife */
 
     .global edge_detected
 edge_detected:
@@ -107,5 +105,5 @@ edge_detected:
     add r2, r2, 1
     st r2, r3, 0
     
-    /* Wakeup-Logik entfernt - springt direkt zurück an den Anfang */
-    jump entry      /* Endlosschleife statt halt */
+    /* springt direkt zurück an den Anfang */
+    jump entry      /* Endlosschleife */

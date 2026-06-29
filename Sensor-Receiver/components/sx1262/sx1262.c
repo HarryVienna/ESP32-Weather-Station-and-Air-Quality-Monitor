@@ -20,12 +20,13 @@ static void sx1262_reset(void);
 static void sx1262_wait_on_busy(void);
 
 static esp_err_t sx1262_write_command(uint8_t cmd, uint8_t *data, uint8_t len);
+static esp_err_t sx1262_write_command_nowait(uint8_t cmd, uint8_t *data, uint8_t len);
 static esp_err_t sx1262_read_command(uint8_t cmd, uint8_t *data, uint8_t len);
 
 static esp_err_t sx1262_write_register(uint16_t addr, uint8_t *data, uint8_t len);
 static esp_err_t sx1262_read_register(uint16_t addr, uint8_t *data, uint8_t len);
 
-static esp_err_t sx1262_spi_write_general(uint8_t *tx_header, uint8_t tx_header_len, uint8_t *data, uint8_t data_len);
+static esp_err_t sx1262_spi_write_general(uint8_t *tx_header, uint8_t tx_header_len, uint8_t *data, uint8_t data_len, bool wait_after);
 static esp_err_t sx1262_spi_read_general(uint8_t *tx_header, uint8_t tx_header_len, uint8_t *rx_data, uint8_t rx_len);
 
 static esp_err_t sx1262_calibrate_image(uint32_t frequency);
@@ -82,7 +83,7 @@ esp_err_t sx1262_init_bus(void)
 
     // SPI Device Configuration
     spi_device_interface_config_t devcfg = {
-        .clock_speed_hz = 1 * 1000 * 1000,  // 1 MHz
+        .clock_speed_hz = 8 * 1000 * 1000,  // 8 MHz
         .mode = 0,
         .spics_io_num = LORA_PIN_NSS,
         .queue_size = 7,
@@ -100,7 +101,6 @@ esp_err_t sx1262_init_bus(void)
     
     return ESP_OK;
 }
-
 
 esp_err_t sx1262_init_radio(void)
 {
@@ -123,16 +123,13 @@ esp_err_t sx1262_init_radio(void)
         return ret;
     }
 
-    vTaskDelay(pdMS_TO_TICKS(10));
-
     // Configure DIO3 as TCXO Control (3.3V, 5ms timeout)
+    // wait_on_busy() inside write_command handles TCXO stabilisation
     uint8_t tcxo_config[4] = {0x07, 0x00, 0x01, 0x40}; // 320 * 15.625us = 5ms
     ret = sx1262_write_command(SX1262_CMD_SET_DIO3_AS_TCXO_CTRL, tcxo_config, 4);
     if (ret != ESP_OK) {
         ESP_LOGE(TAG, "TCXO configuration failed");
     }
-
-    vTaskDelay(pdMS_TO_TICKS(10));
 
     // DIO2 as RF Switch Control
     uint8_t dio2_config = 0x01; // Enable
@@ -148,14 +145,12 @@ esp_err_t sx1262_init_radio(void)
         ESP_LOGE(TAG, "Regulator Mode failed");
     }
 
-    // Calibrate
+    // Calibrate — BUSY stays HIGH for the full duration, wait_on_busy() handles it
     uint8_t calib_param = 0x7F; // All
     ret = sx1262_write_command(SX1262_CMD_CALIBRATE, &calib_param, 1);
     if (ret != ESP_OK) {
         ESP_LOGE(TAG, "Calibration failed");
     }
-
-    vTaskDelay(pdMS_TO_TICKS(10));
 
     // Set RxTxFallbackMode (Chip goes back to STDBY_XOSC after TX/RX)
     uint8_t fallback_mode = 0x30; // STDBY_XOSC
@@ -625,8 +620,13 @@ esp_err_t sx1262_receive(uint8_t *data, uint8_t *len, uint32_t timeout_ms)
     
     while ((xTaskGetTickCount() - start) < pdMS_TO_TICKS(wait_timeout)) {
         uint16_t irq_status = sx1262_get_irq_status();
-        
-        if (irq_status & SX1262_IRQ_RX_DONE) {
+               
+        if (irq_status & (SX1262_IRQ_CRC_ERROR | SX1262_IRQ_HEADER_ERROR)) {
+            sx1262_clear_irq_status(SX1262_IRQ_CRC_ERROR | SX1262_IRQ_HEADER_ERROR | SX1262_IRQ_RX_DONE);
+            ESP_LOGW(TAG, "CRC/Header Error");
+            ret = ESP_FAIL;
+            return ret;
+        } else if (irq_status & SX1262_IRQ_RX_DONE) {
             sx1262_clear_irq_status(SX1262_IRQ_RX_DONE);
             
             // Read Buffer Status
@@ -667,23 +667,10 @@ esp_err_t sx1262_receive(uint8_t *data, uint8_t *len, uint32_t timeout_ms)
             ret = ESP_OK;
             return ret;
 
-        }
-        
-        if (irq_status & SX1262_IRQ_TIMEOUT) {
+        } else if (irq_status & SX1262_IRQ_TIMEOUT) {
             sx1262_clear_irq_status(SX1262_IRQ_TIMEOUT);
             ESP_LOGD(TAG, "RX Timeout");
             ret = ESP_ERR_TIMEOUT;
-            return ret;
-        }
-        
-        if (irq_status & SX1262_IRQ_CRC_ERROR) {
-            ret = sx1262_clear_irq_status(SX1262_IRQ_CRC_ERROR);
-            if (ret != ESP_OK) {
-                return ret;
-            }
-
-            ESP_LOGW(TAG, "CRC Error");
-            ret = ESP_FAIL;
             return ret;
         }
         
@@ -725,9 +712,11 @@ static void sx1262_rx_task(void *arg)
         // Check what happened (read IRQ status)
         uint16_t irq_status = sx1262_get_irq_status();
 
-        // If RX Done
-        if (irq_status & SX1262_IRQ_RX_DONE) {
-            
+        if (irq_status & (SX1262_IRQ_CRC_ERROR | SX1262_IRQ_HEADER_ERROR)) {
+            ESP_LOGW(TAG, "RX Error (CRC/Header), record dropped");
+            sx1262_clear_irq_status(SX1262_IRQ_CRC_ERROR | SX1262_IRQ_HEADER_ERROR | SX1262_IRQ_RX_DONE);
+        } else if (irq_status & SX1262_IRQ_RX_DONE) {
+
             // Clear IRQ
             sx1262_clear_irq_status(SX1262_IRQ_RX_DONE);
 
@@ -740,7 +729,7 @@ static void sx1262_rx_task(void *arg)
                 // Read data
                 uint8_t tx_header[3] = {SX1262_CMD_READ_BUFFER, rx_start_ptr, 0x00};
                 if (sx1262_spi_read_general(tx_header, 3, rx_buffer, payload_len) == ESP_OK) {
-                    
+
                     // Get packet info (RSSI/SNR)
                     sx1262_get_packet_status(&pkt_status);
 
@@ -750,12 +739,6 @@ static void sx1262_rx_task(void *arg)
                     }
                 }
             }
-        }
-
-        // Error handling (CRC, Timeout)
-        if (irq_status & (SX1262_IRQ_CRC_ERROR | SX1262_IRQ_HEADER_ERROR)) {
-            ESP_LOGW(TAG, "RX Error (CRC/Header)");
-            sx1262_clear_irq_status(SX1262_IRQ_CRC_ERROR | SX1262_IRQ_HEADER_ERROR);
         }
 
         // Important: REACTIVATE reception mode (Continuous Mode)
@@ -860,10 +843,41 @@ void sx1262_stop_receive_async(void)
 
 esp_err_t sx1262_sleep(void)
 {
-    uint8_t sleep_config = 0x04; // Warm start
-    esp_err_t ret = sx1262_write_command(SX1262_CMD_SET_SLEEP, &sleep_config, 1);
-    
-    return ret;
+    uint8_t sleep_config = 0x00; // cold start (~0.9 µA)
+    // Nach SET_SLEEP schläft der Chip sofort — BUSY bleibt HIGH.
+    // Kein wait_on_busy() nach diesem Befehl!
+    return sx1262_write_command_nowait(SX1262_CMD_SET_SLEEP, &sleep_config, 1);
+}
+
+esp_err_t sx1262_deinit_bus(void)
+{
+    // 1. NSS SOFORT als Output auf HIGH zwingen, BEVOR SPI loslässt.
+    // So garantieren wir, dass der SX1262 nicht versehentlich aufwacht!
+    gpio_set_direction(LORA_PIN_NSS, GPIO_MODE_OUTPUT);
+    gpio_set_level(LORA_PIN_NSS, 1);
+
+    // 2. SPI Treiber beenden
+    if (spi_handle != NULL) {
+        spi_bus_remove_device(spi_handle);
+        spi_handle = NULL;
+    }
+    spi_bus_free(SPI2_HOST);
+
+    // 3. SPI Pins NICHT floaten lassen (gpio_reset_pin ist hier schlecht).
+    // Besser: Als Input setzen und interne Pull-downs aktivieren.
+    gpio_set_direction(LORA_PIN_MOSI, GPIO_MODE_INPUT);
+    gpio_pullup_dis(LORA_PIN_MOSI);
+    gpio_pulldown_en(LORA_PIN_MOSI);
+
+    gpio_set_direction(LORA_PIN_SCK, GPIO_MODE_INPUT);
+    gpio_pullup_dis(LORA_PIN_SCK);
+    gpio_pulldown_en(LORA_PIN_SCK);
+
+    gpio_set_direction(LORA_PIN_MISO, GPIO_MODE_INPUT);
+    gpio_pullup_dis(LORA_PIN_MISO);
+    gpio_pulldown_en(LORA_PIN_MISO);
+
+    return ESP_OK;
 }
 
 esp_err_t sx1262_standby(void)
@@ -1108,9 +1122,12 @@ static esp_err_t sx1262_calibrate_image(uint32_t frequency)
 
 static esp_err_t sx1262_write_command(uint8_t cmd, uint8_t *data, uint8_t len)
 {
-    // The header is just the single command byte 'cmd'
-    // We pass the address of 'cmd' as a 1-byte header
-    return sx1262_spi_write_general(&cmd, 1, data, len);
+    return sx1262_spi_write_general(&cmd, 1, data, len, true);
+}
+
+static esp_err_t sx1262_write_command_nowait(uint8_t cmd, uint8_t *data, uint8_t len)
+{
+    return sx1262_spi_write_general(&cmd, 1, data, len, false);
 }
 
 static esp_err_t sx1262_read_command(uint8_t cmd, uint8_t *data, uint8_t len)
@@ -1127,14 +1144,11 @@ static esp_err_t sx1262_read_command(uint8_t cmd, uint8_t *data, uint8_t len)
 
 static esp_err_t sx1262_write_register(uint16_t addr, uint8_t *data, uint8_t len)
 {
-    // The header is [CMD, ADDR_H, ADDR_L]
     uint8_t tx_header[3];
     tx_header[0] = SX1262_CMD_WRITE_REGISTER;
     tx_header[1] = (addr >> 8) & 0xFF;
     tx_header[2] = addr & 0xFF;
-    
-    // Header is 3 bytes long
-    return sx1262_spi_write_general(tx_header, 3, data, len);
+    return sx1262_spi_write_general(tx_header, 3, data, len, true);
 }
 
 static esp_err_t sx1262_read_register(uint16_t addr, uint8_t *data, uint8_t len)
@@ -1162,36 +1176,35 @@ static esp_err_t sx1262_read_register(uint16_t addr, uint8_t *data, uint8_t len)
  * @param data_len          Number of optional data bytes
  * @return esp_err_t 
  */
-static esp_err_t sx1262_spi_write_general(uint8_t *tx_header, uint8_t tx_header_len, uint8_t *data, uint8_t data_len)
+static esp_err_t sx1262_spi_write_general(uint8_t *tx_header, uint8_t tx_header_len, uint8_t *data, uint8_t data_len, bool wait_after)
 {
-    // Wait No. 1: Wait until the chip is ready for a command
+    // Wait until the chip is ready for a command
     sx1262_wait_on_busy();
-    
+
     // Total transaction size
     uint8_t total_len = tx_header_len + data_len;
-    
+
     // We need a single, contiguous buffer for SPI
-    uint8_t tx_buffer[total_len]; 
-    
-    // 1. Copy header into the buffer
+    uint8_t tx_buffer[total_len];
+
+    // Copy header into the buffer
     memcpy(tx_buffer, tx_header, tx_header_len);
-    
-    // 2. Copy optional data into the buffer
-    if (data != NULL && data_len > 0) {
+    // Copy optional data into the buffer
+    if (data != NULL && data_len > 0)
         memcpy(&tx_buffer[tx_header_len], data, data_len);
-    }
-    
+
     spi_transaction_t trans = {
-        .length = total_len * 8,
+        .length    = total_len * 8,
         .tx_buffer = tx_buffer,
-        .rx_buffer = NULL
+        .rx_buffer = NULL,
     };
-    
+
     esp_err_t ret = spi_device_transmit(spi_handle, &trans);
-    
-    // Wait No. 2: Wait until the chip has finished executing the command
-    sx1262_wait_on_busy();
-    
+
+     // Wait until the chip has finished executing the command
+    if (wait_after)
+        sx1262_wait_on_busy();
+
     return ret;
 }
 

@@ -1,6 +1,9 @@
+#include "esp_log.h"
+
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include "esp_log.h"
+
+#include "esp_lvgl_port.h"
 
 #include "i2c/i2c_manager.h"
 
@@ -8,7 +11,7 @@
 #include "sensirion_common.h"
 #include "sensirion_i2c_hal.h"
 
-//#include "gui/gui.h"
+#include "gui/gui.h"
 
 
 static const char* TAG = "sensor_sen66_task";
@@ -113,8 +116,6 @@ void sensor_sen66_task(void *pvParameter) {
         // Read Measurement
         vTaskDelay(pdMS_TO_TICKS(1000 * 10));
 
-
-
         error = sen66_read_measured_values_as_integers(
             &mass_concentration_pm1p0, &mass_concentration_pm2p5,
             &mass_concentration_pm4p0, &mass_concentration_pm10p0,
@@ -159,9 +160,17 @@ void sensor_sen66_task(void *pvParameter) {
                 ESP_LOGI(TAG, "CO2: %i", co2);
             }
 
-            //xSemaphoreTakeRecursive(lvgl_mux, portMAX_DELAY);
-            //disp_sen5x(ambient_temperature / 200.0f, ambient_humidity / 100.0f, mass_concentration_pm1p0 / 10.0f, mass_concentration_pm2p5 / 10.0f, mass_concentration_pm4p0 / 10.0f, mass_concentration_pm10p0 / 10.0f, voc_index / 10.0f, nox_index / 10.0f);
-            //xSemaphoreGiveRecursive(lvgl_mux);
+            lvgl_port_lock(0);
+            disp_sen6x(ambient_temperature / 200.0f, 
+                ambient_humidity / 100.0f, 
+                mass_concentration_pm1p0 / 10.0f, 
+                mass_concentration_pm2p5 / 10.0f, 
+                mass_concentration_pm4p0 / 10.0f, 
+                mass_concentration_pm10p0 / 10.0f, 
+                voc_index / 10.0f, 
+                nox_index / 10.0f, 
+                co2);
+            lvgl_port_unlock();
         }
     }
 
