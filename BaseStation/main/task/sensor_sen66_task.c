@@ -161,14 +161,22 @@ void sensor_sen66_task(void *pvParameter) {
             }
 
             lvgl_port_lock(0);
-            disp_sen6x(ambient_temperature / 200.0f, 
-                ambient_humidity / 100.0f, 
-                mass_concentration_pm1p0 / 10.0f, 
-                mass_concentration_pm2p5 / 10.0f, 
-                mass_concentration_pm4p0 / 10.0f, 
-                mass_concentration_pm10p0 / 10.0f, 
-                voc_index / 10.0f, 
-                nox_index / 10.0f, 
+            disp_sen6x(ambient_temperature / 200.0f,
+                ambient_humidity / 100.0f,
+                mass_concentration_pm1p0 / 10.0f,
+                mass_concentration_pm2p5 / 10.0f,
+                mass_concentration_pm4p0 / 10.0f,
+                mass_concentration_pm10p0 / 10.0f,
+                voc_index / 10.0f,
+                nox_index / 10.0f,
+                co2);
+            update_sen66_charts(
+                mass_concentration_pm1p0 / 10.0f,
+                mass_concentration_pm2p5 / 10.0f,
+                mass_concentration_pm4p0 / 10.0f,
+                mass_concentration_pm10p0 / 10.0f,
+                (voc_index == 0x7fff) ? 0.0f : voc_index / 10.0f,
+                (nox_index == 0x7fff) ? 0.0f : nox_index / 10.0f,
                 co2);
             lvgl_port_unlock();
         }

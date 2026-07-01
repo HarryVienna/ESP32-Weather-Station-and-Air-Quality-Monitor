@@ -18,6 +18,8 @@
 #include "task/wifistart_task.h"
 
 #include "config/config.h"
+#include "lvgl_private.h"
+#include "widgets/chart/lv_chart_private.h"
 #include "gui.h"
 #include "lvgl/lv_common.h"
 #include "lvgl/lv_hourly_chart.h"
@@ -25,6 +27,27 @@
 #include "lvgl/lv_screenshot.h"
 
 static const char* TAG = "GUI";
+
+
+static lv_chart_series_t *ser_pm1   = NULL;
+static lv_chart_series_t *ser_pm2p5 = NULL;
+static lv_chart_series_t *ser_pm4   = NULL;
+static lv_chart_series_t *ser_pm10  = NULL;
+static lv_chart_series_t *ser_voc   = NULL;
+static lv_chart_series_t *ser_nox   = NULL;
+static lv_chart_series_t *ser_co2   = NULL;
+
+typedef struct {
+    float t1, t2, t3, t4;
+} sen66_thresh_t;
+
+static const sen66_thresh_t thresh_pm1   = {11.6f, 32.0f,  50.0f,  68.0f};
+static const sen66_thresh_t thresh_pm2p5 = {13.0f, 35.0f,  55.0f,  75.0f};
+static const sen66_thresh_t thresh_pm4   = {14.4f, 38.0f,  60.0f,  82.0f};
+static const sen66_thresh_t thresh_pm10  = {20.0f, 50.0f,  80.0f, 110.0f};
+static const sen66_thresh_t thresh_voc   = {50.0f, 150.0f, 250.0f, 400.0f};
+static const sen66_thresh_t thresh_nox   = { 1.0f,  20.0f, 150.0f, 300.0f};
+static const sen66_thresh_t thresh_co2   = {600.0f,1000.0f,1500.0f,1900.0f};
 
 #define NUM_ICONS 28
 
@@ -381,29 +404,14 @@ void disp_sensor_data(uint8_t sensor_nr, double temperature, double humidity, do
   } */
 }
 
-// void disp_scd4x(uint16_t co2)
-// {
-//   if (co2 <= 600)
-//   {
-//     lv_obj_set_style_bg_color(objects.co2, lv_color_hex(COLOR_GREEN), LV_PART_MAIN | LV_STATE_DEFAULT);
-//   }
-//   else if (co2 <= 1000)
-//   {
-//     lv_obj_set_style_bg_color(objects.co2, lv_color_hex(COLOR_LIGHTGREEN), LV_PART_MAIN | LV_STATE_DEFAULT);
-//   }
-//   else if (co2 <= 1500)
-//   {
-//     lv_obj_set_style_bg_color(objects.co2, lv_color_hex(COLOR_YELLOW), LV_PART_MAIN | LV_STATE_DEFAULT);
-//   }
-//   else if (co2 <= 1900)
-//   {
-//     lv_obj_set_style_bg_color(objects.co2, lv_color_hex(COLOR_ORANGE), LV_PART_MAIN | LV_STATE_DEFAULT);
-//   }
-//   else
-//   {
-//     lv_obj_set_style_bg_color(objects.co2, lv_color_hex(COLOR_RED), LV_PART_MAIN | LV_STATE_DEFAULT);
-//   }
-// }
+static lv_color_t sen66_value_color(float val, const sen66_thresh_t *t)
+{
+    if      (val <= t->t1) return lv_color_hex(COLOR_GREEN);
+    else if (val <= t->t2) return lv_color_hex(COLOR_LIGHTGREEN);
+    else if (val <= t->t3) return lv_color_hex(COLOR_YELLOW);
+    else if (val <= t->t4) return lv_color_hex(COLOR_ORANGE);
+    else                   return lv_color_hex(COLOR_RED);
+}
 
 void disp_sen6x(float ambientTemperature, float ambientHumidity, float massConcentrationPm1p0, float massConcentrationPm2p5, float massConcentrationPm4p0, float massConcentrationPm10p0, float vocIndex, float noxIndex, uint16_t co2)
 {
@@ -422,152 +430,25 @@ void disp_sen6x(float ambientTemperature, float ambientHumidity, float massConce
     lv_label_set_text(objects.sen66__humidity_base, humidity);
   }
 
-  if (massConcentrationPm1p0 <= 11.6)
-  {
-    lv_obj_set_style_bg_color(objects.sen66__pm1, lv_color_hex(COLOR_GREEN), LV_PART_MAIN | LV_STATE_DEFAULT);
-  }
-  else if (massConcentrationPm1p0 <= 32)
-  {
-    lv_obj_set_style_bg_color(objects.sen66__pm1, lv_color_hex(COLOR_LIGHTGREEN), LV_PART_MAIN | LV_STATE_DEFAULT);
-  }
-  else if (massConcentrationPm1p0 <= 50)
-  {
-    lv_obj_set_style_bg_color(objects.sen66__pm1, lv_color_hex(COLOR_YELLOW), LV_PART_MAIN | LV_STATE_DEFAULT);
-  }
-  else if (massConcentrationPm1p0 <= 68)
-  {
-    lv_obj_set_style_bg_color(objects.sen66__pm1, lv_color_hex(COLOR_ORANGE), LV_PART_MAIN | LV_STATE_DEFAULT);
-  }
-  else
-  {
-    lv_obj_set_style_bg_color(objects.sen66__pm1, lv_color_hex(COLOR_RED), LV_PART_MAIN | LV_STATE_DEFAULT);
-  }
+  lv_obj_set_style_bg_color(objects.sen66__pm1,   sen66_value_color(massConcentrationPm1p0,  &thresh_pm1),   LV_PART_MAIN | LV_STATE_DEFAULT);
+  lv_obj_set_style_bg_color(objects.sen66__pm2p5, sen66_value_color(massConcentrationPm2p5, &thresh_pm2p5), LV_PART_MAIN | LV_STATE_DEFAULT);
+  lv_obj_set_style_bg_color(objects.sen66__pm4,   sen66_value_color(massConcentrationPm4p0,  &thresh_pm4),   LV_PART_MAIN | LV_STATE_DEFAULT);
+  lv_obj_set_style_bg_color(objects.sen66__pm10,  sen66_value_color(massConcentrationPm10p0, &thresh_pm10),  LV_PART_MAIN | LV_STATE_DEFAULT);
+  lv_obj_set_style_bg_color(objects.sen66__voc,   sen66_value_color(vocIndex,                &thresh_voc),   LV_PART_MAIN | LV_STATE_DEFAULT);
+  lv_obj_set_style_bg_color(objects.sen66__nox,   sen66_value_color(noxIndex,                &thresh_nox),   LV_PART_MAIN | LV_STATE_DEFAULT);
+  lv_obj_set_style_bg_color(objects.sen66__co2,   sen66_value_color((float)co2,              &thresh_co2),   LV_PART_MAIN | LV_STATE_DEFAULT);
+}
 
-  if (massConcentrationPm2p5 <= 13)
-  {
-    lv_obj_set_style_bg_color(objects.sen66__pm2p5, lv_color_hex(COLOR_GREEN), LV_PART_MAIN | LV_STATE_DEFAULT);
-  }
-  else if (massConcentrationPm2p5 <= 35)
-  {
-    lv_obj_set_style_bg_color(objects.sen66__pm2p5, lv_color_hex(COLOR_LIGHTGREEN), LV_PART_MAIN | LV_STATE_DEFAULT);
-  }
-  else if (massConcentrationPm2p5 <= 55)
-  {
-    lv_obj_set_style_bg_color(objects.sen66__pm2p5, lv_color_hex(COLOR_YELLOW), LV_PART_MAIN | LV_STATE_DEFAULT);
-  }
-  else if (massConcentrationPm2p5 <= 75)
-  {
-    lv_obj_set_style_bg_color(objects.sen66__pm2p5, lv_color_hex(COLOR_ORANGE), LV_PART_MAIN | LV_STATE_DEFAULT);
-  }
-  else
-  {
-    lv_obj_set_style_bg_color(objects.sen66__pm2p5, lv_color_hex(COLOR_RED), LV_PART_MAIN | LV_STATE_DEFAULT);
-  }
+void update_sen66_charts(float pm1, float pm2p5, float pm4, float pm10, float voc, float nox, uint16_t co2)
+{
 
-  if (massConcentrationPm4p0 <= 14.4)
-  {
-    lv_obj_set_style_bg_color(objects.sen66__pm4, lv_color_hex(COLOR_GREEN), LV_PART_MAIN | LV_STATE_DEFAULT);
-  }
-  else if (massConcentrationPm4p0 <= 38)
-  {
-    lv_obj_set_style_bg_color(objects.sen66__pm4, lv_color_hex(COLOR_LIGHTGREEN), LV_PART_MAIN | LV_STATE_DEFAULT);
-  }
-  else if (massConcentrationPm4p0 <= 60)
-  {
-    lv_obj_set_style_bg_color(objects.sen66__pm4, lv_color_hex(COLOR_YELLOW), LV_PART_MAIN | LV_STATE_DEFAULT);
-  }
-  else if (massConcentrationPm4p0 <= 82)
-  {
-    lv_obj_set_style_bg_color(objects.sen66__pm4, lv_color_hex(COLOR_ORANGE), LV_PART_MAIN | LV_STATE_DEFAULT);
-  }
-  else
-  {
-    lv_obj_set_style_bg_color(objects.sen66__pm4, lv_color_hex(COLOR_RED), LV_PART_MAIN | LV_STATE_DEFAULT);
-  }
-
-  if (massConcentrationPm10p0 <= 20)
-  {
-    lv_obj_set_style_bg_color(objects.sen66__pm10, lv_color_hex(COLOR_GREEN), LV_PART_MAIN | LV_STATE_DEFAULT);
-  }
-  else if (massConcentrationPm10p0 <= 50)
-  {
-    lv_obj_set_style_bg_color(objects.sen66__pm10, lv_color_hex(COLOR_LIGHTGREEN), LV_PART_MAIN | LV_STATE_DEFAULT);
-  }
-  else if (massConcentrationPm10p0 <= 80)
-  {
-    lv_obj_set_style_bg_color(objects.sen66__pm10, lv_color_hex(COLOR_YELLOW), LV_PART_MAIN | LV_STATE_DEFAULT);
-  }
-  else if (massConcentrationPm10p0 <= 110)
-  {
-    lv_obj_set_style_bg_color(objects.sen66__pm10, lv_color_hex(COLOR_ORANGE), LV_PART_MAIN | LV_STATE_DEFAULT);
-  }
-  else
-  {
-    lv_obj_set_style_bg_color(objects.sen66__pm10, lv_color_hex(COLOR_RED), LV_PART_MAIN | LV_STATE_DEFAULT);
-  }
-
-  if (vocIndex <= 50)
-  {
-    lv_obj_set_style_bg_color(objects.sen66__voc, lv_color_hex(COLOR_GREEN), LV_PART_MAIN | LV_STATE_DEFAULT);
-  }
-  else if (vocIndex <= 150)
-  {
-    lv_obj_set_style_bg_color(objects.sen66__voc, lv_color_hex(COLOR_LIGHTGREEN), LV_PART_MAIN | LV_STATE_DEFAULT);
-  }
-  else if (vocIndex <= 250)
-  {
-    lv_obj_set_style_bg_color(objects.sen66__voc, lv_color_hex(COLOR_YELLOW), LV_PART_MAIN | LV_STATE_DEFAULT);
-  }
-  else if (vocIndex <= 400)
-  {
-    lv_obj_set_style_bg_color(objects.sen66__voc, lv_color_hex(COLOR_ORANGE), LV_PART_MAIN | LV_STATE_DEFAULT);
-  }
-  else
-  {
-    lv_obj_set_style_bg_color(objects.sen66__voc, lv_color_hex(COLOR_RED), LV_PART_MAIN | LV_STATE_DEFAULT);
-  }
-
-  if (noxIndex <= 1)
-  {
-    lv_obj_set_style_bg_color(objects.sen66__nox, lv_color_hex(COLOR_GREEN), LV_PART_MAIN | LV_STATE_DEFAULT);
-  }
-  else if (noxIndex <= 20)
-  {
-    lv_obj_set_style_bg_color(objects.sen66__nox, lv_color_hex(COLOR_LIGHTGREEN), LV_PART_MAIN | LV_STATE_DEFAULT);
-  }
-  else if (noxIndex <= 150)
-  {
-    lv_obj_set_style_bg_color(objects.sen66__nox, lv_color_hex(COLOR_YELLOW), LV_PART_MAIN | LV_STATE_DEFAULT);
-  }
-  else if (noxIndex <= 300)
-  {
-    lv_obj_set_style_bg_color(objects.sen66__nox, lv_color_hex(COLOR_ORANGE), LV_PART_MAIN | LV_STATE_DEFAULT);
-  }
-  else
-  {
-    lv_obj_set_style_bg_color(objects.sen66__nox, lv_color_hex(COLOR_RED), LV_PART_MAIN | LV_STATE_DEFAULT);
-  }
-
-  if (co2 <= 600)
-  {
-    lv_obj_set_style_bg_color(objects.sen66__co2, lv_color_hex(COLOR_GREEN), LV_PART_MAIN | LV_STATE_DEFAULT);
-  }
-  else if (co2 <= 1000)
-  {
-    lv_obj_set_style_bg_color(objects.sen66__co2, lv_color_hex(COLOR_LIGHTGREEN), LV_PART_MAIN | LV_STATE_DEFAULT);
-  }
-  else if (co2 <= 1500)
-  {
-    lv_obj_set_style_bg_color(objects.sen66__co2, lv_color_hex(COLOR_YELLOW), LV_PART_MAIN | LV_STATE_DEFAULT);
-  }
-  else if (co2 <= 1900)
-  {
-    lv_obj_set_style_bg_color(objects.sen66__co2, lv_color_hex(COLOR_ORANGE), LV_PART_MAIN | LV_STATE_DEFAULT);
-  }
-  else
-  {
-    lv_obj_set_style_bg_color(objects.sen66__co2, lv_color_hex(COLOR_RED), LV_PART_MAIN | LV_STATE_DEFAULT);
-  }
+    lv_chart_set_next_value(objects.sen66__chart_pm, ser_pm10,  (int32_t)pm10);
+    lv_chart_set_next_value(objects.sen66__chart_pm, ser_pm4,   (int32_t)pm4);
+    lv_chart_set_next_value(objects.sen66__chart_pm, ser_pm2p5, (int32_t)pm2p5);
+    lv_chart_set_next_value(objects.sen66__chart_pm, ser_pm1,   (int32_t)pm1);
+    lv_chart_set_next_value(objects.sen66__chart_voc, ser_voc,  (int32_t)voc);
+    lv_chart_set_next_value(objects.sen66__chart_nox, ser_nox,  (int32_t)nox);
+    lv_chart_set_next_value(objects.sen66__chart_co2, ser_co2,  co2);
 }
 
 void disp_weather(current_weather_data_t *current_weather, hourly_weather_data_t *hourly_weather, daily_weather_data_t *daily_weather) {
@@ -745,8 +626,75 @@ void set_labels() {
  *            objects.hourly_chart/daily_chart. This keeps screens.c entirely
  *            generated - re-running the EEZ Studio build never loses this.
  */
+/* Threshold pointer arrays indexed by series id1, passed as user_data */
+static const sen66_thresh_t *pm_thresh_arr[]  = {&thresh_pm1, &thresh_pm2p5, &thresh_pm4, &thresh_pm10};
+static const sen66_thresh_t *voc_thresh_arr[] = {&thresh_voc};
+static const sen66_thresh_t *nox_thresh_arr[] = {&thresh_nox};
+static const sen66_thresh_t *co2_thresh_arr[] = {&thresh_co2};
+
+static void sen66_chart_fill_cb(lv_event_t *e)
+{
+    lv_draw_task_t *draw_task = lv_event_get_draw_task(e);
+    lv_draw_dsc_base_t *base_dsc = (lv_draw_dsc_base_t *)lv_draw_task_get_draw_dsc(draw_task);
+
+    if (base_dsc->part != LV_PART_ITEMS) return;
+    if (lv_draw_task_get_type(draw_task) != LV_DRAW_TASK_TYPE_LINE) return;
+
+    lv_draw_line_dsc_t *line_dsc = lv_draw_task_get_line_dsc(draw_task);
+    if (line_dsc == NULL) return;
+
+    lv_obj_t *obj = lv_event_get_target_obj(e);
+    lv_area_t obj_coords;
+    lv_obj_get_content_coords(obj, &obj_coords);
+    int32_t full_h = lv_area_get_height(&obj_coords);
+    if (full_h <= 0) return;
+
+    lv_chart_t *chart = (lv_chart_t *)obj;
+    int32_t y_min = chart->ymin[0];
+    int32_t y_max = chart->ymax[0];
+
+    const sen66_thresh_t **thresh_arr = (const sen66_thresh_t **)lv_event_get_user_data(e);
+    const sen66_thresh_t *thresh = thresh_arr[base_dsc->id1];
+
+    line_dsc->opa = LV_OPA_TRANSP;
+
+    lv_draw_rect_dsc_t rect_dsc;
+    lv_draw_rect_dsc_init(&rect_dsc);
+    rect_dsc.bg_opa = LV_OPA_COVER;
+
+    for (int32_t i = 0; i < line_dsc->point_cnt - 1; i++) {
+        lv_point_precise_t p1 = line_dsc->points[i];
+        lv_point_precise_t p2 = line_dsc->points[i + 1];
+
+        if (p1.x == LV_DRAW_LINE_POINT_NONE || p1.y == LV_DRAW_LINE_POINT_NONE) continue;
+        if (p2.x == LV_DRAW_LINE_POINT_NONE || p2.y == LV_DRAW_LINE_POINT_NONE) continue;
+
+        lv_area_t rect_area;
+        rect_area.y2 = obj_coords.y2;
+
+        int32_t bar_top;
+        if ((int32_t)p1.x == (int32_t)p2.x) {
+            rect_area.x1 = (int32_t)p1.x;
+            rect_area.x2 = (int32_t)p1.x;
+            bar_top = (int32_t)LV_MIN(p1.y, p2.y);
+        } else {
+            rect_area.x1 = (int32_t)p1.x;
+            rect_area.x2 = (int32_t)p2.x - 1;
+            bar_top = (int32_t)LV_MAX(p1.y, p2.y);
+        }
+        rect_area.y1 = bar_top;
+        rect_area.x2 = LV_MIN(rect_area.x2, obj_coords.x2);
+
+        float data_val = (float)lv_map(bar_top, obj_coords.y2, obj_coords.y1, y_min, y_max);
+        rect_dsc.bg_color = sen66_value_color(data_val, thresh);
+        lv_draw_rect(base_dsc->layer, &rect_dsc, &rect_area);
+    }
+}
+
 void init_charts(void)
 {
+  lv_obj_update_layout(objects.weatherstation_screen);
+
   {
     lv_obj_t *placeholder = objects.hourly_chart;
     lv_obj_t *parent_obj = lv_obj_get_parent(placeholder);
@@ -794,6 +742,80 @@ void init_charts(void)
 
     lv_obj_del(placeholder);
   }
+
+  // --- SEN66 charts (already lv_chart from EEZ Studio, just configure) ---
+
+  // PM: 4 gray series (pm10 lightest = drawn first/behind, pm1 darkest = front)
+  {
+    lv_obj_t *chart = objects.sen66__chart_pm;
+    lv_chart_set_type(chart, LV_CHART_TYPE_LINE);
+    lv_chart_set_range(chart, LV_CHART_AXIS_PRIMARY_Y, 0, 120);
+    lv_chart_set_point_count(chart, lv_obj_get_width(chart));
+    lv_obj_set_style_pad_all(chart, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_line_width(chart, 2, LV_PART_ITEMS | LV_STATE_DEFAULT);
+    lv_obj_set_style_size(chart, 0, 0, LV_PART_INDICATOR | LV_STATE_DEFAULT);
+    ser_pm10  = lv_chart_add_series(chart, lv_color_hex(0xBDBDBD), LV_CHART_AXIS_PRIMARY_Y);
+    ser_pm4   = lv_chart_add_series(chart, lv_color_hex(0x9E9E9E), LV_CHART_AXIS_PRIMARY_Y);
+    ser_pm2p5 = lv_chart_add_series(chart, lv_color_hex(0x616161), LV_CHART_AXIS_PRIMARY_Y);
+    ser_pm1   = lv_chart_add_series(chart, lv_color_hex(0x212121), LV_CHART_AXIS_PRIMARY_Y);
+    lv_obj_add_flag(chart, LV_OBJ_FLAG_SEND_DRAW_TASK_EVENTS);
+    lv_obj_add_event_cb(chart, sen66_chart_fill_cb, LV_EVENT_DRAW_TASK_ADDED, pm_thresh_arr);
+  }
+
+  // VOC: blue, 0-500
+  {
+    lv_obj_t *chart = objects.sen66__chart_voc;
+    lv_chart_set_type(chart, LV_CHART_TYPE_LINE);
+    lv_chart_set_range(chart, LV_CHART_AXIS_PRIMARY_Y, 0, 500);
+    lv_chart_set_point_count(chart, lv_obj_get_width(chart));
+    lv_obj_set_style_pad_all(chart, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_line_width(chart, 2, LV_PART_ITEMS | LV_STATE_DEFAULT);
+    lv_obj_set_style_size(chart, 0, 0, LV_PART_INDICATOR | LV_STATE_DEFAULT);
+    ser_voc = lv_chart_add_series(chart, lv_color_hex(0x1565C0), LV_CHART_AXIS_PRIMARY_Y);
+    lv_obj_add_flag(chart, LV_OBJ_FLAG_SEND_DRAW_TASK_EVENTS);
+    lv_obj_add_event_cb(chart, sen66_chart_fill_cb, LV_EVENT_DRAW_TASK_ADDED, voc_thresh_arr);
+  }
+
+  // NOx: orange, 0-500
+  {
+    lv_obj_t *chart = objects.sen66__chart_nox;
+    lv_chart_set_type(chart, LV_CHART_TYPE_LINE);
+    lv_chart_set_range(chart, LV_CHART_AXIS_PRIMARY_Y, 0, 400);
+    lv_chart_set_point_count(chart, lv_obj_get_width(chart));
+    lv_obj_set_style_pad_all(chart, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_line_width(chart, 2, LV_PART_ITEMS | LV_STATE_DEFAULT);
+    lv_obj_set_style_size(chart, 0, 0, LV_PART_INDICATOR | LV_STATE_DEFAULT);
+    ser_nox = lv_chart_add_series(chart, lv_color_hex(0xE65100), LV_CHART_AXIS_PRIMARY_Y);
+    lv_obj_add_flag(chart, LV_OBJ_FLAG_SEND_DRAW_TASK_EVENTS);
+    lv_obj_add_event_cb(chart, sen66_chart_fill_cb, LV_EVENT_DRAW_TASK_ADDED, nox_thresh_arr);
+  }
+
+  // CO2: teal, 0-5000
+  {
+    lv_obj_t *chart = objects.sen66__chart_co2;
+    lv_chart_set_type(chart, LV_CHART_TYPE_LINE);
+    lv_chart_set_range(chart, LV_CHART_AXIS_PRIMARY_Y, 0, 2000);
+    lv_chart_set_point_count(chart, lv_obj_get_width(chart));
+    lv_obj_set_style_pad_all(chart, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_line_width(chart, 2, LV_PART_ITEMS | LV_STATE_DEFAULT);
+    lv_obj_set_style_size(chart, 0, 0, LV_PART_INDICATOR | LV_STATE_DEFAULT);
+    ser_co2 = lv_chart_add_series(chart, lv_color_hex(0x00695C), LV_CHART_AXIS_PRIMARY_Y);
+    lv_obj_add_flag(chart, LV_OBJ_FLAG_SEND_DRAW_TASK_EVENTS);
+    lv_obj_add_event_cb(chart, sen66_chart_fill_cb, LV_EVENT_DRAW_TASK_ADDED, co2_thresh_arr);
+  }
+
+  /* TEST: pre-fill 140 points — remove before release */
+  // for (int i = 0; i < 140; i++) {
+  //     float s = sinf(i * 0.12f);
+  //     float c = cosf(i * 0.07f);
+  //     lv_chart_set_next_value(objects.sen66__chart_pm, ser_pm10,  (int32_t)(20 + 15 * s));
+  //     lv_chart_set_next_value(objects.sen66__chart_pm, ser_pm4,   (int32_t)(14 + 10 * s));
+  //     lv_chart_set_next_value(objects.sen66__chart_pm, ser_pm2p5, (int32_t)( 9 +  7 * s));
+  //     lv_chart_set_next_value(objects.sen66__chart_pm, ser_pm1,   (int32_t)( 5 +  4 * s));
+  //     lv_chart_set_next_value(objects.sen66__chart_voc, ser_voc,  (int32_t)(120 + 60 * c));
+  //     lv_chart_set_next_value(objects.sen66__chart_nox, ser_nox,  (int32_t)(  5 + 200 * s));
+  //     lv_chart_set_next_value(objects.sen66__chart_co2, ser_co2,  (int32_t)(800 + 200 * c));
+  // }
 }
 
 void start_tasks()
