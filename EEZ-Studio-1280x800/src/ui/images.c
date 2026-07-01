@@ -1,6 +1,6 @@
 #include "images.h"
 
-const ext_img_desc_t images[42] = {
+const ext_img_desc_t images[50] = {
     { "wifi_off", &img_wifi_off },
     { "wifi_on", &img_wifi_on },
     { "cloud", &img_cloud },
@@ -43,4 +43,12 @@ const ext_img_desc_t images[42] = {
     { "95", &img_95 },
     { "96", &img_96 },
     { "99", &img_99 },
+    { "sensor_bedroom", &img_sensor_bedroom },
+    { "sensor_home", &img_sensor_home },
+    { "sensor_balcony", &img_sensor_balcony },
+    { "sensor_radiation", &img_sensor_radiation },
+    { "sensor_bathroom", &img_sensor_bathroom },
+    { "sensor_cellar", &img_sensor_cellar },
+    { "sensor_office", &img_sensor_office },
+    { "sensor_workshop", &img_sensor_workshop },
 };

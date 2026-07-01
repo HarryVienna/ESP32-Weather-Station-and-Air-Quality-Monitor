@@ -1,11 +1,11 @@
 {
   "navigation": {
-    "selectedUserPageObject": "[Wetterstation.eez-project]:/userPages/0",
-    "selectedUserWidgetObject": "[Wetterstation.eez-project]:/userWidgets/6",
+    "selectedUserPageObject": "[Wetterstation.eez-project]:/userPages/1",
+    "selectedUserWidgetObject": "[Wetterstation.eez-project]:/userWidgets/12",
     "selectedActionObject": "[Wetterstation.eez-project]:/actions/10",
     "selectedStyleObject": "[Wetterstation.eez-project]:/lvglStyles/styles/0",
     "selectedFontObject": "[Wetterstation.eez-project]:/fonts/8",
-    "selectedBitmapObject": "[Wetterstation.eez-project]:/bitmaps/42",
+    "selectedBitmapObject": "[Wetterstation.eez-project]:/bitmaps/49",
     "subnavigationSelectedItems": {
       "variables-tab/sub-navigation/selected-item": "Global"
     }
@@ -75,7 +75,6 @@
           },
           {
             "type": "border",
-            "selected": 1,
             "size": 113.09375,
             "location": "bottom",
             "children": [
@@ -129,6 +128,7 @@
                   "type": "tabset",
                   "id": "#6b74b635-7a66-4336-91ba-4808f2d949f2",
                   "weight": 1.1028671759129356,
+                  "selected": 1,
                   "enableClose": false,
                   "children": [
                     {
@@ -194,40 +194,40 @@
             {
               "type": "tabset",
               "id": "EDITORS",
-              "weight": 63.923901429851554,
+              "weight": 55.36720067346692,
               "selected": 3,
               "enableDeleteWhenEmpty": false,
               "enableClose": false,
               "children": [
                 {
                   "type": "tab",
-                  "id": "#fc27b916-4b83-430c-8d97-5fb544bd1d7d",
+                  "id": "#84dff3ca-12f6-4448-a901-37699f7a693f",
+                  "name": "Sensor_CO",
+                  "component": "editor",
+                  "config": {
+                    "objectPath": "[Wetterstation.eez-project]:/userWidgets/12",
+                    "permanent": true
+                  },
+                  "icon": "svg:user_widget"
+                },
+                {
+                  "type": "tab",
+                  "id": "#90b03629-cfae-40c4-a00e-d5f7ed9f2919",
+                  "name": "Geiger_Widget",
+                  "component": "editor",
+                  "config": {
+                    "objectPath": "[Wetterstation.eez-project]:/userWidgets/11",
+                    "permanent": true
+                  },
+                  "icon": "svg:user_widget"
+                },
+                {
+                  "type": "tab",
+                  "id": "#d332d43e-4830-45a7-961a-e5253f0270ad",
                   "name": "SEN66_Widget",
                   "component": "editor",
                   "config": {
                     "objectPath": "[Wetterstation.eez-project]:/userWidgets/6",
-                    "permanent": true
-                  },
-                  "icon": "svg:user_widget"
-                },
-                {
-                  "type": "tab",
-                  "id": "#4556706a-f236-4df3-beec-176b2342ffe4",
-                  "name": "Sensor_BME280_5",
-                  "component": "editor",
-                  "config": {
-                    "objectPath": "[Wetterstation.eez-project]:/userWidgets/4",
-                    "permanent": true
-                  },
-                  "icon": "svg:user_widget"
-                },
-                {
-                  "type": "tab",
-                  "id": "#0995590a-c07c-43a4-89fc-c313dff0dee7",
-                  "name": "Geiger_Widget",
-                  "component": "editor",
-                  "config": {
-                    "objectPath": "[Wetterstation.eez-project]:/userWidgets/10",
                     "permanent": true
                   },
                   "icon": "svg:user_widget"
@@ -249,7 +249,7 @@
             {
               "type": "row",
               "id": "#c868a29f-91bb-4ff7-9e6f-e8b94cefd0ac",
-              "weight": 16.298256999878557,
+              "weight": 24.854957756263204,
               "children": [
                 {
                   "type": "tabset",
@@ -1183,10 +1183,10 @@
       },
       "transform": {
         "translate": {
-          "x": -541.0013523571683,
-          "y": -327.03375646995903
+          "x": -339.04684085762085,
+          "y": -245.5892535530827
         },
-        "scale": 0.8
+        "scale": 0.67
       },
       "timeline": {
         "isEditorActive": false,
@@ -1201,7 +1201,11 @@
             "0": {},
             "1": {}
           },
-          "1": {},
+          "1": {
+            "0": {
+              "$selected": true
+            }
+          },
           "2": {},
           "3": {},
           "4": {
@@ -1327,10 +1331,10 @@
       },
       "transform": {
         "translate": {
-          "x": -383.63587305636327,
-          "y": -232.14614220005706
+          "x": -113.18242879094905,
+          "y": -124.77529640878117
         },
-        "scale": 0.75
+        "scale": 1.5
       },
       "timeline": {
         "isEditorActive": false,
@@ -1344,39 +1348,16 @@
       "selectionBack": {
         "0": {
           "0": {},
+          "1": {
+            "0": {
+              "$selected": true
+            }
+          },
           "2": {},
           "3": {
-            "0": {},
-            "1": {}
-          },
-          "$selected": true
-        }
-      },
-      "transform": {
-        "translate": {
-          "x": -166.66589647743467,
-          "y": -193.75056052211283
-        },
-        "scale": 0.75
-      },
-      "timeline": {
-        "isEditorActive": false,
-        "position": 0,
-        "secondToPx": 200,
-        "scrollLeft": 0
-      }
-    },
-    "[Wetterstation.eez-project]:/userWidgets/6[flow-state]": {
-      "selectionFront": {},
-      "selectionBack": {
-        "0": {
-          "0": {
-            "$selected": true
-          },
-          "1": {},
-          "2": {},
-          "3": {
-            "0": {},
+            "0": {
+              "3": {}
+            },
             "1": {},
             "2": {
               "1": {}
@@ -1393,6 +1374,38 @@
           "y": -169.4431815773387
         },
         "scale": 0.75
+      },
+      "timeline": {
+        "isEditorActive": false,
+        "position": 0,
+        "secondToPx": 200,
+        "scrollLeft": 0
+      }
+    },
+    "[Wetterstation.eez-project]:/userWidgets/6[flow-state]": {
+      "selectionFront": {},
+      "selectionBack": {
+        "0": {
+          "0": {},
+          "1": {},
+          "2": {},
+          "3": {
+            "0": {},
+            "1": {
+              "$selected": true
+            }
+          },
+          "4": {},
+          "5": {},
+          "6": {}
+        }
+      },
+      "transform": {
+        "translate": {
+          "x": -240.7868724412242,
+          "y": -270.71584414770854
+        },
+        "scale": 1.75
       },
       "timeline": {
         "isEditorActive": false,
@@ -1452,7 +1465,10 @@
       "selectionBack": {
         "0": {
           "0": {},
-          "1": {}
+          "1": {},
+          "3": {
+            "$selected": true
+          }
         }
       },
       "transform": {
@@ -1474,13 +1490,25 @@
       "selectionBack": {
         "0": {
           "0": {},
-          "1": {}
+          "1": {},
+          "3": {
+            "$selected": true
+          },
+          "4": {
+            "$selected": true
+          },
+          "5": {
+            "$selected": true
+          },
+          "6": {
+            "$selected": true
+          }
         }
       },
       "transform": {
         "translate": {
-          "x": -492.25987084232145,
-          "y": -203.21838386448383
+          "x": -362.2755536760601,
+          "y": -301.8319805181592
         },
         "scale": 0.75
       },
@@ -1493,7 +1521,47 @@
     },
     "[Wetterstation.eez-project]:/userWidgets/11[flow-state]": {
       "transform": {
-        "scale": 0.75
+        "translate": {
+          "x": -472.8422391521391,
+          "y": -312.08055902826
+        },
+        "scale": 2.5
+      },
+      "selectionFront": {},
+      "selectionBack": {
+        "0": {
+          "0": {},
+          "1": {},
+          "2": {},
+          "$selected": true
+        }
+      },
+      "timeline": {
+        "isEditorActive": false,
+        "position": 0,
+        "secondToPx": 200,
+        "scrollLeft": 0
+      }
+    },
+    "[Wetterstation.eez-project]:/userWidgets/12[flow-state]": {
+      "selectionFront": {},
+      "selectionBack": {
+        "0": {
+          "$selected": true
+        }
+      },
+      "transform": {
+        "translate": {
+          "x": -640,
+          "y": -400
+        },
+        "scale": 1
+      },
+      "timeline": {
+        "isEditorActive": false,
+        "position": 0,
+        "secondToPx": 200,
+        "scrollLeft": 0
       }
     }
   },
@@ -1512,16 +1580,13 @@
   "lvglPart": "MAIN",
   "lvglState": "DEFAULT",
   "lvglExpandedPropertiesGroup": [
-    "PADDING",
     "MARGIN",
-    "LAYOUT",
-    "BORDER",
     "MISCELLANEOUS",
-    "BACKGROUND"
+    "LAYOUT"
   ],
   "showInactiveFlowsInDebugger": true,
   "globalFlowZoom": false,
-  "flowZoom": 0.5,
+  "flowZoom": 1,
   "implementationLanguage": "C",
-  "openDialogDefaultPath": "C:\\Users\\Harald\\Downloads\\sensor_radiation.png"
+  "openDialogDefaultPath": "C:\\Users\\Harald\\Documents\\Projekte\\Wetterstation-ESP32-3.0\\Code\\EEZ-Studio-1280x800\\images\\sensor_workshop.png"
 }

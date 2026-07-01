@@ -53,6 +53,10 @@ extern const lv_img_dsc_t img_sensor_bedroom;
 extern const lv_img_dsc_t img_sensor_home;
 extern const lv_img_dsc_t img_sensor_balcony;
 extern const lv_img_dsc_t img_sensor_radiation;
+extern const lv_img_dsc_t img_sensor_bathroom;
+extern const lv_img_dsc_t img_sensor_cellar;
+extern const lv_img_dsc_t img_sensor_office;
+extern const lv_img_dsc_t img_sensor_workshop;
 
 #ifndef EXT_IMG_DESC_T
 #define EXT_IMG_DESC_T
@@ -62,7 +66,7 @@ typedef struct _ext_img_desc_t {
 } ext_img_desc_t;
 #endif
 
-extern const ext_img_desc_t images[46];
+extern const ext_img_desc_t images[50];
 
 #ifdef __cplusplus
 }
