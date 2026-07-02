@@ -1,7 +1,7 @@
 {
   "navigation": {
     "selectedUserPageObject": "[Wetterstation.eez-project]:/userPages/1",
-    "selectedUserWidgetObject": "[Wetterstation.eez-project]:/userWidgets/12",
+    "selectedUserWidgetObject": "[Wetterstation.eez-project]:/userWidgets/6",
     "selectedActionObject": "[Wetterstation.eez-project]:/actions/10",
     "selectedStyleObject": "[Wetterstation.eez-project]:/lvglStyles/styles/0",
     "selectedFontObject": "[Wetterstation.eez-project]:/fonts/8",
@@ -127,7 +127,7 @@
                 {
                   "type": "tabset",
                   "id": "#6b74b635-7a66-4336-91ba-4808f2d949f2",
-                  "weight": 1.1028671759129356,
+                  "weight": 0.7674971573639463,
                   "selected": 1,
                   "enableClose": false,
                   "children": [
@@ -160,7 +160,7 @@
                 {
                   "type": "tabset",
                   "id": "#a96a3f6c-df23-495d-85c2-9b8115815633",
-                  "weight": 1.399638706885871,
+                  "weight": 1.7350087254348603,
                   "enableClose": false,
                   "children": [
                     {
@@ -199,6 +199,17 @@
               "enableDeleteWhenEmpty": false,
               "enableClose": false,
               "children": [
+                {
+                  "type": "tab",
+                  "id": "#4ce82e9b-b126-4ac7-8cb7-546f3a01cd7c",
+                  "name": "SEN66_Widget_2",
+                  "component": "editor",
+                  "config": {
+                    "objectPath": "[Wetterstation.eez-project]:/userWidgets/5",
+                    "permanent": true
+                  },
+                  "icon": "svg:user_widget"
+                },
                 {
                   "type": "tab",
                   "id": "#84dff3ca-12f6-4448-a901-37699f7a693f",
@@ -1202,11 +1213,13 @@
             "1": {}
           },
           "1": {
+            "0": {}
+          },
+          "2": {
             "0": {
               "$selected": true
             }
           },
-          "2": {},
           "3": {},
           "4": {
             "0": {}
@@ -1349,14 +1362,15 @@
         "0": {
           "0": {},
           "1": {
-            "0": {
-              "$selected": true
-            }
+            "0": {}
           },
           "2": {},
           "3": {
             "0": {
-              "3": {}
+              "3": {},
+              "4": {
+                "$selected": true
+              }
             },
             "1": {},
             "2": {
@@ -1385,27 +1399,17 @@
     "[Wetterstation.eez-project]:/userWidgets/6[flow-state]": {
       "selectionFront": {},
       "selectionBack": {
-        "0": {
-          "0": {},
-          "1": {},
-          "2": {},
-          "3": {
-            "0": {},
-            "1": {
-              "$selected": true
-            }
-          },
-          "4": {},
-          "5": {},
-          "6": {}
-        }
+        "0": {},
+        "1": {},
+        "3": {},
+        "4": {}
       },
       "transform": {
         "translate": {
-          "x": -240.7868724412242,
-          "y": -270.71584414770854
+          "x": -144.42511117707804,
+          "y": -333.84086565851356
         },
-        "scale": 1.75
+        "scale": 2
       },
       "timeline": {
         "isEditorActive": false,
@@ -1582,7 +1586,10 @@
   "lvglExpandedPropertiesGroup": [
     "MARGIN",
     "MISCELLANEOUS",
-    "LAYOUT"
+    "BORDER",
+    "PADDING",
+    "BACKGROUND",
+    "TEXT"
   ],
   "showInactiveFlowsInDebugger": true,
   "globalFlowZoom": false,

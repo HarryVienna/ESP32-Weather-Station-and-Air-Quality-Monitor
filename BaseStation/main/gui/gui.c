@@ -448,7 +448,7 @@ void update_sen66_charts(float pm1, float pm2p5, float pm4, float pm10, float vo
     lv_chart_set_next_value(objects.sen66__chart_pm, ser_pm1,   (int32_t)pm1);
     lv_chart_set_next_value(objects.sen66__chart_voc, ser_voc,  (int32_t)voc);
     lv_chart_set_next_value(objects.sen66__chart_nox, ser_nox,  (int32_t)nox);
-    lv_chart_set_next_value(objects.sen66__chart_co2, ser_co2,  co2);
+    lv_chart_set_next_value(objects.sen66__chart_co2, ser_co2,  (float)co2);
 }
 
 void disp_weather(current_weather_data_t *current_weather, hourly_weather_data_t *hourly_weather, daily_weather_data_t *daily_weather) {
@@ -650,15 +650,23 @@ static void sen66_chart_fill_cb(lv_event_t *e)
     if (full_h <= 0) return;
 
     lv_chart_t *chart = (lv_chart_t *)obj;
-    int32_t y_min = chart->ymin[0];
-    int32_t y_max = chart->ymax[0];
 
     const sen66_thresh_t **thresh_arr = (const sen66_thresh_t **)lv_event_get_user_data(e);
     const sen66_thresh_t *thresh = thresh_arr[base_dsc->id1];
 
+    /* Get the series that produced this draw task. LVGL iterates LV_LL_READ_BACK
+     * (tail→head) and decrements id1 from ser_cnt-1 to 0, so id1=0 corresponds
+     * to the HEAD (first-added) series — the same order lv_chart_get_series_next gives. */
+    lv_chart_series_t *ser = lv_chart_get_series_next(obj, NULL);
+    for (int32_t j = 0; j < (int32_t)base_dsc->id1; j++) {
+        ser = lv_chart_get_series_next(obj, ser);
+    }
+    int32_t chart_w = obj_coords.x2 - obj_coords.x1;
+    if (chart_w <= 0 || ser == NULL) return;
+
     line_dsc->opa = LV_OPA_TRANSP;
 
-    lv_draw_rect_dsc_t rect_dsc;
+    static lv_draw_rect_dsc_t rect_dsc;
     lv_draw_rect_dsc_init(&rect_dsc);
     rect_dsc.bg_opa = LV_OPA_COVER;
 
@@ -685,8 +693,17 @@ static void sen66_chart_fill_cb(lv_event_t *e)
         rect_area.y1 = bar_top;
         rect_area.x2 = LV_MIN(rect_area.x2, obj_coords.x2);
 
-        float data_val = (float)lv_map(bar_top, obj_coords.y2, obj_coords.y1, y_min, y_max);
-        rect_dsc.bg_color = sen66_value_color(data_val, thresh);
+        /* Map x-pixel back to data-point index and read the actual stored value.
+         * This avoids the integer-quantisation error of the pixel→value reverse map,
+         * which caused values just above a threshold (e.g. CO2=621 vs t1=600) to be
+         * miscoloured when the chart height is small (≈1 ppm/pixel resolution). */
+        int32_t i_data = ((int32_t)p1.x - obj_coords.x1) * (int32_t)(chart->point_cnt - 1) / chart_w;
+        i_data = LV_CLAMP(0, i_data, (int32_t)chart->point_cnt - 1);
+        uint32_t pt_idx = ((uint32_t)ser->start_point + (uint32_t)i_data) % chart->point_cnt;
+        int32_t actual_val = ser->y_points[pt_idx];
+        if (actual_val == LV_CHART_POINT_NONE) continue;
+
+        rect_dsc.bg_color = sen66_value_color((float)actual_val, thresh);
         lv_draw_rect(base_dsc->layer, &rect_dsc, &rect_area);
     }
 }
@@ -776,7 +793,7 @@ void init_charts(void)
     lv_obj_add_event_cb(chart, sen66_chart_fill_cb, LV_EVENT_DRAW_TASK_ADDED, voc_thresh_arr);
   }
 
-  // NOx: orange, 0-500
+  // NOx: orange, 0-400
   {
     lv_obj_t *chart = objects.sen66__chart_nox;
     lv_chart_set_type(chart, LV_CHART_TYPE_LINE);
@@ -790,7 +807,7 @@ void init_charts(void)
     lv_obj_add_event_cb(chart, sen66_chart_fill_cb, LV_EVENT_DRAW_TASK_ADDED, nox_thresh_arr);
   }
 
-  // CO2: teal, 0-5000
+  // CO2: teal, 0-2000
   {
     lv_obj_t *chart = objects.sen66__chart_co2;
     lv_chart_set_type(chart, LV_CHART_TYPE_LINE);

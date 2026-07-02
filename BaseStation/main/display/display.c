@@ -515,7 +515,8 @@ static esp_err_t init_lvgl(void)
 {
     ESP_LOGI(TAG, "Initializing LVGL");
 
-    const lvgl_port_cfg_t port_cfg = ESP_LVGL_PORT_INIT_CONFIG();
+    lvgl_port_cfg_t port_cfg = ESP_LVGL_PORT_INIT_CONFIG();
+    port_cfg.task_stack = 16384;
     ESP_RETURN_ON_ERROR(lvgl_port_init(&port_cfg), TAG, "LVGL port init failed");
 
     ESP_LOGI(TAG, "Registering display (%dx%d physical, landscape via sw_rotate)",
