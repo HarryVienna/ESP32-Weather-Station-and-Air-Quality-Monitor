@@ -18,8 +18,6 @@
 #include "task/wifistart_task.h"
 
 #include "config/config.h"
-#include "lvgl_private.h"
-#include "widgets/chart/lv_chart_private.h"
 #include "gui.h"
 #include "lvgl/lv_common.h"
 #include "lvgl/lv_hourly_chart.h"
@@ -29,10 +27,7 @@
 static const char* TAG = "GUI";
 
 
-static lv_chart_series_t *ser_pm1   = NULL;
 static lv_chart_series_t *ser_pm2p5 = NULL;
-static lv_chart_series_t *ser_pm4   = NULL;
-static lv_chart_series_t *ser_pm10  = NULL;
 static lv_chart_series_t *ser_voc   = NULL;
 static lv_chart_series_t *ser_nox   = NULL;
 static lv_chart_series_t *ser_co2   = NULL;
@@ -442,10 +437,7 @@ void disp_sen6x(float ambientTemperature, float ambientHumidity, float massConce
 void update_sen66_charts(float pm1, float pm2p5, float pm4, float pm10, float voc, float nox, uint16_t co2)
 {
 
-    lv_chart_set_next_value(objects.sen66__chart_pm, ser_pm10,  (int32_t)pm10);
-    lv_chart_set_next_value(objects.sen66__chart_pm, ser_pm4,   (int32_t)pm4);
     lv_chart_set_next_value(objects.sen66__chart_pm, ser_pm2p5, (int32_t)pm2p5);
-    lv_chart_set_next_value(objects.sen66__chart_pm, ser_pm1,   (int32_t)pm1);
     lv_chart_set_next_value(objects.sen66__chart_voc, ser_voc,  (int32_t)voc);
     lv_chart_set_next_value(objects.sen66__chart_nox, ser_nox,  (int32_t)nox);
     lv_chart_set_next_value(objects.sen66__chart_co2, ser_co2,  (float)co2);
@@ -627,86 +619,35 @@ void set_labels() {
  *            generated - re-running the EEZ Studio build never loses this.
  */
 /* Threshold pointer arrays indexed by series id1, passed as user_data */
-static const sen66_thresh_t *pm_thresh_arr[]  = {&thresh_pm1, &thresh_pm2p5, &thresh_pm4, &thresh_pm10};
+static const sen66_thresh_t *pm_thresh_arr[]  = {&thresh_pm2p5};
 static const sen66_thresh_t *voc_thresh_arr[] = {&thresh_voc};
 static const sen66_thresh_t *nox_thresh_arr[] = {&thresh_nox};
 static const sen66_thresh_t *co2_thresh_arr[] = {&thresh_co2};
 
-static void sen66_chart_fill_cb(lv_event_t *e)
+/* BAR chart callback for CO2/VOC/NOx — recolors each 1-px bar by threshold */
+static void sen66_bar_fill_cb(lv_event_t *e)
 {
     lv_draw_task_t *draw_task = lv_event_get_draw_task(e);
-    lv_draw_dsc_base_t *base_dsc = (lv_draw_dsc_base_t *)lv_draw_task_get_draw_dsc(draw_task);
-
+    lv_draw_dsc_base_t *base_dsc = lv_draw_task_get_draw_dsc(draw_task);
     if (base_dsc->part != LV_PART_ITEMS) return;
-    if (lv_draw_task_get_type(draw_task) != LV_DRAW_TASK_TYPE_LINE) return;
 
-    lv_draw_line_dsc_t *line_dsc = lv_draw_task_get_line_dsc(draw_task);
-    if (line_dsc == NULL) return;
+    lv_draw_fill_dsc_t *fill_dsc = lv_draw_task_get_fill_dsc(draw_task);
+    if (!fill_dsc) return;
 
-    lv_obj_t *obj = lv_event_get_target_obj(e);
-    lv_area_t obj_coords;
-    lv_obj_get_content_coords(obj, &obj_coords);
-    int32_t full_h = lv_area_get_height(&obj_coords);
-    if (full_h <= 0) return;
+    lv_obj_t *chart = lv_event_get_target_obj(e);
+    lv_chart_series_t *ser = lv_chart_get_series_next(chart, NULL);
+    if (!ser) return;
 
-    lv_chart_t *chart = (lv_chart_t *)obj;
+    uint32_t  pt_cnt = lv_chart_get_point_count(chart);
+    uint32_t  start  = lv_chart_get_x_start_point(chart, ser);
+    int32_t  *y      = lv_chart_get_series_y_array(chart, ser);
+    int32_t   val    = y[(start + base_dsc->id2) % pt_cnt];
+    if (val == LV_CHART_POINT_NONE) return;
 
-    const sen66_thresh_t **thresh_arr = (const sen66_thresh_t **)lv_event_get_user_data(e);
-    const sen66_thresh_t *thresh = thresh_arr[base_dsc->id1];
-
-    /* Get the series that produced this draw task. LVGL iterates LV_LL_READ_BACK
-     * (tail→head) and decrements id1 from ser_cnt-1 to 0, so id1=0 corresponds
-     * to the HEAD (first-added) series — the same order lv_chart_get_series_next gives. */
-    lv_chart_series_t *ser = lv_chart_get_series_next(obj, NULL);
-    for (int32_t j = 0; j < (int32_t)base_dsc->id1; j++) {
-        ser = lv_chart_get_series_next(obj, ser);
-    }
-    int32_t chart_w = obj_coords.x2 - obj_coords.x1;
-    if (chart_w <= 0 || ser == NULL) return;
-
-    line_dsc->opa = LV_OPA_TRANSP;
-
-    static lv_draw_rect_dsc_t rect_dsc;
-    lv_draw_rect_dsc_init(&rect_dsc);
-    rect_dsc.bg_opa = LV_OPA_COVER;
-
-    for (int32_t i = 0; i < line_dsc->point_cnt - 1; i++) {
-        lv_point_precise_t p1 = line_dsc->points[i];
-        lv_point_precise_t p2 = line_dsc->points[i + 1];
-
-        if (p1.x == LV_DRAW_LINE_POINT_NONE || p1.y == LV_DRAW_LINE_POINT_NONE) continue;
-        if (p2.x == LV_DRAW_LINE_POINT_NONE || p2.y == LV_DRAW_LINE_POINT_NONE) continue;
-
-        lv_area_t rect_area;
-        rect_area.y2 = obj_coords.y2;
-
-        int32_t bar_top;
-        if ((int32_t)p1.x == (int32_t)p2.x) {
-            rect_area.x1 = (int32_t)p1.x;
-            rect_area.x2 = (int32_t)p1.x;
-            bar_top = (int32_t)LV_MIN(p1.y, p2.y);
-        } else {
-            rect_area.x1 = (int32_t)p1.x;
-            rect_area.x2 = (int32_t)p2.x - 1;
-            bar_top = (int32_t)LV_MAX(p1.y, p2.y);
-        }
-        rect_area.y1 = bar_top;
-        rect_area.x2 = LV_MIN(rect_area.x2, obj_coords.x2);
-
-        /* Map x-pixel back to data-point index and read the actual stored value.
-         * This avoids the integer-quantisation error of the pixel→value reverse map,
-         * which caused values just above a threshold (e.g. CO2=621 vs t1=600) to be
-         * miscoloured when the chart height is small (≈1 ppm/pixel resolution). */
-        int32_t i_data = ((int32_t)p1.x - obj_coords.x1) * (int32_t)(chart->point_cnt - 1) / chart_w;
-        i_data = LV_CLAMP(0, i_data, (int32_t)chart->point_cnt - 1);
-        uint32_t pt_idx = ((uint32_t)ser->start_point + (uint32_t)i_data) % chart->point_cnt;
-        int32_t actual_val = ser->y_points[pt_idx];
-        if (actual_val == LV_CHART_POINT_NONE) continue;
-
-        rect_dsc.bg_color = sen66_value_color((float)actual_val, thresh);
-        lv_draw_rect(base_dsc->layer, &rect_dsc, &rect_area);
-    }
+    const sen66_thresh_t *thresh = ((const sen66_thresh_t **)lv_event_get_user_data(e))[0];
+    fill_dsc->color = sen66_value_color((float)val, thresh);
 }
+
 
 void init_charts(void)
 {
@@ -762,63 +703,56 @@ void init_charts(void)
 
   // --- SEN66 charts (already lv_chart from EEZ Studio, just configure) ---
 
-  // PM: 4 gray series (pm10 lightest = drawn first/behind, pm1 darkest = front)
+  // PM2.5: 0-75, 1-px BAR
   {
     lv_obj_t *chart = objects.sen66__chart_pm;
-    lv_chart_set_type(chart, LV_CHART_TYPE_LINE);
-    lv_chart_set_range(chart, LV_CHART_AXIS_PRIMARY_Y, 0, 120);
+    lv_chart_set_type(chart, LV_CHART_TYPE_BAR);
+    lv_chart_set_range(chart, LV_CHART_AXIS_PRIMARY_Y, 0, 75);
     lv_chart_set_point_count(chart, lv_obj_get_width(chart));
     lv_obj_set_style_pad_all(chart, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
-    lv_obj_set_style_line_width(chart, 2, LV_PART_ITEMS | LV_STATE_DEFAULT);
-    lv_obj_set_style_size(chart, 0, 0, LV_PART_INDICATOR | LV_STATE_DEFAULT);
-    ser_pm10  = lv_chart_add_series(chart, lv_color_hex(0xBDBDBD), LV_CHART_AXIS_PRIMARY_Y);
-    ser_pm4   = lv_chart_add_series(chart, lv_color_hex(0x9E9E9E), LV_CHART_AXIS_PRIMARY_Y);
+    lv_obj_set_style_pad_column(chart, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
     ser_pm2p5 = lv_chart_add_series(chart, lv_color_hex(0x616161), LV_CHART_AXIS_PRIMARY_Y);
-    ser_pm1   = lv_chart_add_series(chart, lv_color_hex(0x212121), LV_CHART_AXIS_PRIMARY_Y);
     lv_obj_add_flag(chart, LV_OBJ_FLAG_SEND_DRAW_TASK_EVENTS);
-    lv_obj_add_event_cb(chart, sen66_chart_fill_cb, LV_EVENT_DRAW_TASK_ADDED, pm_thresh_arr);
+    lv_obj_add_event_cb(chart, sen66_bar_fill_cb, LV_EVENT_DRAW_TASK_ADDED, pm_thresh_arr);
   }
 
-  // VOC: blue, 0-500
+  // VOC: 0-500, 1-px BAR
   {
     lv_obj_t *chart = objects.sen66__chart_voc;
-    lv_chart_set_type(chart, LV_CHART_TYPE_LINE);
+    lv_chart_set_type(chart, LV_CHART_TYPE_BAR);
     lv_chart_set_range(chart, LV_CHART_AXIS_PRIMARY_Y, 0, 500);
     lv_chart_set_point_count(chart, lv_obj_get_width(chart));
     lv_obj_set_style_pad_all(chart, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
-    lv_obj_set_style_line_width(chart, 2, LV_PART_ITEMS | LV_STATE_DEFAULT);
-    lv_obj_set_style_size(chart, 0, 0, LV_PART_INDICATOR | LV_STATE_DEFAULT);
+    lv_obj_set_style_pad_column(chart, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
     ser_voc = lv_chart_add_series(chart, lv_color_hex(0x1565C0), LV_CHART_AXIS_PRIMARY_Y);
     lv_obj_add_flag(chart, LV_OBJ_FLAG_SEND_DRAW_TASK_EVENTS);
-    lv_obj_add_event_cb(chart, sen66_chart_fill_cb, LV_EVENT_DRAW_TASK_ADDED, voc_thresh_arr);
+    lv_obj_add_event_cb(chart, sen66_bar_fill_cb, LV_EVENT_DRAW_TASK_ADDED, voc_thresh_arr);
   }
 
-  // NOx: orange, 0-400
+  // NOx: 0-400, 1-px BAR
   {
     lv_obj_t *chart = objects.sen66__chart_nox;
-    lv_chart_set_type(chart, LV_CHART_TYPE_LINE);
+    lv_chart_set_type(chart, LV_CHART_TYPE_BAR);
     lv_chart_set_range(chart, LV_CHART_AXIS_PRIMARY_Y, 0, 400);
     lv_chart_set_point_count(chart, lv_obj_get_width(chart));
     lv_obj_set_style_pad_all(chart, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
-    lv_obj_set_style_line_width(chart, 2, LV_PART_ITEMS | LV_STATE_DEFAULT);
-    lv_obj_set_style_size(chart, 0, 0, LV_PART_INDICATOR | LV_STATE_DEFAULT);
+    lv_obj_set_style_pad_column(chart, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
     ser_nox = lv_chart_add_series(chart, lv_color_hex(0xE65100), LV_CHART_AXIS_PRIMARY_Y);
     lv_obj_add_flag(chart, LV_OBJ_FLAG_SEND_DRAW_TASK_EVENTS);
-    lv_obj_add_event_cb(chart, sen66_chart_fill_cb, LV_EVENT_DRAW_TASK_ADDED, nox_thresh_arr);
+    lv_obj_add_event_cb(chart, sen66_bar_fill_cb, LV_EVENT_DRAW_TASK_ADDED, nox_thresh_arr);
   }
 
-  // CO2: teal, 0-2000
+  // CO2: 0-2000, 1-px BAR
   {
     lv_obj_t *chart = objects.sen66__chart_co2;
-    lv_chart_set_type(chart, LV_CHART_TYPE_LINE);
+    lv_chart_set_type(chart, LV_CHART_TYPE_BAR);
     lv_chart_set_range(chart, LV_CHART_AXIS_PRIMARY_Y, 0, 2000);
     lv_chart_set_point_count(chart, lv_obj_get_width(chart));
     lv_obj_set_style_pad_all(chart, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
-    lv_obj_set_style_line_width(chart, 2, LV_PART_ITEMS | LV_STATE_DEFAULT);
-    lv_obj_set_style_size(chart, 0, 0, LV_PART_INDICATOR | LV_STATE_DEFAULT);
+    lv_obj_set_style_pad_column(chart, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
     ser_co2 = lv_chart_add_series(chart, lv_color_hex(0x00695C), LV_CHART_AXIS_PRIMARY_Y);
     lv_obj_add_flag(chart, LV_OBJ_FLAG_SEND_DRAW_TASK_EVENTS);
-    lv_obj_add_event_cb(chart, sen66_chart_fill_cb, LV_EVENT_DRAW_TASK_ADDED, co2_thresh_arr);
+    lv_obj_add_event_cb(chart, sen66_bar_fill_cb, LV_EVENT_DRAW_TASK_ADDED, co2_thresh_arr);
   }
 
   /* TEST: pre-fill 140 points — remove before release */
