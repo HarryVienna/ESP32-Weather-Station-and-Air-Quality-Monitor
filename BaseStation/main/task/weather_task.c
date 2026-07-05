@@ -10,7 +10,6 @@
 #include "esp_http_client.h"
 #include "esp_tls.h"
 #include "esp_crt_bundle.h"
-#include "esp_lvgl_port.h"
 #include "nvs/preferences.h"
 
 #include "cJSON.h"
@@ -706,9 +705,7 @@ void weather_task(void *pvParameter) {
         // Only update display if ALL three API calls succeeded with complete data
         if (current_success && hourly_success && daily_success) {
             ESP_LOGI(TAG, "All weather data retrieved successfully - updating display");
-            lvgl_port_lock(0);
             disp_weather(&current_data, hourly_data, daily_data);
-            lvgl_port_unlock();
         } else {
             ESP_LOGW(TAG, "Weather data incomplete - skipping display update (current:%d, hourly:%d, daily:%d)",
                      current_success, hourly_success, daily_success);

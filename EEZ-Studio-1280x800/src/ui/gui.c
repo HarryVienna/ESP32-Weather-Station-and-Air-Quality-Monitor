@@ -27,138 +27,15 @@
 
 static const char* TAG = "GUI";
 
-/* ============================================================================
- * gui.c - Handgeschriebener GUI-Code (Gegenstueck zum EEZ-Studio-generierten
- * main/ui/screens.c). Alles hier ist normales C und wird NIE von EEZ Studio
- * ueberschrieben - im Gegensatz zu screens.c/.h, die bei jedem Export neu
- * erzeugt werden. Wenn du in EEZ Studio ein Widget umbenennst oder ein
- * neues anlegst, landen die Aenderungen dort; die Logik, die diese Widgets
- * mit Leben fuellt (NVS, Receiver-Daten, Wetter-API), steht hier.
- *
- * Inhalt dieser Datei, in dieser Reihenfolge:
- *   1. Farbskalen           - gemeinsame Gruen/Gelb/Rot-Bewertungslogik
- *   2. Weatherstation-Screen: Status - WLAN-Icon, Uhrzeit, Helligkeit
- *   3. SEN66                - eingebauter Luftqualitaetssensor der Basisstation
- *   4. Wettervorhersage     - Open-Meteo-Anzeige (aktuell/stuendlich/taeglich)
- *   5. Sensoren             - Basis + 6 Fernsensoren (LoRa/ESP-NOW)
- *   6. Chart-Infrastruktur  - Platzhalter-Charts aus EEZ Studio durch echte ersetzen
- *   7. Task-Start           - FreeRTOS-Tasks nach erfolgreichem Setup starten
- *   8. Setup Screen         - WLAN/Standort/Zeitzone/Sensor-Konfiguration
- *
- * -----------------------------------------------------------------------
- * Wie fuege ich einen Sensor hinzu / aendere einen bestehenden?
- * -----------------------------------------------------------------------
- * "Ein Sensor" besteht aus zwei unabhaengigen Dingen, beide im Abschnitt
- * "5. Sensoren" weiter unten:
- *
- * a) WAS man im Setup Screen auswaehlen kann (Name+Icon-Katalog):
- *    sensor_icon_options[]. Jeder Eintrag ist ein Name+Icon-Paar, das im
- *    Dropdown erscheint (z.B. {"Schlafzimmer", &img_sensor_bedroom}). Ein
- *    Dropdown legt beides zugleich fest - es gibt keine separaten
- *    Namensfelder mehr. Neues Icon zur Auswahl hinzufuegen = eine neue
- *    Zeile hier, sonst nichts.
- *
- * b) WELCHER Sensor-Typ (bme280/sht45/geiger) an WELCHER Stelle im
- *    Weatherstation-Screen fest verbaut ist: sensor_slots[]. Jeder der 6
- *    Sensor_X-Container hat in EEZ Studio dauerhaft einen fest verbauten
- *    Widget-Typ. Diese Tabelle sagt disp_sensor_values()/
- *    disp_sensor_link_quality(), welche von EEZ generierten Feldnamen
- *    (objects.objN__temp usw.) zu welchem Slot gehoeren. Aendert sich in
- *    EEZ Studio, welcher Typ in Slot X verbaut ist, wird NUR diese eine
- *    Tabellenzeile angepasst - der Rest der Datei bleibt unberuehrt.
- *
- * Der Slot-Index (0-5) ist ueberall derselbe: die UI-Reihenfolge
- * "Sensor 1..6" im Setup Screen, packet_header_t.sensor_nr im Funkpaket
- * (siehe common/packet_format.h) und der Index in sensor_slots[]/
- * sensor_dropdown_widgets[].
- * ============================================================================ */
 
+static lv_chart_series_t *ser_pm2p5 = NULL;
+static lv_chart_series_t *ser_voc   = NULL;
+static lv_chart_series_t *ser_nox   = NULL;
+static lv_chart_series_t *ser_co2   = NULL;
 
-/* ============================================================================
- * 1) Farbskalen - gemeinsame Schwellwert-Helfer
- *
- * Zwei Formen, je nachdem ob ein hoeherer Messwert besser oder schlechter
- * ist. Beide geben COLOR_GREEN..COLOR_RED zurueck (siehe config.h).
- * ============================================================================ */
-
-/* Aufsteigend: t1 = bester (niedrigster) Wert. Fuer Messgroessen bei denen
- * ein hoeherer Wert schlechter ist (Feinstaub, VOC, NOx, CO2). */
 typedef struct {
     float t1, t2, t3, t4;
 } sen66_thresh_t;
-
-static lv_color_t sen66_value_color(float val, const sen66_thresh_t *t)
-{
-    if      (val <= t->t1) return lv_color_hex(COLOR_GREEN);
-    else if (val <= t->t2) return lv_color_hex(COLOR_LIGHTGREEN);
-    else if (val <= t->t3) return lv_color_hex(COLOR_YELLOW);
-    else if (val <= t->t4) return lv_color_hex(COLOR_ORANGE);
-    else                   return lv_color_hex(COLOR_RED);
-}
-
-/* Absteigend: t1 = bester (hoechster) Wert. Fuer Messgroessen bei denen ein
- * hoeherer Wert besser ist (Akkuspannung, RSSI). */
-typedef struct {
-  float t1, t2, t3, t4;
-} level_thresh_t;
-
-/* Einzelliger Li-Ion/LiPo-Akku: voll ~4.2V, leer/Abschaltung ~3.0V */
-static const level_thresh_t thresh_battery_voltage = {4.0f, 3.8f, 3.6f, 3.4f};
-/* RSSI in dBm, gemeinsame Skala fuer LoRa, ESP-NOW und WLAN */
-static const level_thresh_t thresh_rssi_dbm = {-70.0f, -85.0f, -95.0f, -105.0f};
-
-/* Fuer Batterie und Signalstaerke */
-static lv_color_t level_color_desc(float val, const level_thresh_t *t)
-{
-    if      (val >= t->t1) return lv_color_hex(COLOR_GREEN);
-    else if (val >= t->t2) return lv_color_hex(COLOR_LIGHTGREEN);
-    else if (val >= t->t3) return lv_color_hex(COLOR_YELLOW);
-    else if (val >= t->t4) return lv_color_hex(COLOR_ORANGE);
-    else                   return lv_color_hex(COLOR_RED);
-}
-
-
-/* ============================================================================
- * 2) Weatherstation-Screen: allgemeiner Status (WLAN, Uhrzeit, Helligkeit)
- * ============================================================================ */
-
-/**
- * @brief  Faerbt das WLAN-Icon im Weatherstation-Screen nach Verbindungsstatus/RSSI.
- *
- * @param  status    true = verbunden, false = getrennt
- * @param  rssi_dbm  Empfangsfeldstaerke in dBm (nur relevant wenn status==true)
- */
-void disp_wifi_status(bool status, int8_t rssi_dbm)
-{
-  lv_color_t color = status ? level_color_desc((float)rssi_dbm, &thresh_rssi_dbm)
-                             : lv_color_hex(COLOR_RED);
-
-  lvgl_port_lock(0);
-  lv_obj_set_style_img_recolor(objects.wifi, color, LV_PART_MAIN | LV_STATE_DEFAULT);
-  lv_obj_set_style_img_recolor_opa(objects.wifi, LV_OPA_COVER, LV_PART_MAIN | LV_STATE_DEFAULT);
-  lvgl_port_unlock();
-}
-
-void disp_date_time(char *date_time)
-{
-  lvgl_port_lock(0);
-  lv_label_set_text(objects.date_time, date_time);
-  lvgl_port_unlock();
-}
-
-void set_brightness(uint16_t brightness)
-{
-  display_set_brightness(brightness);
-}
-
-
-/* ============================================================================
- * 3) SEN66 - eingebauter Luftqualitaetssensor der Basisstation
- *
- * Name/Icon der SEN66-Karte werden wie bei den Fernsensoren im Setup Screen
- * konfiguriert (siehe Abschnitt 5, apply_slot_configs) - hier geht es nur
- * um die eigentlichen Messwerte (Temp/Feuchte/Feinstaub/VOC/NOx/CO2).
- * ============================================================================ */
 
 static const sen66_thresh_t thresh_pm1   = {11.6f, 32.0f,  50.0f,  68.0f};
 static const sen66_thresh_t thresh_pm2p5 = {13.0f, 35.0f,  55.0f,  75.0f};
@@ -174,78 +51,34 @@ static const sen66_thresh_t *voc_thresh_arr[] = {&thresh_voc};
 static const sen66_thresh_t *nox_thresh_arr[] = {&thresh_nox};
 static const sen66_thresh_t *co2_thresh_arr[] = {&thresh_co2};
 
-static lv_chart_series_t *ser_pm2p5 = NULL;
-static lv_chart_series_t *ser_voc   = NULL;
-static lv_chart_series_t *ser_nox   = NULL;
-static lv_chart_series_t *ser_co2   = NULL;
+/* Wie sen66_thresh_t, aber absteigend: t1 = bester (hoechster) Wert. Fuer
+ * Metriken bei denen ein hoeherer Wert besser ist (Spannung, RSSI). */
+typedef struct {
+  float t1, t2, t3, t4;
+} level_thresh_t;
 
-void disp_sen6x(float ambientTemperature, float ambientHumidity, float massConcentrationPm1p0, float massConcentrationPm2p5, float massConcentrationPm4p0, float massConcentrationPm10p0, float vocIndex, float noxIndex, uint16_t co2)
+/* Einzelliger Li-Ion/LiPo-Akku: voll ~4.2V, leer/Abschaltung ~3.0V */
+static const level_thresh_t thresh_battery_voltage = {4.0f, 3.8f, 3.6f, 3.4f};
+/* RSSI in dBm, gemeinsame Skala fuer LoRa, ESP-NOW und WLAN */
+static const level_thresh_t thresh_rssi_dbm = {-70.0f, -85.0f, -95.0f, -105.0f};
+
+static lv_color_t level_color_desc(float val, const level_thresh_t *t)
 {
-  lvgl_port_lock(0);
-
-  if (!isnan(ambientTemperature))
-  {
-    char temp[8];
-    sprintf(temp, "%.1f", ambientTemperature);
-    lv_label_set_text(objects.sen66__temp, temp);
-  }
-
-  if (!isnan(ambientHumidity))
-  {
-    char humidity[8];
-    sprintf(humidity, "%.1f", ambientHumidity);
-    lv_label_set_text(objects.sen66__humidity, humidity);
-  }
-
-  lv_obj_set_style_bg_color(objects.sen66__pm1,   sen66_value_color(massConcentrationPm1p0,  &thresh_pm1),   LV_PART_MAIN | LV_STATE_DEFAULT);
-  lv_obj_set_style_bg_color(objects.sen66__pm2p5, sen66_value_color(massConcentrationPm2p5,  &thresh_pm2p5), LV_PART_MAIN | LV_STATE_DEFAULT);
-  lv_obj_set_style_bg_color(objects.sen66__pm4,   sen66_value_color(massConcentrationPm4p0,  &thresh_pm4),   LV_PART_MAIN | LV_STATE_DEFAULT);
-  lv_obj_set_style_bg_color(objects.sen66__pm10,  sen66_value_color(massConcentrationPm10p0, &thresh_pm10),  LV_PART_MAIN | LV_STATE_DEFAULT);
-  lv_obj_set_style_bg_color(objects.sen66__voc,   sen66_value_color(vocIndex,                &thresh_voc),   LV_PART_MAIN | LV_STATE_DEFAULT);
-  lv_obj_set_style_bg_color(objects.sen66__nox,   sen66_value_color(noxIndex,                &thresh_nox),   LV_PART_MAIN | LV_STATE_DEFAULT);
-  lv_obj_set_style_bg_color(objects.sen66__co2,   sen66_value_color((float)co2,              &thresh_co2),   LV_PART_MAIN | LV_STATE_DEFAULT);
-
-  lvgl_port_unlock();
+    if      (val >= t->t1) return lv_color_hex(COLOR_GREEN);
+    else if (val >= t->t2) return lv_color_hex(COLOR_LIGHTGREEN);
+    else if (val >= t->t3) return lv_color_hex(COLOR_YELLOW);
+    else if (val >= t->t4) return lv_color_hex(COLOR_ORANGE);
+    else                   return lv_color_hex(COLOR_RED);
 }
 
-void update_sen66_charts(float pm1, float pm2p5, float pm4, float pm10, float voc, float nox, uint16_t co2)
+static lv_color_t sen66_value_color(float val, const sen66_thresh_t *t)
 {
-    lvgl_port_lock(0);
-    lv_chart_set_next_value(objects.sen66__chart_pm, ser_pm2p5, (int32_t)pm2p5);
-    lv_chart_set_next_value(objects.sen66__chart_voc, ser_voc,  (int32_t)voc);
-    lv_chart_set_next_value(objects.sen66__chart_nox, ser_nox,  (int32_t)nox);
-    lv_chart_set_next_value(objects.sen66__chart_co2, ser_co2,  (float)co2);
-    lvgl_port_unlock();
+    if      (val <= t->t1) return lv_color_hex(COLOR_GREEN);
+    else if (val <= t->t2) return lv_color_hex(COLOR_LIGHTGREEN);
+    else if (val <= t->t3) return lv_color_hex(COLOR_YELLOW);
+    else if (val <= t->t4) return lv_color_hex(COLOR_ORANGE);
+    else                   return lv_color_hex(COLOR_RED);
 }
-
-/* BAR chart callback for CO2/VOC/NOx — recolors each 1-px bar by threshold */
-static void sen66_bar_fill_cb(lv_event_t *e)
-{
-    lv_draw_task_t *draw_task = lv_event_get_draw_task(e);
-    lv_draw_dsc_base_t *base_dsc = lv_draw_task_get_draw_dsc(draw_task);
-    if (base_dsc->part != LV_PART_ITEMS) return;
-
-    lv_draw_fill_dsc_t *fill_dsc = lv_draw_task_get_fill_dsc(draw_task);
-    if (!fill_dsc) return;
-
-    lv_obj_t *chart = lv_event_get_target_obj(e);
-    lv_chart_series_t *ser = lv_chart_get_series_next(chart, NULL);
-    if (!ser) return;
-
-    uint32_t  pt_cnt = lv_chart_get_point_count(chart);
-    uint32_t  start  = lv_chart_get_x_start_point(chart, ser);
-    int32_t  *y      = lv_chart_get_series_y_array(chart, ser);
-    int32_t   val    = y[(start + base_dsc->id2) % pt_cnt];
-    if (val == LV_CHART_POINT_NONE) return;
-
-    const sen66_thresh_t *thresh = ((const sen66_thresh_t **)lv_event_get_user_data(e))[0];
-    fill_dsc->color = sen66_value_color((float)val, thresh);
-}
-
-
-/* ============================================================================
- * 4) Wettervorhersage (Open-Meteo)
- * ============================================================================ */
 
 #define NUM_ICONS 28
 
@@ -313,596 +146,7 @@ icon_mapping_t icon_mapping_night[] = {
       {86, &img_86},
       {95, &img_95},
       {96, &img_96},
-      {99, &img_99}};
-
-void disp_weather(current_weather_data_t *current_weather, hourly_weather_data_t *hourly_weather, daily_weather_data_t *daily_weather) {
-  lvgl_port_lock(0);
-
-  // Current data
-  char temp[8];
-  char clouds[8];
-  char uv_index[8];
-  char wind_speed[8];
-  char wind_gust[8];
-  char str_sunrise[8];
-  char str_sunset[8];
-
-  icon_mapping_t *icon_mapping;
-  if (current_weather->is_day) {
-    icon_mapping = icon_mapping_day;
-  }
-  else {
-    icon_mapping = icon_mapping_night;
-  }
-
-  for (uint8_t i = 0; i < NUM_ICONS; i++)
-  {
-    if (current_weather->weather_code == icon_mapping[i].icon)
-    {
-      ESP_LOGI(TAG, "Weather code %d", current_weather->weather_code);
-      lv_img_set_src(objects.weather_icon, icon_mapping[i].icon_image);
-      break;
-    }
-  }
-
-  sprintf(temp, "%.1f", current_weather->temperature_2m);
-  lv_label_set_text(objects.temp_current, temp);
-
-  sprintf(clouds, "%d", current_weather->cloud_cover);
-  lv_label_set_text(objects.clouds_current, clouds);
-
-  sprintf(uv_index, "%d", (int) round(current_weather->uv_index));
-  lv_label_set_text(objects.uv_current, uv_index);
-
-  sprintf(wind_speed, "%.1f", current_weather->wind_speed_10m);
-  lv_label_set_text(objects.wind_speed_current, wind_speed);
-
-  sprintf(wind_gust, "%.1f", current_weather->wind_gusts_10m);
-  lv_label_set_text(objects.wind_gust_current, wind_gust);
-
-  lv_img_set_angle(objects.wind_direction_current_icon, current_weather->wind_direction_10m * 10);
-
-  struct tm time_sunrise = daily_weather[0].sunrise;
-  struct tm time_sunrset = daily_weather[0].sunset;
-  strftime(str_sunrise, sizeof(str_sunrise), "%H:%M", &time_sunrise);
-  lv_label_set_text(objects.sunrise_current, str_sunrise);
-  strftime(str_sunset, sizeof(str_sunset), "%H:%M", &time_sunrset);
-  lv_label_set_text(objects.sunset_current, str_sunset);
-
-  // Hourly data
-  lv_hourly_data hourly_data[NUM_HOURS];
-
-  for (int i = 0; i < NUM_HOURS; i++)
-  {
-    hourly_data[i].dt = hourly_weather[i].time;
-    hourly_data[i].temp = hourly_weather[i].temperature_2m;
-    hourly_data[i].dew = hourly_weather[i].dew_point_2m;
-    hourly_data[i].rain = hourly_weather[i].rain + hourly_weather[i].showers;
-    hourly_data[i].snow = hourly_weather[i].snowfall * 10.0f / 7.0f;  // See docu from open-meteo.com  snow -> water
-    hourly_data[i].pop = hourly_weather[i].precipitation_probability;
-    //hourly_data[i].pop = (hourly_weather[i].precipitation_probability * 80.0f / 100.0f + 20.0f) / 100.0f;  // Map 0-100 to 25-100 for better visualisation
-    hourly_data[i].sun = hourly_weather[i].sunshine_duration / 3600.0f;
-    //hourly_data[i].sun = hourly_weather[i].is_day ? (100.0f - source_data[i].cloud_cover) / 100.0f : 0;
-  }
-
-  lv_hourly_chart_set_data(objects.hourly_chart, hourly_data);
-  lv_hourly_chart_refresh(objects.hourly_chart);
-
-  // Daily data
-  lv_daily_data daily_data[NUM_DAYS];
-
-  for (int i = 0; i < NUM_DAYS; i++)
-  {
-    daily_data[i].dt = daily_weather[i].time;
-    daily_data[i].low_temp = daily_weather[i].temperature_2m_min;
-    daily_data[i].high_temp = daily_weather[i].temperature_2m_max;
-    daily_data[i].rain = daily_weather[i].rain_sum + daily_weather[i].showers_sum;
-    daily_data[i].snow = daily_weather[i].snowfall_sum * 10.0f / 7.0f;  // See docu from open-meteo.com  snow -> water
-    daily_data[i].pop = daily_weather[i].precipitation_probability_max;
-    daily_data[i].sun = daily_weather[i].sunshine_duration / daily_weather[i].daylight_duration;
-  }
-
-  lv_daily_chart_set_data(objects.daily_chart, daily_data);
-  lv_daily_chart_refresh(objects.daily_chart);
-
-  lvgl_port_unlock();
-}
-
-
-/* ============================================================================
- * 5) Sensoren - Basis (SEN66) + 6 Fernsensoren (LoRa/ESP-NOW)
- *
- * Siehe Kommentar am Dateianfang fuer die Kurzfassung. Reihenfolge hier:
- *   - calc_sea_level_pressure()      Hilfsrechnung fuer BME280-Luftdruck
- *   - sensor_icon_options[]          a) Name+Icon-Katalog fuer die Dropdowns
- *   - sensor_dropdown_widgets[]      Setup-Screen-Dropdowns, ein Eintrag/Slot
- *   - load/save_*_nvs()              Dropdown-Auswahl <-> Flash
- *   - sensor_slots[]                 b) Hardware-Zuordnung: Typ + generierte
- *                                       Feldnamen je Slot im Weatherstation-Screen
- *   - apply_slot_configs()           Setup-Auswahl -> Weatherstation-Screen
- *   - disp_sensor_link_quality()     Batterie/Signal-Icon einfaerben
- *   - disp_sensor_values()           Messwerte eines Pakets anzeigen
- * ============================================================================ */
-
-/**
- * @brief     Calculate sea level pressure based on provided parameters
- *
- * @param     pressure      Atmospheric pressure at the measurement point (in hPa)
- * @param     temperature   Temperature at the measurement point (in Celsius)
- * @param     altitude      Altitude above sea level (in meters)
- *
- * @return    float         Sea level pressure calculated based on the parameters (in hPa)
- *
- * @details   Calculates and estimates the sea level pressure using the barometric formula.
- *            Incorporates constants and calculations to adjust the pressure for altitude and temperature.
- */
-float calc_sea_level_pressure(float pressure, float temperature, uint16_t altitude)
-{
-  // https://de.wikipedia.org/wiki/Barometrische_H%C3%B6henformel
-
-  // Konstanten
-  float g = 9.80665;  // Schwerebeschleunigung in m / s^2
-  float R = 287.05;   // Gaskonstante trockener Luft (= R/M)  in m^2/(s²K)
-  float a = 0.0065;   // vertikaler Temperaturgradient
-  float C_h = 0.12;   // Beiwert zur Berücksichtigung der mittleren Dampfdruckänderung K/hPa
-  float T_0 = 273.15; // Celsius to Kelvin
-
-  float E; // Dampfdruck des Wasserdampfanteils (in hPa)
-
-  if (temperature < 9.1)
-  {
-    E = 5.6402 * (-0.0916 + exp(0.06 * temperature));
-  }
-  else
-  {
-    E = 18.2194 * (1.0463 + exp(-0.0666 * temperature));
-  }
-
-  // Luftdruck auf Meereshöhe berechnen
-  float p = pressure * exp(altitude * g / (R * (temperature + T_0 + C_h * E + a * (altitude / 2))));
-
-  return p;
-}
-
-/* a) Name+Icon-Katalog: jede Zeile ist eine Wahlmoeglichkeit im Setup-Screen-
- * Dropdown. Label = Anzeigename auf der Sensor-Karte, icon = zugehoeriges
- * Bild. Neuen Eintrag hinzufuegen = neue Zeile, fertig - wird automatisch
- * in allen 7 Dropdowns (Basis + 6 Sensoren) angeboten. */
-typedef struct {
-  const char *label;
-  const lv_img_dsc_t *icon;
-} sensor_icon_option_t;
-
-static const sensor_icon_option_t sensor_icon_options[] = {
-    {"Bad",          &img_sensor_bathroom},
-    {"Balkon",       &img_sensor_balcony},
-    {"Büro",         &img_sensor_office},
-    {"Keller",       &img_sensor_cellar},
-    {"Schlafzimmer", &img_sensor_bedroom},
-    {"Strahlung",    &img_sensor_radiation},
-    {"Werkstatt",    &img_sensor_workshop},
-    {"Zuhause",      &img_sensor_home},
-};
-#define SENSOR_ICON_COUNT (sizeof(sensor_icon_options) / sizeof(sensor_icon_options[0]))
-
-/* Ein Dropdown pro Slot legt Name UND Icon gemeinsam fest - der gewaehlte
- * Index zeigt direkt in sensor_icon_options[] (Label = Anzeigename, Icon =
- * Bild). Separate Namensfelder gibt es im Setup Screen nicht mehr. Index
- * 0-5 hier = Sensor 1-6 im UI = packet_header_t.sensor_nr im Funkpaket. */
-static lv_obj_t **const sensor_dropdown_widgets[SENSOR_SLOT_COUNT] = {
-    &objects.sensor_0_name, &objects.sensor_1_name, &objects.sensor_2_name,
-    &objects.sensor_3_name, &objects.sensor_4_name, &objects.sensor_5_name,
-};
-
-static void populate_sensor_icon_dropdown(lv_obj_t *dropdown)
-{
-  lv_dropdown_clear_options(dropdown);
-  for (size_t i = 0; i < SENSOR_ICON_COUNT; i++) {
-    lv_dropdown_add_option(dropdown, sensor_icon_options[i].label, LV_DROPDOWN_POS_LAST);
-  }
-}
-
-static void load_sensor_slots_from_nvs(nvs_handle_t nvs_handle)
-{
-  for (int i = 0; i < SENSOR_SLOT_COUNT; i++) {
-    char key[20];
-
-    populate_sensor_icon_dropdown(*sensor_dropdown_widgets[i]);
-    snprintf(key, sizeof(key), "sensor%d_icon", i);
-    uint8_t icon_idx = get_uint8_from_nvs(nvs_handle, key, 0);
-    lv_dropdown_set_selected(*sensor_dropdown_widgets[i], icon_idx < SENSOR_ICON_COUNT ? icon_idx : 0);
-  }
-}
-
-static void save_sensor_slots_to_nvs(nvs_handle_t nvs_handle)
-{
-  for (int i = 0; i < SENSOR_SLOT_COUNT; i++) {
-    char key[20];
-
-    uint8_t icon_idx = lv_dropdown_get_selected(*sensor_dropdown_widgets[i]);
-    snprintf(key, sizeof(key), "sensor%d_icon", i);
-    put_uint8_to_nvs(nvs_handle, key, icon_idx);
-  }
-}
-
-/* Basisstation (eigener SEN66-Sensor) - Name+Icon, kein Typ/keine Messwerte
- * ueber den Receiver, deshalb separat von den 6 Sensor-Slots gehalten. */
-static void load_basis_from_nvs(nvs_handle_t nvs_handle)
-{
-  populate_sensor_icon_dropdown(objects.basis_icon);
-  uint8_t icon_idx = get_uint8_from_nvs(nvs_handle, "icon_base", 0);
-  lv_dropdown_set_selected(objects.basis_icon, icon_idx < SENSOR_ICON_COUNT ? icon_idx : 0);
-}
-
-static void save_basis_to_nvs(nvs_handle_t nvs_handle)
-{
-  uint8_t icon_idx = lv_dropdown_get_selected(objects.basis_icon);
-  put_uint8_to_nvs(nvs_handle, "icon_base", icon_idx);
-}
-
-/* b) Hardware-Zuordnung: jeder der 6 Sensor_X-Container in Container_Sensoren
- * (Weatherstation-Screen) hat in EEZ Studio dauerhaft einen fest verbauten
- * Widget-Typ (aktuell: Sensor_0=bme280, Sensor_1-4=sht45, Sensor_5=geiger).
- * Diese Tabelle ist die EINZIGE Stelle, die angepasst werden muss, wenn sich
- * in EEZ Studio aendert, welcher Typ in welchem Slot verbaut ist - Feldnamen
- * einfach durch die neuen ersetzen (siehe screens.h fuer die tatsaechlich
- * generierten objects.objN__xxx-Namen). */
-typedef struct {
-  sensor_type_t type;
-  lv_obj_t **name;
-  lv_obj_t **icon;
-  lv_obj_t **battery;
-  lv_obj_t **wifi;
-  lv_obj_t **value1;   /* Temp (bme280/sht45) bzw. µSv/h (geiger) */
-  lv_obj_t **value2;   /* Humidity (bme280/sht45) bzw. CPM (geiger) */
-  lv_obj_t **value3;   /* Pressure (nur bme280), sonst NULL */
-  lv_obj_t **header;   /* Kopfzeile der Karte - wird bei "offline" rot eingefaerbt */
-} sensor_slot_t;
-
-static const sensor_slot_t sensor_slots[SENSOR_SLOT_COUNT] = {
-    { SENSOR_TYPE_BME280, &objects.obj1__name,      &objects.obj1__icon, &objects.obj1__battery, &objects.obj1__wifi,
-      &objects.obj1__temp, &objects.obj1__humidity, &objects.obj1__pressure, &objects.obj1__header },
-    { SENSOR_TYPE_SHT45,  &objects.obj2__name,      &objects.obj2__icon, &objects.obj2__battery, &objects.obj2__wifi,
-      &objects.obj2__temp, &objects.obj2__humidity, NULL, &objects.obj2__header },
-    { SENSOR_TYPE_SHT45,  &objects.obj3__name,      &objects.obj3__icon, &objects.obj3__battery, &objects.obj3__wifi,
-      &objects.obj3__temp, &objects.obj3__humidity, NULL, &objects.obj3__header },
-    { SENSOR_TYPE_SHT45,  &objects.obj4__name,      &objects.obj4__icon, &objects.obj4__battery, &objects.obj4__wifi,
-      &objects.obj4__temp, &objects.obj4__humidity, NULL, &objects.obj4__header },
-    { SENSOR_TYPE_SHT45,  &objects.obj5__name,      &objects.obj5__icon, &objects.obj5__battery, &objects.obj5__wifi,
-      &objects.obj5__temp, &objects.obj5__humidity, NULL, &objects.obj5__header },
-    { SENSOR_TYPE_GEIGER, &objects.obj6__name,      &objects.obj6__icon, &objects.obj6__battery, &objects.obj6__wifi,
-      &objects.obj6__micro_sievert, &objects.obj6__cpm, NULL, &objects.obj6__header },
-};
-
-/**
- * @brief  Uebertraegt Name/Icon aus dem Setup Screen in die Basisstation
- *         (SEN66) und die 6 fest verdrahteten Sensor-Karten. Wird beim
- *         Klick auf "Starten" aufgerufen, bevor auf den Weatherstation-
- *         Screen gewechselt wird.
- */
-static void apply_slot_configs(void)
-{
-  uint8_t basis_icon_idx = lv_dropdown_get_selected(objects.basis_icon);
-  if (basis_icon_idx >= SENSOR_ICON_COUNT) basis_icon_idx = 0;
-  lv_label_set_text(objects.sen66__name, sensor_icon_options[basis_icon_idx].label);
-  lv_image_set_src(objects.sen66__icon, sensor_icon_options[basis_icon_idx].icon);
-
-  for (int i = 0; i < SENSOR_SLOT_COUNT; i++) {
-    uint8_t icon_idx = lv_dropdown_get_selected(*sensor_dropdown_widgets[i]);
-    if (icon_idx >= SENSOR_ICON_COUNT) icon_idx = 0;
-    lv_label_set_text(*sensor_slots[i].name, sensor_icon_options[icon_idx].label);
-    lv_image_set_src(*sensor_slots[i].icon, sensor_icon_options[icon_idx].icon);
-  }
-}
-
-/**
- * @brief  Faerbt Batterie- und Signal-Icon einer Sensor-Karte nach Spannung/RSSI.
- *
- * @param  sensor_nr   0-5, wie im Packet-Header (packet_header_t.sensor_nr) -
- *                     identisch zum 0-basierten UI-Slot (Sensor 0-5)
- * @param  voltage_mv  Akkuspannung in mV, aus dem jeweiligen Payload
- * @param  rssi_dbm    Empfangsfeldstaerke in dBm, aus link_metadata_t.rssi
- */
-void disp_sensor_link_quality(uint8_t sensor_nr, uint32_t voltage_mv, int16_t rssi_dbm)
-{
-  if (sensor_nr >= SENSOR_SLOT_COUNT) {
-    return;
-  }
-  const sensor_slot_t *slot = &sensor_slots[sensor_nr];
-
-  lv_color_t battery_color = level_color_desc(voltage_mv / 1000.0f, &thresh_battery_voltage);
-  lv_color_t signal_color = level_color_desc((float)rssi_dbm, &thresh_rssi_dbm);
-
-  lvgl_port_lock(0);
-  lv_obj_set_style_img_recolor(*slot->battery, battery_color, LV_PART_MAIN | LV_STATE_DEFAULT);
-  lv_obj_set_style_img_recolor_opa(*slot->battery, LV_OPA_COVER, LV_PART_MAIN | LV_STATE_DEFAULT);
-  lv_obj_set_style_img_recolor(*slot->wifi, signal_color, LV_PART_MAIN | LV_STATE_DEFAULT);
-  lv_obj_set_style_img_recolor_opa(*slot->wifi, LV_OPA_COVER, LV_PART_MAIN | LV_STATE_DEFAULT);
-  lvgl_port_unlock();
-}
-
-/**
- * @brief  Schreibt die Messwerte eines empfangenen Pakets in die Sensor-Karte.
- *
- * @param  sensor_nr  0-5, siehe disp_sensor_link_quality()
- * @param  type       sensor_type_t des empfangenen Pakets
- * @param  payload    Rohes Payload (bme280_payload_t/sht45_payload_t/geiger_payload_t,
- *                     je nach type)
- *
- * @details Wenn der gemeldete Typ nicht zum in dieser Karte fest verbauten
- *          Typ passt (z.B. Sensor falsch konfiguriert/verdrahtet), wird das
- *          Paket ignoriert statt eine falsch beschriftete Karte zu befuellen.
- */
-void disp_sensor_values(uint8_t sensor_nr, sensor_type_t type, const void *payload)
-{
-  if (sensor_nr >= SENSOR_SLOT_COUNT) {
-    return;
-  }
-  const sensor_slot_t *slot = &sensor_slots[sensor_nr];
-  if (slot->type != type) {
-    return;
-  }
-
-  /* lv_label_set_text_fmt()/lv_snprintf() unterstuetzen hier keine
-   * Float-Format-Specifier (CONFIG_LV_USE_FLOAT ist aus, nur
-   * LV_USE_BUILTIN_SPRINTF) - "%.1f" etc. wuerden nur Muell/"f" anzeigen.
-   * Deshalb wie im Rest von gui.c mit libc-sprintf in einen Puffer
-   * formatieren und als fertigen String setzen. */
-  char buf[16];
-
-  lvgl_port_lock(0);
-  switch (type) {
-    case SENSOR_TYPE_BME280: {
-      const bme280_payload_t *d = (const bme280_payload_t *)payload;
-
-      nvs_handle_t nvs_handle;
-      nvs_open("weatherstation", NVS_READONLY, &nvs_handle);
-      const char *height_c = get_string_from_nvs(nvs_handle, "height", "0");
-      nvs_close(nvs_handle);
-      float sea_level_pressure = calc_sea_level_pressure(d->pressure, d->temperature, (uint16_t)atol(height_c));
-
-      sprintf(buf, "%.1f", d->temperature);
-      lv_label_set_text(*slot->value1, buf);
-      sprintf(buf, "%.1f", d->humidity);
-      lv_label_set_text(*slot->value2, buf);
-      sprintf(buf, "%.0f", sea_level_pressure);
-      lv_label_set_text(*slot->value3, buf);
-      break;
-    }
-    case SENSOR_TYPE_SHT45: {
-      const sht45_payload_t *d = (const sht45_payload_t *)payload;
-      sprintf(buf, "%.1f", d->temperature);
-      lv_label_set_text(*slot->value1, buf);
-      sprintf(buf, "%.1f", d->humidity);
-      lv_label_set_text(*slot->value2, buf);
-      break;
-    }
-    case SENSOR_TYPE_GEIGER: {
-      const geiger_payload_t *d = (const geiger_payload_t *)payload;
-      sprintf(buf, "%.3f", d->usvh);
-      lv_label_set_text(*slot->value1, buf);
-      sprintf(buf, "%.1f", d->cpm);
-      lv_label_set_text(*slot->value2, buf);
-      break;
-    }
-    default:
-      break;
-  }
-  lvgl_port_unlock();
-}
-
-/**
- * @brief  Faerbt die Kopfzeile einer Sensor-Karte rot ein (Watchdog im
- *         Receiver hat lange kein Paket mehr von diesem Sensor bekommen)
- *         bzw. macht das wieder rueckgaengig, sobald der Sensor wieder sendet.
- *
- * @param  sensor_nr  0-5, siehe disp_sensor_link_quality()
- * @param  offline    true = rot einfaerben, false = Normalzustand wiederherstellen
- */
-void disp_sensor_offline(uint8_t sensor_nr, bool offline)
-{
-  if (sensor_nr >= SENSOR_SLOT_COUNT) {
-    return;
-  }
-  const sensor_slot_t *slot = &sensor_slots[sensor_nr];
-
-  lvgl_port_lock(0);
-  if (offline) {
-    lv_obj_set_style_bg_color(*slot->header, lv_color_hex(COLOR_RED), LV_PART_MAIN | LV_STATE_DEFAULT);
-    lv_obj_set_style_bg_opa(*slot->header, LV_OPA_COVER, LV_PART_MAIN | LV_STATE_DEFAULT);
-  } else {
-    lv_obj_set_style_bg_opa(*slot->header, LV_OPA_TRANSP, LV_PART_MAIN | LV_STATE_DEFAULT);
-  }
-  lvgl_port_unlock();
-}
-
-
-/* ============================================================================
- * 6) Chart-Infrastruktur
- *
- * EEZ Studio hat kein Konzept fuer eigene native LVGL-Widget-Klassen, daher
- * legt es die Hourly/Daily-Charts nur als leere Platzhalter-Container an
- * (objects.hourly_chart / objects.daily_chart). init_charts() ersetzt diese
- * einmalig durch die echten lv_hourly_chart_t/lv_daily_chart_t-Widgets an
- * gleicher Position/Groesse und konfiguriert nebenbei die (von EEZ Studio
- * bereits als lv_chart angelegten) SEN66-Balkendiagramme. Wird einmal nach
- * create_screens() aufgerufen (siehe ui_init(), von main.c) - dadurch bleibt
- * screens.c komplett generiert, ein erneuter EEZ-Studio-Export verliert
- * diesen Schritt nie.
- * ============================================================================ */
-
-void init_charts(void)
-{
-  lv_obj_update_layout(objects.weatherstation_screen);
-
-  {
-    lv_obj_t *placeholder = objects.hourly_chart;
-    lv_obj_t *parent_obj = lv_obj_get_parent(placeholder);
-
-    lv_obj_t *obj = lv_hourly_chart_create(parent_obj);
-    objects.hourly_chart = obj;
-    lv_obj_set_width(obj, lv_pct(100));
-    lv_obj_set_height(obj, lv_pct(100));
-    lv_obj_set_align(obj, LV_ALIGN_CENTER);
-    lv_obj_set_style_radius(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
-    lv_obj_set_style_border_width(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
-    lv_obj_set_style_pad_column(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
-    lv_obj_set_style_line_width(obj, 2, LV_PART_ITEMS | LV_STATE_DEFAULT);
-    lv_obj_set_style_pad_left(obj, 5, LV_PART_TICKS | LV_STATE_DEFAULT);
-    lv_obj_set_style_pad_right(obj, 5, LV_PART_TICKS | LV_STATE_DEFAULT);
-    lv_obj_set_style_pad_top(obj, 0, LV_PART_TICKS | LV_STATE_DEFAULT);
-    lv_obj_set_style_pad_bottom(obj, 10, LV_PART_TICKS | LV_STATE_DEFAULT);
-    lv_obj_set_style_text_color(obj, lv_color_hex(0x000000), LV_PART_TICKS | LV_STATE_DEFAULT);
-    lv_obj_set_style_text_opa(obj, 255, LV_PART_TICKS | LV_STATE_DEFAULT);
-    lv_obj_set_style_text_font(obj, &ui_font_free_sans20, LV_PART_TICKS | LV_STATE_DEFAULT);
-
-    lv_obj_del(placeholder);
-  }
-
-  {
-    lv_obj_t *placeholder = objects.daily_chart;
-    lv_obj_t *parent_obj = lv_obj_get_parent(placeholder);
-
-    lv_obj_t *obj = lv_daily_chart_create(parent_obj);
-    objects.daily_chart = obj;
-    lv_obj_set_width(obj, lv_pct(100));
-    lv_obj_set_height(obj, lv_pct(100));
-    lv_obj_set_align(obj, LV_ALIGN_CENTER);
-    lv_obj_set_style_radius(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
-    lv_obj_set_style_border_width(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
-    lv_obj_set_style_pad_column(obj, 4, LV_PART_MAIN | LV_STATE_DEFAULT);
-    lv_obj_set_style_line_width(obj, 2, LV_PART_ITEMS | LV_STATE_DEFAULT);
-    lv_obj_set_style_pad_left(obj, 5, LV_PART_TICKS | LV_STATE_DEFAULT);
-    lv_obj_set_style_pad_right(obj, 5, LV_PART_TICKS | LV_STATE_DEFAULT);
-    lv_obj_set_style_pad_top(obj, 0, LV_PART_TICKS | LV_STATE_DEFAULT);
-    lv_obj_set_style_pad_bottom(obj, 10, LV_PART_TICKS | LV_STATE_DEFAULT);
-    lv_obj_set_style_text_color(obj, lv_color_hex(0x000000), LV_PART_TICKS | LV_STATE_DEFAULT);
-    lv_obj_set_style_text_opa(obj, 255, LV_PART_TICKS | LV_STATE_DEFAULT);
-    lv_obj_set_style_text_font(obj, &ui_font_free_sans20, LV_PART_TICKS | LV_STATE_DEFAULT);
-
-    lv_obj_del(placeholder);
-  }
-
-  // --- SEN66 charts (already lv_chart from EEZ Studio, just configure) ---
-
-  // PM2.5: 0-75, 1-px BAR
-  {
-    lv_obj_t *chart = objects.sen66__chart_pm;
-    lv_chart_set_type(chart, LV_CHART_TYPE_BAR);
-    lv_chart_set_range(chart, LV_CHART_AXIS_PRIMARY_Y, 0, 75);
-    lv_chart_set_point_count(chart, lv_obj_get_width(chart));
-    lv_obj_set_style_pad_all(chart, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
-    lv_obj_set_style_pad_column(chart, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
-    ser_pm2p5 = lv_chart_add_series(chart, lv_color_hex(0x616161), LV_CHART_AXIS_PRIMARY_Y);
-    lv_obj_add_flag(chart, LV_OBJ_FLAG_SEND_DRAW_TASK_EVENTS);
-    lv_obj_add_event_cb(chart, sen66_bar_fill_cb, LV_EVENT_DRAW_TASK_ADDED, pm_thresh_arr);
-  }
-
-  // VOC: 0-500, 1-px BAR
-  {
-    lv_obj_t *chart = objects.sen66__chart_voc;
-    lv_chart_set_type(chart, LV_CHART_TYPE_BAR);
-    lv_chart_set_range(chart, LV_CHART_AXIS_PRIMARY_Y, 0, 500);
-    lv_chart_set_point_count(chart, lv_obj_get_width(chart));
-    lv_obj_set_style_pad_all(chart, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
-    lv_obj_set_style_pad_column(chart, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
-    ser_voc = lv_chart_add_series(chart, lv_color_hex(0x1565C0), LV_CHART_AXIS_PRIMARY_Y);
-    lv_obj_add_flag(chart, LV_OBJ_FLAG_SEND_DRAW_TASK_EVENTS);
-    lv_obj_add_event_cb(chart, sen66_bar_fill_cb, LV_EVENT_DRAW_TASK_ADDED, voc_thresh_arr);
-  }
-
-  // NOx: 0-400, 1-px BAR
-  {
-    lv_obj_t *chart = objects.sen66__chart_nox;
-    lv_chart_set_type(chart, LV_CHART_TYPE_BAR);
-    lv_chart_set_range(chart, LV_CHART_AXIS_PRIMARY_Y, 0, 400);
-    lv_chart_set_point_count(chart, lv_obj_get_width(chart));
-    lv_obj_set_style_pad_all(chart, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
-    lv_obj_set_style_pad_column(chart, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
-    ser_nox = lv_chart_add_series(chart, lv_color_hex(0xE65100), LV_CHART_AXIS_PRIMARY_Y);
-    lv_obj_add_flag(chart, LV_OBJ_FLAG_SEND_DRAW_TASK_EVENTS);
-    lv_obj_add_event_cb(chart, sen66_bar_fill_cb, LV_EVENT_DRAW_TASK_ADDED, nox_thresh_arr);
-  }
-
-  // CO2: 0-2000, 1-px BAR
-  {
-    lv_obj_t *chart = objects.sen66__chart_co2;
-    lv_chart_set_type(chart, LV_CHART_TYPE_BAR);
-    lv_chart_set_range(chart, LV_CHART_AXIS_PRIMARY_Y, 0, 2000);
-    lv_chart_set_point_count(chart, lv_obj_get_width(chart));
-    lv_obj_set_style_pad_all(chart, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
-    lv_obj_set_style_pad_column(chart, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
-    ser_co2 = lv_chart_add_series(chart, lv_color_hex(0x00695C), LV_CHART_AXIS_PRIMARY_Y);
-    lv_obj_add_flag(chart, LV_OBJ_FLAG_SEND_DRAW_TASK_EVENTS);
-    lv_obj_add_event_cb(chart, sen66_bar_fill_cb, LV_EVENT_DRAW_TASK_ADDED, co2_thresh_arr);
-  }
-
-  /* TEST: pre-fill 140 points — remove before release */
-  // for (int i = 0; i < 140; i++) {
-  //     float s = sinf(i * 0.12f);
-  //     float c = cosf(i * 0.07f);
-  //     lv_chart_set_next_value(objects.sen66__chart_pm, ser_pm2p5, (int32_t)( 20 +  70 * s));
-  //     lv_chart_set_next_value(objects.sen66__chart_voc, ser_voc,  (int32_t)(120 + 60 * c));
-  //     lv_chart_set_next_value(objects.sen66__chart_nox, ser_nox,  (int32_t)(  5 + 200 * s));
-  //     lv_chart_set_next_value(objects.sen66__chart_co2, ser_co2,  (int32_t)(800 + 200 * c));
-  // }
-}
-
-
-/* ============================================================================
- * 7) Task-Start
- *
- * Wird erst nach erfolgreichem WLAN-Connect aufgerufen (siehe
- * on_wifistart_done() im Setup-Screen-Abschnitt weiter unten) - vorher
- * ergeben Wetter-Abruf/Uhrzeit/SEN66-Messung keinen Sinn.
- * ============================================================================ */
-
-void start_tasks()
-{
-
-  xTaskCreatePinnedToCore(
-      clock_task,
-      "Clock Task",
-      4096,
-      NULL,
-      1,
-      NULL,
-      1);
-
-  xTaskCreatePinnedToCore(
-      weather_task,
-      "Weather Task",
-      16384,
-      NULL,
-      1,
-      NULL,
-      1);
-
-  xTaskCreatePinnedToCore(
-      sensor_sen66_task,
-      "Sensor SEN66 Task",
-      4096,
-      NULL,
-      1,
-      NULL,
-      1);
-
-  // xTaskCreatePinnedToCore(
-  //     brightness_task,
-  //     "Brightness Task",
-  //     4096,
-  //     NULL,
-  //     1,
-  //     NULL,
-  //     1);
-
-
-}
-
-
-/* ============================================================================
- * 8) Setup Screen
- * ============================================================================ */
+      {99, &img_99}};      
 
 const char *regionNames[] = {
     "Africa", "America", "Antarctica", "Arctic", "Asia", "Atlantic", "Australia", "Europe", "Indian", "Pacific"};
@@ -1026,19 +270,202 @@ const char *cityData[][3] = {
     {"Pacific", "(GMT -10:00) Hawaii", "HST10"},
     {"Pacific", "(GMT -05:00) Easter Island", "EAST5"}};
 
-void set_cities(const char *region)
+
+
+/**
+ * @brief     Calculate sea level pressure based on provided parameters
+ *
+ * @param     pressure      Atmospheric pressure at the measurement point (in hPa)
+ * @param     temperature   Temperature at the measurement point (in Celsius)
+ * @param     altitude      Altitude above sea level (in meters)
+ *
+ * @return    float         Sea level pressure calculated based on the parameters (in hPa)
+ *
+ * @details   Calculates and estimates the sea level pressure using the barometric formula.
+ *            Incorporates constants and calculations to adjust the pressure for altitude and temperature.
+ */
+float calc_sea_level_pressure(float pressure, float temperature, uint16_t altitude)
 {
-  lv_dropdown_clear_options(objects.dropdown_city);
-  for (size_t i = 0; i < sizeof(cityData) / sizeof(cityData[0]); i++)
+  // https://de.wikipedia.org/wiki/Barometrische_H%C3%B6henformel
+
+  // Konstanten
+  float g = 9.80665;  // Schwerebeschleunigung in m / s^2
+  float R = 287.05;   // Gaskonstante trockener Luft (= R/M)  in m^2/(s²K)
+  float a = 0.0065;   // vertikaler Temperaturgradient
+  float C_h = 0.12;   // Beiwert zur Berücksichtigung der mittleren Dampfdruckänderung K/hPa
+  float T_0 = 273.15; // Celsius to Kelvin
+
+  float E; // Dampfdruck des Wasserdampfanteils (in hPa)
+
+  if (temperature < 9.1)
   {
-    if (strcmp(cityData[i][0], region) == 0)
+    E = 5.6402 * (-0.0916 + exp(0.06 * temperature));
+  }
+  else
+  {
+    E = 18.2194 * (1.0463 + exp(-0.0666 * temperature));
+  }
+
+  // Luftdruck auf Meereshöhe berechnen
+  float p = pressure * exp(altitude * g / (R * (temperature + T_0 + C_h * E + a * (altitude / 2))));
+
+  return p;
+}
+
+// -------- Weatherstation Screen --------
+
+/**
+ * @brief  Faerbt das WLAN-Icon im Weatherstation-Screen nach Verbindungsstatus/RSSI.
+ *
+ * @param  status    true = verbunden, false = getrennt
+ * @param  rssi_dbm  Empfangsfeldstaerke in dBm (nur relevant wenn status==true)
+ */
+void disp_wifi_status(bool status, int8_t rssi_dbm)
+{
+  lv_color_t color = status ? level_color_desc((float)rssi_dbm, &thresh_rssi_dbm)
+                             : lv_color_hex(COLOR_RED);
+
+  lv_obj_set_style_img_recolor(objects.wifi, color, LV_PART_MAIN | LV_STATE_DEFAULT);
+  lv_obj_set_style_img_recolor_opa(objects.wifi, LV_OPA_COVER, LV_PART_MAIN | LV_STATE_DEFAULT);
+}
+
+void disp_date_time(char *date_time)
+{
+  lv_label_set_text(objects.date_time, date_time);
+}
+
+void disp_sen6x(float ambientTemperature, float ambientHumidity, float massConcentrationPm1p0, float massConcentrationPm2p5, float massConcentrationPm4p0, float massConcentrationPm10p0, float vocIndex, float noxIndex, uint16_t co2)
+{
+
+  if (!isnan(ambientTemperature))
+  {
+    char temp[8];
+    sprintf(temp, "%.1f", ambientTemperature);
+    lv_label_set_text(objects.sen66__temp, temp);
+  }
+
+  if (!isnan(ambientHumidity))
+  {
+    char humidity[8];
+    sprintf(humidity, "%.1f", ambientHumidity);
+    lv_label_set_text(objects.sen66__humidity, humidity);
+  }
+
+  lv_obj_set_style_bg_color(objects.sen66__pm1,   sen66_value_color(massConcentrationPm1p0,  &thresh_pm1),   LV_PART_MAIN | LV_STATE_DEFAULT);
+  lv_obj_set_style_bg_color(objects.sen66__pm2p5, sen66_value_color(massConcentrationPm2p5,  &thresh_pm2p5), LV_PART_MAIN | LV_STATE_DEFAULT);
+  lv_obj_set_style_bg_color(objects.sen66__pm4,   sen66_value_color(massConcentrationPm4p0,  &thresh_pm4),   LV_PART_MAIN | LV_STATE_DEFAULT);
+  lv_obj_set_style_bg_color(objects.sen66__pm10,  sen66_value_color(massConcentrationPm10p0, &thresh_pm10),  LV_PART_MAIN | LV_STATE_DEFAULT);
+  lv_obj_set_style_bg_color(objects.sen66__voc,   sen66_value_color(vocIndex,                &thresh_voc),   LV_PART_MAIN | LV_STATE_DEFAULT);
+  lv_obj_set_style_bg_color(objects.sen66__nox,   sen66_value_color(noxIndex,                &thresh_nox),   LV_PART_MAIN | LV_STATE_DEFAULT);
+  lv_obj_set_style_bg_color(objects.sen66__co2,   sen66_value_color((float)co2,              &thresh_co2),   LV_PART_MAIN | LV_STATE_DEFAULT);
+}
+
+void update_sen66_charts(float pm1, float pm2p5, float pm4, float pm10, float voc, float nox, uint16_t co2)
+{
+
+    lv_chart_set_next_value(objects.sen66__chart_pm, ser_pm2p5, (int32_t)pm2p5);
+    lv_chart_set_next_value(objects.sen66__chart_voc, ser_voc,  (int32_t)voc);
+    lv_chart_set_next_value(objects.sen66__chart_nox, ser_nox,  (int32_t)nox);
+    lv_chart_set_next_value(objects.sen66__chart_co2, ser_co2,  (float)co2);
+}
+
+void disp_weather(current_weather_data_t *current_weather, hourly_weather_data_t *hourly_weather, daily_weather_data_t *daily_weather) {
+
+  // Current data
+  char temp[8];
+  char clouds[8];
+  char uv_index[8];
+  char wind_speed[8];
+  char wind_gust[8];
+  char str_sunrise[8];
+  char str_sunset[8];
+
+  icon_mapping_t *icon_mapping;
+  if (current_weather->is_day) {
+    icon_mapping = icon_mapping_day;
+  }
+  else {
+    icon_mapping = icon_mapping_night;
+  }
+
+  for (uint8_t i = 0; i < NUM_ICONS; i++)
+  {
+    if (current_weather->weather_code == icon_mapping[i].icon)
     {
-      // Found a matching region, split city names and add them to the dropdown
-      const char *cities = cityData[i][1];
-      lv_dropdown_add_option(objects.dropdown_city, cities, LV_DROPDOWN_POS_LAST);
+      ESP_LOGI(TAG, "Weather code %d", current_weather->weather_code);
+      lv_img_set_src(objects.weather_icon, icon_mapping[i].icon_image);
+      break;
     }
   }
+
+  sprintf(temp, "%.1f", current_weather->temperature_2m);
+  lv_label_set_text(objects.temp_current, temp);
+
+  sprintf(clouds, "%d", current_weather->cloud_cover);
+  lv_label_set_text(objects.clouds_current, clouds);
+
+  sprintf(uv_index, "%d", (int) round(current_weather->uv_index));
+  lv_label_set_text(objects.uv_current, uv_index);
+
+  sprintf(wind_speed, "%.1f", current_weather->wind_speed_10m);
+  lv_label_set_text(objects.wind_speed_current, wind_speed);
+
+  sprintf(wind_gust, "%.1f", current_weather->wind_gusts_10m);
+  lv_label_set_text(objects.wind_gust_current, wind_gust);
+
+  lv_img_set_angle(objects.wind_direction_current_icon, current_weather->wind_direction_10m * 10);
+
+  struct tm time_sunrise = daily_weather[0].sunrise;
+  struct tm time_sunrset = daily_weather[0].sunset;
+  strftime(str_sunrise, sizeof(str_sunrise), "%H:%M", &time_sunrise);
+  lv_label_set_text(objects.sunrise_current, str_sunrise);
+  strftime(str_sunset, sizeof(str_sunset), "%H:%M", &time_sunrset);
+  lv_label_set_text(objects.sunset_current, str_sunset);
+
+  // Hourly data
+  lv_hourly_data hourly_data[NUM_HOURS];
+
+  for (int i = 0; i < NUM_HOURS; i++)
+  {
+    hourly_data[i].dt = hourly_weather[i].time;
+    hourly_data[i].temp = hourly_weather[i].temperature_2m;
+    hourly_data[i].dew = hourly_weather[i].dew_point_2m;
+    hourly_data[i].rain = hourly_weather[i].rain + hourly_weather[i].showers;
+    hourly_data[i].snow = hourly_weather[i].snowfall * 10.0f / 7.0f;  // See docu from open-meteo.com  snow -> water
+    hourly_data[i].pop = hourly_weather[i].precipitation_probability;
+    //hourly_data[i].pop = (hourly_weather[i].precipitation_probability * 80.0f / 100.0f + 20.0f) / 100.0f;  // Map 0-100 to 25-100 for better visualisation
+    hourly_data[i].sun = hourly_weather[i].sunshine_duration / 3600.0f;
+    //hourly_data[i].sun = hourly_weather[i].is_day ? (100.0f - source_data[i].cloud_cover) / 100.0f : 0;
+  }
+
+  lv_hourly_chart_set_data(objects.hourly_chart, hourly_data);
+  lv_hourly_chart_refresh(objects.hourly_chart);
+
+  // Daily data
+  lv_daily_data daily_data[NUM_DAYS];
+
+  for (int i = 0; i < NUM_DAYS; i++)
+  {
+    daily_data[i].dt = daily_weather[i].time;
+    daily_data[i].low_temp = daily_weather[i].temperature_2m_min;
+    daily_data[i].high_temp = daily_weather[i].temperature_2m_max;
+    daily_data[i].rain = daily_weather[i].rain_sum + daily_weather[i].showers_sum;
+    daily_data[i].snow = daily_weather[i].snowfall_sum * 10.0f / 7.0f;  // See docu from open-meteo.com  snow -> water
+    daily_data[i].pop = daily_weather[i].precipitation_probability_max;
+    daily_data[i].sun = daily_weather[i].sunshine_duration / daily_weather[i].daylight_duration;
+  }
+
+  lv_daily_chart_set_data(objects.daily_chart, daily_data);
+  lv_daily_chart_refresh(objects.daily_chart);
 }
+
+
+void set_brightness(uint16_t brightness)
+{
+  display_set_brightness(brightness);
+}
+
+// -------- Setup Screen --------
 
 void disp_wifi_networks(char* allNetworks)
 {
@@ -1071,6 +498,445 @@ void disp_connect_status(bool is_connected)
     lv_obj_set_style_bg_opa(objects.text_area_password, 128, LV_PART_MAIN | LV_STATE_DEFAULT);
   }
 }
+
+void set_cities(const char *region)
+{
+  lv_dropdown_clear_options(objects.dropdown_city);
+  for (size_t i = 0; i < sizeof(cityData) / sizeof(cityData[0]); i++)
+  {
+    if (strcmp(cityData[i][0], region) == 0)
+    {
+      // Found a matching region, split city names and add them to the dropdown
+      const char *cities = cityData[i][1];
+      lv_dropdown_add_option(objects.dropdown_city, cities, LV_DROPDOWN_POS_LAST);
+    }
+  }
+}
+
+#define SENSOR_SLOT_COUNT 6
+
+typedef struct {
+  const char *label;
+  const lv_img_dsc_t *icon;
+} sensor_icon_option_t;
+
+static const sensor_icon_option_t sensor_icon_options[] = {
+    {"Bad",          &img_sensor_bathroom},
+    {"Balkon",       &img_sensor_balcony},
+    {"Büro",         &img_sensor_office},
+    {"Keller",       &img_sensor_cellar},
+    {"Schlafzimmer", &img_sensor_bedroom},
+    {"Strahlung",    &img_sensor_radiation},
+    {"Werkstatt",    &img_sensor_workshop},
+    {"Zuhause",      &img_sensor_home},
+};
+#define SENSOR_ICON_COUNT (sizeof(sensor_icon_options) / sizeof(sensor_icon_options[0]))
+
+/* Ein Dropdown pro Slot legt Name UND Icon gemeinsam fest - der gewaehlte
+ * Index zeigt direkt in sensor_icon_options[] (Label = Anzeigename, Icon =
+ * Bild). Separate Namensfelder gibt es im Setup Screen nicht mehr. */
+static lv_obj_t **const sensor_dropdown_widgets[SENSOR_SLOT_COUNT] = {
+    &objects.sensor_0_name, &objects.sensor_1_name, &objects.sensor_2_name,
+    &objects.sensor_3_name, &objects.sensor_4_name, &objects.sensor_5_name,
+};
+
+static void populate_sensor_icon_dropdown(lv_obj_t *dropdown)
+{
+  lv_dropdown_clear_options(dropdown);
+  for (size_t i = 0; i < SENSOR_ICON_COUNT; i++) {
+    lv_dropdown_add_option(dropdown, sensor_icon_options[i].label, LV_DROPDOWN_POS_LAST);
+  }
+}
+
+static void load_sensor_slots_from_nvs(nvs_handle_t nvs_handle)
+{
+  for (int i = 0; i < SENSOR_SLOT_COUNT; i++) {
+    char key[20];
+
+    populate_sensor_icon_dropdown(*sensor_dropdown_widgets[i]);
+    snprintf(key, sizeof(key), "sensor%d_icon", i);
+    uint8_t icon_idx = get_uint8_from_nvs(nvs_handle, key, 0);
+    lv_dropdown_set_selected(*sensor_dropdown_widgets[i], icon_idx < SENSOR_ICON_COUNT ? icon_idx : 0);
+  }
+}
+
+static void save_sensor_slots_to_nvs(nvs_handle_t nvs_handle)
+{
+  for (int i = 0; i < SENSOR_SLOT_COUNT; i++) {
+    char key[20];
+
+    uint8_t icon_idx = lv_dropdown_get_selected(*sensor_dropdown_widgets[i]);
+    snprintf(key, sizeof(key), "sensor%d_icon", i);
+    put_uint8_to_nvs(nvs_handle, key, icon_idx);
+  }
+}
+
+/* Basisstation (eigener SEN66-Sensor) - Name+Icon, kein Typ/keine Messwerte
+ * ueber den Receiver, deshalb separat von den 6 Sensor-Slots gehalten. */
+static void load_basis_from_nvs(nvs_handle_t nvs_handle)
+{
+  populate_sensor_icon_dropdown(objects.basis_icon);
+  uint8_t icon_idx = get_uint8_from_nvs(nvs_handle, "icon_base", 0);
+  lv_dropdown_set_selected(objects.basis_icon, icon_idx < SENSOR_ICON_COUNT ? icon_idx : 0);
+}
+
+static void save_basis_to_nvs(nvs_handle_t nvs_handle)
+{
+  uint8_t icon_idx = lv_dropdown_get_selected(objects.basis_icon);
+  put_uint8_to_nvs(nvs_handle, "icon_base", icon_idx);
+}
+
+/* ============================================================================
+ * Feste Sensor-Karten in Container_Sensoren (Weatherstation-Screen)
+ *
+ * Jeder der 6 Sensor_X-Container hat in EEZ Studio dauerhaft einen fest
+ * verbauten Widget-Typ (aktuell: Sensor_0=bme280, Sensor_1-4=sht45,
+ * Sensor_5=geiger). Diese Tabelle ist die EINZIGE Stelle, die angepasst
+ * werden muss, wenn sich in EEZ Studio aendert, welcher Typ in welchem
+ * Slot verbaut ist - Feldnamen einfach durch die neuen ersetzen.
+ * ============================================================================ */
+
+typedef struct {
+  sensor_type_t type;
+  lv_obj_t **name;
+  lv_obj_t **icon;
+  lv_obj_t **battery;
+  lv_obj_t **wifi;
+  lv_obj_t **value1;   /* Temp (bme280/sht45) bzw. µSv/h (geiger) */
+  lv_obj_t **value2;   /* Humidity (bme280/sht45) bzw. CPM (geiger) */
+  lv_obj_t **value3;   /* Pressure (nur bme280), sonst NULL */
+} sensor_slot_t;
+
+static const sensor_slot_t sensor_slots[SENSOR_SLOT_COUNT] = {
+    { SENSOR_TYPE_BME280, &objects.obj1__name,      &objects.obj1__icon, &objects.obj1__battery, &objects.obj1__wifi,
+      &objects.obj1__temp, &objects.obj1__humidity, &objects.obj1__pressure },
+    { SENSOR_TYPE_SHT45,  &objects.obj2__name,      &objects.obj2__icon, &objects.obj2__battery, &objects.obj2__wifi,
+      &objects.obj2__temp, &objects.obj2__humidity, NULL },
+    { SENSOR_TYPE_SHT45,  &objects.obj3__name,      &objects.obj3__icon, &objects.obj3__battery, &objects.obj3__wifi,
+      &objects.obj3__temp, &objects.obj3__humidity, NULL },
+    { SENSOR_TYPE_SHT45,  &objects.obj4__name,      &objects.obj4__icon, &objects.obj4__battery, &objects.obj4__wifi,
+      &objects.obj4__temp, &objects.obj4__humidity, NULL },
+    { SENSOR_TYPE_SHT45,  &objects.obj5__name,      &objects.obj5__icon, &objects.obj5__battery, &objects.obj5__wifi,
+      &objects.obj5__temp, &objects.obj5__humidity, NULL },
+    { SENSOR_TYPE_GEIGER, &objects.obj6__name,      &objects.obj6__icon, &objects.obj6__battery, &objects.obj6__wifi,
+      &objects.obj6__micro_sievert, &objects.obj6__cpm, NULL },
+};
+
+/**
+ * @brief  Uebertraegt Name/Icon aus dem Setup Screen in die Basisstation
+ *         (SEN66) und die 6 fest verdrahteten Sensor-Karten. Wird beim
+ *         Klick auf "Starten" aufgerufen, bevor auf den Weatherstation-
+ *         Screen gewechselt wird.
+ */
+static void apply_slot_configs(void)
+{
+  uint8_t basis_icon_idx = lv_dropdown_get_selected(objects.basis_icon);
+  if (basis_icon_idx >= SENSOR_ICON_COUNT) basis_icon_idx = 0;
+  lv_label_set_text(objects.sen66__name, sensor_icon_options[basis_icon_idx].label);
+  lv_image_set_src(objects.sen66__icon, sensor_icon_options[basis_icon_idx].icon);
+
+  for (int i = 0; i < SENSOR_SLOT_COUNT; i++) {
+    uint8_t icon_idx = lv_dropdown_get_selected(*sensor_dropdown_widgets[i]);
+    if (icon_idx >= SENSOR_ICON_COUNT) icon_idx = 0;
+    lv_label_set_text(*sensor_slots[i].name, sensor_icon_options[icon_idx].label);
+    lv_image_set_src(*sensor_slots[i].icon, sensor_icon_options[icon_idx].icon);
+  }
+}
+
+/**
+ * @brief  Faerbt Batterie- und Signal-Icon einer Sensor-Karte nach Spannung/RSSI.
+ *
+ * @param  sensor_nr   0-5, wie im Packet-Header (packet_header_t.sensor_nr) -
+ *                     identisch zum 0-basierten UI-Slot (Sensor 0-5)
+ * @param  voltage_mv  Akkuspannung in mV, aus dem jeweiligen Payload
+ * @param  rssi_dbm    Empfangsfeldstaerke in dBm, aus link_metadata_t.rssi
+ */
+void disp_sensor_link_quality(uint8_t sensor_nr, uint32_t voltage_mv, int16_t rssi_dbm)
+{
+  if (sensor_nr >= SENSOR_SLOT_COUNT) {
+    return;
+  }
+  const sensor_slot_t *slot = &sensor_slots[sensor_nr];
+
+  lv_color_t battery_color = level_color_desc(voltage_mv / 1000.0f, &thresh_battery_voltage);
+  lv_obj_set_style_img_recolor(*slot->battery, battery_color, LV_PART_MAIN | LV_STATE_DEFAULT);
+  lv_obj_set_style_img_recolor_opa(*slot->battery, LV_OPA_COVER, LV_PART_MAIN | LV_STATE_DEFAULT);
+
+  lv_color_t signal_color = level_color_desc((float)rssi_dbm, &thresh_rssi_dbm);
+  lv_obj_set_style_img_recolor(*slot->wifi, signal_color, LV_PART_MAIN | LV_STATE_DEFAULT);
+  lv_obj_set_style_img_recolor_opa(*slot->wifi, LV_OPA_COVER, LV_PART_MAIN | LV_STATE_DEFAULT);
+}
+
+/**
+ * @brief  Schreibt die Messwerte eines empfangenen Pakets in die Sensor-Karte.
+ *
+ * @param  sensor_nr  0-5, siehe disp_sensor_link_quality()
+ * @param  type       sensor_type_t des empfangenen Pakets
+ * @param  payload    Rohes Payload (bme280_payload_t/sht45_payload_t/geiger_payload_t,
+ *                     je nach type)
+ *
+ * @details Wenn der gemeldete Typ nicht zum in dieser Karte fest verbauten
+ *          Typ passt (z.B. Sensor falsch konfiguriert/verdrahtet), wird das
+ *          Paket ignoriert statt eine falsch beschriftete Karte zu befuellen.
+ */
+void disp_sensor_values(uint8_t sensor_nr, sensor_type_t type, const void *payload)
+{
+  if (sensor_nr >= SENSOR_SLOT_COUNT) {
+    return;
+  }
+  const sensor_slot_t *slot = &sensor_slots[sensor_nr];
+  if (slot->type != type) {
+    return;
+  }
+
+  /* lv_label_set_text_fmt()/lv_snprintf() unterstuetzen hier keine
+   * Float-Format-Specifier (CONFIG_LV_USE_FLOAT ist aus, nur
+   * LV_USE_BUILTIN_SPRINTF) - "%.1f" etc. wuerden nur Muell/"f" anzeigen.
+   * Deshalb wie im Rest von gui.c mit libc-sprintf in einen Puffer
+   * formatieren und als fertigen String setzen. */
+  char buf[16];
+
+  switch (type) {
+    case SENSOR_TYPE_BME280: {
+      const bme280_payload_t *d = (const bme280_payload_t *)payload;
+
+      nvs_handle_t nvs_handle;
+      nvs_open("weatherstation", NVS_READONLY, &nvs_handle);
+      const char *height_c = get_string_from_nvs(nvs_handle, "height", "0");
+      nvs_close(nvs_handle);
+      float sea_level_pressure = calc_sea_level_pressure(d->pressure, d->temperature, (uint16_t)atol(height_c));
+
+      sprintf(buf, "%.1f", d->temperature);
+      lv_label_set_text(*slot->value1, buf);
+      sprintf(buf, "%.1f", d->humidity);
+      lv_label_set_text(*slot->value2, buf);
+      sprintf(buf, "%.0f", sea_level_pressure);
+      lv_label_set_text(*slot->value3, buf);
+      break;
+    }
+    case SENSOR_TYPE_SHT45: {
+      const sht45_payload_t *d = (const sht45_payload_t *)payload;
+      sprintf(buf, "%.1f", d->temperature);
+      lv_label_set_text(*slot->value1, buf);
+      sprintf(buf, "%.1f", d->humidity);
+      lv_label_set_text(*slot->value2, buf);
+      break;
+    }
+    case SENSOR_TYPE_GEIGER: {
+      const geiger_payload_t *d = (const geiger_payload_t *)payload;
+      sprintf(buf, "%.3f", d->usvh);
+      lv_label_set_text(*slot->value1, buf);
+      sprintf(buf, "%.1f", d->cpm);
+      lv_label_set_text(*slot->value2, buf);
+      break;
+    }
+    default:
+      break;
+  }
+}
+
+/**
+ * @brief     Swap the EEZ Studio chart placeholders for the real chart widgets
+ *
+ * @details   EEZ Studio has no concept of a custom native LVGL widget class, so
+ *            the hourly/daily charts are laid out there as plain containers
+ *            (objects.hourly_chart / objects.daily_chart). Call this once after
+ *            create_screens() (see ui_init(), called from main.c) to replace
+ *            each placeholder with the real lv_hourly_chart/lv_daily_chart
+ *            widget at the same position/size, before anything else touches
+ *            objects.hourly_chart/daily_chart. This keeps screens.c entirely
+ *            generated - re-running the EEZ Studio build never loses this.
+ */
+
+
+/* BAR chart callback for CO2/VOC/NOx — recolors each 1-px bar by threshold */
+static void sen66_bar_fill_cb(lv_event_t *e)
+{
+    lv_draw_task_t *draw_task = lv_event_get_draw_task(e);
+    lv_draw_dsc_base_t *base_dsc = lv_draw_task_get_draw_dsc(draw_task);
+    if (base_dsc->part != LV_PART_ITEMS) return;
+
+    lv_draw_fill_dsc_t *fill_dsc = lv_draw_task_get_fill_dsc(draw_task);
+    if (!fill_dsc) return;
+
+    lv_obj_t *chart = lv_event_get_target_obj(e);
+    lv_chart_series_t *ser = lv_chart_get_series_next(chart, NULL);
+    if (!ser) return;
+
+    uint32_t  pt_cnt = lv_chart_get_point_count(chart);
+    uint32_t  start  = lv_chart_get_x_start_point(chart, ser);
+    int32_t  *y      = lv_chart_get_series_y_array(chart, ser);
+    int32_t   val    = y[(start + base_dsc->id2) % pt_cnt];
+    if (val == LV_CHART_POINT_NONE) return;
+
+    const sen66_thresh_t *thresh = ((const sen66_thresh_t **)lv_event_get_user_data(e))[0];
+    fill_dsc->color = sen66_value_color((float)val, thresh);
+}
+
+
+void init_charts(void)
+{
+  lv_obj_update_layout(objects.weatherstation_screen);
+
+  {
+    lv_obj_t *placeholder = objects.hourly_chart;
+    lv_obj_t *parent_obj = lv_obj_get_parent(placeholder);
+
+    lv_obj_t *obj = lv_hourly_chart_create(parent_obj);
+    objects.hourly_chart = obj;
+    lv_obj_set_width(obj, lv_pct(100));
+    lv_obj_set_height(obj, lv_pct(100));
+    lv_obj_set_align(obj, LV_ALIGN_CENTER);
+    lv_obj_set_style_radius(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_border_width(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_pad_column(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_line_width(obj, 2, LV_PART_ITEMS | LV_STATE_DEFAULT);
+    lv_obj_set_style_pad_left(obj, 5, LV_PART_TICKS | LV_STATE_DEFAULT);
+    lv_obj_set_style_pad_right(obj, 5, LV_PART_TICKS | LV_STATE_DEFAULT);
+    lv_obj_set_style_pad_top(obj, 0, LV_PART_TICKS | LV_STATE_DEFAULT);
+    lv_obj_set_style_pad_bottom(obj, 10, LV_PART_TICKS | LV_STATE_DEFAULT);
+    lv_obj_set_style_text_color(obj, lv_color_hex(0x000000), LV_PART_TICKS | LV_STATE_DEFAULT);
+    lv_obj_set_style_text_opa(obj, 255, LV_PART_TICKS | LV_STATE_DEFAULT);
+    lv_obj_set_style_text_font(obj, &ui_font_free_sans20, LV_PART_TICKS | LV_STATE_DEFAULT);
+
+    lv_obj_del(placeholder);
+  }
+
+  {
+    lv_obj_t *placeholder = objects.daily_chart;
+    lv_obj_t *parent_obj = lv_obj_get_parent(placeholder);
+
+    lv_obj_t *obj = lv_daily_chart_create(parent_obj);
+    objects.daily_chart = obj;
+    lv_obj_set_width(obj, lv_pct(100));
+    lv_obj_set_height(obj, lv_pct(100));
+    lv_obj_set_align(obj, LV_ALIGN_CENTER);
+    lv_obj_set_style_radius(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_border_width(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_pad_column(obj, 4, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_line_width(obj, 2, LV_PART_ITEMS | LV_STATE_DEFAULT);
+    lv_obj_set_style_pad_left(obj, 5, LV_PART_TICKS | LV_STATE_DEFAULT);
+    lv_obj_set_style_pad_right(obj, 5, LV_PART_TICKS | LV_STATE_DEFAULT);
+    lv_obj_set_style_pad_top(obj, 0, LV_PART_TICKS | LV_STATE_DEFAULT);
+    lv_obj_set_style_pad_bottom(obj, 10, LV_PART_TICKS | LV_STATE_DEFAULT);
+    lv_obj_set_style_text_color(obj, lv_color_hex(0x000000), LV_PART_TICKS | LV_STATE_DEFAULT);
+    lv_obj_set_style_text_opa(obj, 255, LV_PART_TICKS | LV_STATE_DEFAULT);
+    lv_obj_set_style_text_font(obj, &ui_font_free_sans20, LV_PART_TICKS | LV_STATE_DEFAULT);
+
+    lv_obj_del(placeholder);
+  }
+
+  // --- SEN66 charts (already lv_chart from EEZ Studio, just configure) ---
+
+  // PM2.5: 0-75, 1-px BAR
+  {
+    lv_obj_t *chart = objects.sen66__chart_pm;
+    lv_chart_set_type(chart, LV_CHART_TYPE_BAR);
+    lv_chart_set_range(chart, LV_CHART_AXIS_PRIMARY_Y, 0, 75);
+    lv_chart_set_point_count(chart, lv_obj_get_width(chart));
+    lv_obj_set_style_pad_all(chart, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_pad_column(chart, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+    ser_pm2p5 = lv_chart_add_series(chart, lv_color_hex(0x616161), LV_CHART_AXIS_PRIMARY_Y);
+    lv_obj_add_flag(chart, LV_OBJ_FLAG_SEND_DRAW_TASK_EVENTS);
+    lv_obj_add_event_cb(chart, sen66_bar_fill_cb, LV_EVENT_DRAW_TASK_ADDED, pm_thresh_arr);
+  }
+
+  // VOC: 0-500, 1-px BAR
+  {
+    lv_obj_t *chart = objects.sen66__chart_voc;
+    lv_chart_set_type(chart, LV_CHART_TYPE_BAR);
+    lv_chart_set_range(chart, LV_CHART_AXIS_PRIMARY_Y, 0, 500);
+    lv_chart_set_point_count(chart, lv_obj_get_width(chart));
+    lv_obj_set_style_pad_all(chart, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_pad_column(chart, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+    ser_voc = lv_chart_add_series(chart, lv_color_hex(0x1565C0), LV_CHART_AXIS_PRIMARY_Y);
+    lv_obj_add_flag(chart, LV_OBJ_FLAG_SEND_DRAW_TASK_EVENTS);
+    lv_obj_add_event_cb(chart, sen66_bar_fill_cb, LV_EVENT_DRAW_TASK_ADDED, voc_thresh_arr);
+  }
+
+  // NOx: 0-400, 1-px BAR
+  {
+    lv_obj_t *chart = objects.sen66__chart_nox;
+    lv_chart_set_type(chart, LV_CHART_TYPE_BAR);
+    lv_chart_set_range(chart, LV_CHART_AXIS_PRIMARY_Y, 0, 400);
+    lv_chart_set_point_count(chart, lv_obj_get_width(chart));
+    lv_obj_set_style_pad_all(chart, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_pad_column(chart, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+    ser_nox = lv_chart_add_series(chart, lv_color_hex(0xE65100), LV_CHART_AXIS_PRIMARY_Y);
+    lv_obj_add_flag(chart, LV_OBJ_FLAG_SEND_DRAW_TASK_EVENTS);
+    lv_obj_add_event_cb(chart, sen66_bar_fill_cb, LV_EVENT_DRAW_TASK_ADDED, nox_thresh_arr);
+  }
+
+  // CO2: 0-2000, 1-px BAR
+  {
+    lv_obj_t *chart = objects.sen66__chart_co2;
+    lv_chart_set_type(chart, LV_CHART_TYPE_BAR);
+    lv_chart_set_range(chart, LV_CHART_AXIS_PRIMARY_Y, 0, 2000);
+    lv_chart_set_point_count(chart, lv_obj_get_width(chart));
+    lv_obj_set_style_pad_all(chart, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_pad_column(chart, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+    ser_co2 = lv_chart_add_series(chart, lv_color_hex(0x00695C), LV_CHART_AXIS_PRIMARY_Y);
+    lv_obj_add_flag(chart, LV_OBJ_FLAG_SEND_DRAW_TASK_EVENTS);
+    lv_obj_add_event_cb(chart, sen66_bar_fill_cb, LV_EVENT_DRAW_TASK_ADDED, co2_thresh_arr);
+  }
+
+  /* TEST: pre-fill 140 points — remove before release */
+  // for (int i = 0; i < 140; i++) {
+  //     float s = sinf(i * 0.12f);
+  //     float c = cosf(i * 0.07f);
+  //     lv_chart_set_next_value(objects.sen66__chart_pm, ser_pm10,  (int32_t)(20 + 15 * s));
+  //     lv_chart_set_next_value(objects.sen66__chart_pm, ser_pm4,   (int32_t)(14 + 10 * s));
+  //     lv_chart_set_next_value(objects.sen66__chart_pm, ser_pm2p5, (int32_t)( 9 +  7 * s));
+  //     lv_chart_set_next_value(objects.sen66__chart_pm, ser_pm1,   (int32_t)( 5 +  4 * s));
+  //     lv_chart_set_next_value(objects.sen66__chart_voc, ser_voc,  (int32_t)(120 + 60 * c));
+  //     lv_chart_set_next_value(objects.sen66__chart_nox, ser_nox,  (int32_t)(  5 + 200 * s));
+  //     lv_chart_set_next_value(objects.sen66__chart_co2, ser_co2,  (int32_t)(800 + 200 * c));
+  // }
+}
+
+void start_tasks()
+{
+
+  xTaskCreatePinnedToCore(
+      clock_task,  
+      "Clock Task",
+      4096,  
+      NULL,   
+      1,     
+      NULL, 
+      1);  
+
+  xTaskCreatePinnedToCore(
+      weather_task,
+      "Weather Task",
+      16384,
+      NULL,
+      1,
+      NULL,
+      1);      
+
+  xTaskCreatePinnedToCore(
+      sensor_sen66_task,    
+      "Sensor SEN66 Task",  
+      4096,          
+      NULL,           
+      1,       
+      NULL,       
+      1);
+
+  // xTaskCreatePinnedToCore(
+  //     brightness_task,
+  //     "Brightness Task",
+  //     4096,
+  //     NULL,
+  //     1,
+  //     NULL,
+  //     1);
+
+
+}
+
+// -------- LVGL Events --------
 
 void action_event_setup_screen_loaded(lv_event_t *e)
 {

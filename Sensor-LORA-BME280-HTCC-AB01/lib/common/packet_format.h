@@ -56,7 +56,7 @@ typedef enum {
 
 typedef struct __attribute__((packed)) {
     uint8_t msg_type;     // siehe message_type_t (PAIRING_REQ/PAIRING_RESP/DATA)
-    uint8_t sensor_nr;    // 1-254 (0 and 255 reserved)
+    uint8_t sensor_nr;    // 0-254 (255 reserved)
     uint8_t sensor_type;  // sensor_type_t
     uint8_t payload_len;  // Length of payload[] in bytes (0-64)
 } packet_header_t;

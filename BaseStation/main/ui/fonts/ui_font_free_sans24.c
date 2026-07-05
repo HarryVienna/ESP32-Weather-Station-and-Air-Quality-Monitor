@@ -1,7 +1,7 @@
 /*******************************************************************************
  * Size: 24 px
  * Bpp: 8
- * Opts: --bpp 8 --size 24 --no-compress --font ..\..\Documents\Projekte\Wetterstation-3.0\WeatherStation-ESP32-BaseStation-SquareLineStudio\assets\FreeSans.ttf --range 32-255 --format lvgl
+ * Opts: --bpp 8 --size 24 --no-compress --font fonts\FreeSans.ttf --range 32-255 --format lvgl
  ******************************************************************************/
 
 #ifdef __has_include

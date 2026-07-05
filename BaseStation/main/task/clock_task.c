@@ -7,8 +7,6 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
-#include "esp_lvgl_port.h"
-
 #include "clock_task.h"
 
 #include "gui/gui.h"
@@ -43,9 +41,7 @@ void clock_task(void *pvParameter){
     strftime(str_ftime, sizeof(str_ftime), "%d.%m.%Y  %H:%M:%S", &timeinfo);
     snprintf(date_time, sizeof(date_time), "%s %s", DAY_NAMES[timeinfo.tm_wday], str_ftime);
 
-    lvgl_port_lock(0);
     disp_date_time(date_time);
-    lvgl_port_unlock();
 
     vTaskDelay(pdMS_TO_TICKS(1000)); // Sleep for 1 second
   }

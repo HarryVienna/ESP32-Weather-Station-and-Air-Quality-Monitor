@@ -1,8 +1,17 @@
 #include "images.h"
 
-const ext_img_desc_t images[50] = {
-    { "wifi_off", &img_wifi_off },
-    { "wifi_on", &img_wifi_on },
+const ext_img_desc_t images[48] = {
+    { "wifi", &img_wifi },
+    { "battery", &img_battery },
+    { "sensor_home", &img_sensor_home },
+    { "sensor_bathroom", &img_sensor_bathroom },
+    { "sensor_bedroom", &img_sensor_bedroom },
+    { "sensor_kitchen", &img_sensor_kitchen },
+    { "sensor_balcony", &img_sensor_balcony },
+    { "sensor_cellar", &img_sensor_cellar },
+    { "sensor_office", &img_sensor_office },
+    { "sensor_workshop", &img_sensor_workshop },
+    { "sensor_radiation", &img_sensor_radiation },
     { "cloud", &img_cloud },
     { "uv", &img_uv },
     { "arrow", &img_arrow },
@@ -10,9 +19,6 @@ const ext_img_desc_t images[50] = {
     { "sunset", &img_sunset },
     { "humidity", &img_humidity },
     { "pressure", &img_pressure },
-    { "battery", &img_battery },
-    { "clock", &img_clock },
-    { "snr", &img_snr },
     { "0d", &img_0d },
     { "0n", &img_0n },
     { "1d", &img_1d },
@@ -43,12 +49,4 @@ const ext_img_desc_t images[50] = {
     { "95", &img_95 },
     { "96", &img_96 },
     { "99", &img_99 },
-    { "sensor_bedroom", &img_sensor_bedroom },
-    { "sensor_home", &img_sensor_home },
-    { "sensor_balcony", &img_sensor_balcony },
-    { "sensor_radiation", &img_sensor_radiation },
-    { "sensor_bathroom", &img_sensor_bathroom },
-    { "sensor_cellar", &img_sensor_cellar },
-    { "sensor_office", &img_sensor_office },
-    { "sensor_workshop", &img_sensor_workshop },
 };

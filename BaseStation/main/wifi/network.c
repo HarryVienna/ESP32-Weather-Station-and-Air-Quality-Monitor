@@ -120,7 +120,7 @@ static void event_handler(void* arg, esp_event_base_t event_base,
         esp_wifi_connect();
     } 
     else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_DISCONNECTED) {
-        disp_wifi_status(false);
+        disp_wifi_status(false, 0);
 
         if (s_retry_forever || s_retry_num < 10) {
             esp_wifi_connect();
@@ -131,7 +131,12 @@ static void event_handler(void* arg, esp_event_base_t event_base,
         }
         ESP_LOGI(TAG,"connect to the AP fail");
     } else if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP) {
-        disp_wifi_status(true);
+        wifi_ap_record_t ap_info;
+        int8_t rssi = 0;
+        if (esp_wifi_sta_get_ap_info(&ap_info) == ESP_OK) {
+            rssi = ap_info.rssi;
+        }
+        disp_wifi_status(true, rssi);
 
         ip_event_got_ip_t* event = (ip_event_got_ip_t*) event_data;
         ESP_LOGI(TAG, "got ip:" IPSTR, IP2STR(&event->ip_info.ip));

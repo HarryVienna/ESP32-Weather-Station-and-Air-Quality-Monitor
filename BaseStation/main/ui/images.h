@@ -7,8 +7,17 @@
 extern "C" {
 #endif
 
-extern const lv_img_dsc_t img_wifi_off;
-extern const lv_img_dsc_t img_wifi_on;
+extern const lv_img_dsc_t img_wifi;
+extern const lv_img_dsc_t img_battery;
+extern const lv_img_dsc_t img_sensor_home;
+extern const lv_img_dsc_t img_sensor_bathroom;
+extern const lv_img_dsc_t img_sensor_bedroom;
+extern const lv_img_dsc_t img_sensor_kitchen;
+extern const lv_img_dsc_t img_sensor_balcony;
+extern const lv_img_dsc_t img_sensor_cellar;
+extern const lv_img_dsc_t img_sensor_office;
+extern const lv_img_dsc_t img_sensor_workshop;
+extern const lv_img_dsc_t img_sensor_radiation;
 extern const lv_img_dsc_t img_cloud;
 extern const lv_img_dsc_t img_uv;
 extern const lv_img_dsc_t img_arrow;
@@ -16,9 +25,6 @@ extern const lv_img_dsc_t img_sunrise;
 extern const lv_img_dsc_t img_sunset;
 extern const lv_img_dsc_t img_humidity;
 extern const lv_img_dsc_t img_pressure;
-extern const lv_img_dsc_t img_battery;
-extern const lv_img_dsc_t img_clock;
-extern const lv_img_dsc_t img_snr;
 extern const lv_img_dsc_t img_0d;
 extern const lv_img_dsc_t img_0n;
 extern const lv_img_dsc_t img_1d;
@@ -49,14 +55,6 @@ extern const lv_img_dsc_t img_86;
 extern const lv_img_dsc_t img_95;
 extern const lv_img_dsc_t img_96;
 extern const lv_img_dsc_t img_99;
-extern const lv_img_dsc_t img_sensor_bedroom;
-extern const lv_img_dsc_t img_sensor_home;
-extern const lv_img_dsc_t img_sensor_balcony;
-extern const lv_img_dsc_t img_sensor_radiation;
-extern const lv_img_dsc_t img_sensor_bathroom;
-extern const lv_img_dsc_t img_sensor_cellar;
-extern const lv_img_dsc_t img_sensor_office;
-extern const lv_img_dsc_t img_sensor_workshop;
 
 #ifndef EXT_IMG_DESC_T
 #define EXT_IMG_DESC_T
@@ -66,7 +64,7 @@ typedef struct _ext_img_desc_t {
 } ext_img_desc_t;
 #endif
 
-extern const ext_img_desc_t images[50];
+extern const ext_img_desc_t images[48];
 
 #ifdef __cplusplus
 }

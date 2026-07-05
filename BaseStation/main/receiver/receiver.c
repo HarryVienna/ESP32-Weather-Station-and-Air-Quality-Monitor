@@ -5,11 +5,14 @@
 #include <time.h>
 
 #include "esp_log.h"
+#include "esp_timer.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "driver/i2c_master.h"
 #include "driver/gpio.h"
 #include "esp_rom_sys.h"
+
+#include "gui/gui.h"
 
 #include "../../common/packet_format.h"
 
@@ -175,6 +178,120 @@ static void print_packet(const uint8_t *buf, size_t buf_len)
     }
 }
 
+/* Watchdog: erkennt Sensoren, von denen laenger nichts mehr kam als erwartet.
+ * Der Receiver kennt keine festen Sende-Intervalle der Sender (die schlafen
+ * unterschiedlich lange, je nach Typ/Konfiguration) - deshalb wird das
+ * Intervall pro Sensor aus der Zeit zwischen den letzten zwei empfangenen
+ * Paketen selbst ermittelt. Erst ab dem zweiten Paket eines Sensors gibt es
+ * einen Referenzwert; vorher (und wenn noch nie ein Paket kam) wird nicht auf
+ * "offline" geprueft. Als Timeout gilt das 3-fache des zuletzt gemessenen
+ * Intervalls - passt sich damit automatisch an jeden Sensor an. */
+typedef struct {
+    int64_t last_seen_us;      /* 0 = noch nie empfangen */
+    int64_t last_interval_us;  /* 0 = noch kein zweites Paket, kein Referenzwert */
+    bool    offline;
+} sensor_watchdog_t;
+
+static sensor_watchdog_t s_watchdog[SENSOR_SLOT_COUNT];
+
+/* Bei jedem gueltigen Paket aus update_sensor_display() aufgerufen.
+ * Aktualisiert Zeitstempel/Intervall und meldet zurueck, ob die Karte gerade
+ * als "offline" markiert war (damit der Aufrufer sie unter dem bestehenden
+ * lvgl-Lock wieder normalfarbig machen kann). */
+static bool watchdog_note_packet(uint8_t sensor_nr)
+{
+    if (sensor_nr >= SENSOR_SLOT_COUNT) {
+        return false;
+    }
+    sensor_watchdog_t *wd = &s_watchdog[sensor_nr];
+    int64_t now = esp_timer_get_time();
+
+    if (wd->last_seen_us != 0) {
+        wd->last_interval_us = now - wd->last_seen_us;
+    }
+    wd->last_seen_us = now;
+
+    bool was_offline = wd->offline;
+    wd->offline = false;
+    return was_offline;
+}
+
+/* Einmal pro receiver_task-Zyklus aufgerufen: prueft alle Slots gegen ihr
+ * individuelles Timeout (3x letztes gemessenes Intervall) und faerbt die
+ * Kopfzeile rot, sobald es ueberschritten wird. */
+static void watchdog_check_all(void)
+{
+    int64_t now = esp_timer_get_time();
+
+    for (uint8_t i = 0; i < SENSOR_SLOT_COUNT; i++) {
+        sensor_watchdog_t *wd = &s_watchdog[i];
+
+        if (wd->offline || wd->last_seen_us == 0 || wd->last_interval_us == 0) {
+            continue;  /* noch nie gesehen bzw. noch kein Referenzintervall bekannt */
+        }
+
+        int64_t timeout_us = 3 * wd->last_interval_us;
+        if (now - wd->last_seen_us > timeout_us) {
+            wd->offline = true;
+            ESP_LOGW(TAG, "Sensor %d: seit %lld s keine Daten mehr (erwartet alle ~%lld s) -> offline",
+                     i, (long long)((now - wd->last_seen_us) / 1000000),
+                     (long long)(wd->last_interval_us / 1000000));
+            disp_sensor_offline(i, true);
+        }
+    }
+}
+
+/* -------------------------------------------------------------------------- */
+
+/* Aktualisiert Messwerte sowie Batterie-/Signal-Icon der Sensor-Karte. Jeder
+ * Sensor-Typ wird komplett in seinem eigenen case behandelt (Payload-Laenge
+ * pruefen, typspezifisch casten, "voltage" aus dem passenden Feld lesen) -
+ * bewusst kein gemeinsamer generischer memcpy ueber alle Typen hinweg, damit
+ * ein zukuenftiger Payload-Typ mit "voltage" an anderer Stelle (oder ganz
+ * ohne Spannung) problemlos ergaenzt werden kann, ohne die anderen Typen
+ * anzufassen. */
+static void update_sensor_display(const sensor_packet_t *pkt)
+{
+    uint32_t voltage_mv;
+
+    switch (pkt->header.sensor_type) {
+        case SENSOR_TYPE_BME280: {
+            if (pkt->header.payload_len < sizeof(bme280_payload_t)) {
+                return;
+            }
+            const bme280_payload_t *d = (const bme280_payload_t *)pkt->payload;
+            voltage_mv = d->voltage;
+            break;
+        }
+        case SENSOR_TYPE_SHT45: {
+            if (pkt->header.payload_len < sizeof(sht45_payload_t)) {
+                return;
+            }
+            const sht45_payload_t *d = (const sht45_payload_t *)pkt->payload;
+            voltage_mv = d->voltage;
+            break;
+        }
+        case SENSOR_TYPE_GEIGER: {
+            if (pkt->header.payload_len < sizeof(geiger_payload_t)) {
+                return;
+            }
+            const geiger_payload_t *d = (const geiger_payload_t *)pkt->payload;
+            voltage_mv = d->voltage;
+            break;
+        }
+        default:
+            return;
+    }
+
+    bool was_offline = watchdog_note_packet(pkt->header.sensor_nr);
+
+    if (was_offline) {
+        disp_sensor_offline(pkt->header.sensor_nr, false);
+    }
+    disp_sensor_link_quality(pkt->header.sensor_nr, voltage_mv, pkt->link.rssi);
+    disp_sensor_values(pkt->header.sensor_nr, (sensor_type_t)pkt->header.sensor_type, pkt->payload);
+}
+
 /* -------------------------------------------------------------------------- */
 
 static void i2c_scan(void)
@@ -232,6 +349,8 @@ static void receiver_task(void *arg)
     while (1) {
         vTaskDelay(pdMS_TO_TICKS(2000));
 
+        watchdog_check_all();
+
         if (s_dev == NULL) {
             ESP_LOGW(TAG, "Device handle ungültig — überspringe Zyklus");
             continue;
@@ -274,6 +393,7 @@ static void receiver_task(void *arg)
 
             ESP_LOGI(TAG, "Packet %d/%d:", i + 1, count);
             print_packet(pkt_buf, PACKET_MIN_SIZE + hdr->payload_len);
+            update_sensor_display((const sensor_packet_t *)pkt_buf);
         }
     }
 
