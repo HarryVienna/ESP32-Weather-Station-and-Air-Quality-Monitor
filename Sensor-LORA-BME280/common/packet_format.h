@@ -61,15 +61,15 @@ typedef struct __attribute__((packed)) {
 /* ============================================================================
  * Layer 2: Link Metadata (11 bytes) — receiver-internal only, never sent over air
  *   uint8_t  msg_source  = 1 byte
- *   int16_t  lora_rssi   = 2 bytes
- *   float    lora_snr    = 4 bytes
+ *   int16_t  rssi        = 2 bytes
+ *   float    snr         = 4 bytes
  *   uint32_t timestamp   = 4 bytes
  * ============================================================================ */
 
 typedef struct __attribute__((packed)) {
     uint8_t  msg_source;  // sensor_source_t: LORA=1, ESPNOW=2
-    int16_t  rssi;   // RSSI in dBm
-    float    snr;    // SNR  in dB   (-1.0   if ESP-NOW)
+    int16_t  rssi;        // RSSI in dBm
+    float    snr;         // SNR  in dB   (-1.0   if ESP-NOW)
     uint32_t timestamp;   // xTaskGetTickCount() at receive time
 } link_metadata_t;
 

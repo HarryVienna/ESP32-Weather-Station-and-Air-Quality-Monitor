@@ -478,10 +478,11 @@ static const sensor_icon_option_t sensor_icon_options[] = {
     {"Balkon",       &img_sensor_balcony},
     {"Büro",         &img_sensor_office},
     {"Keller",       &img_sensor_cellar},
+    {"Küche",        &img_sensor_kitchen},
     {"Schlafzimmer", &img_sensor_bedroom},
     {"Strahlung",    &img_sensor_radiation},
     {"Werkstatt",    &img_sensor_workshop},
-    {"Zuhause",      &img_sensor_home},
+    {"Wohnzimmer",   &img_sensor_home},
 };
 #define SENSOR_ICON_COUNT (sizeof(sensor_icon_options) / sizeof(sensor_icon_options[0]))
 
