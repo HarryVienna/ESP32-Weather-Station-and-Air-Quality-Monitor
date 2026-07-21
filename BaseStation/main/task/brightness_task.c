@@ -181,7 +181,23 @@ void brightness_task(void *pvParameter){
       sensor_tick = 0;
       bh1750_read(&lux_sensor, &lux);
       c4001_get_presence_status(&presence_sensor, &presence_data);
-      target_brightness = map_brightness_power(lux, presence_data.presence);
+
+      if (presence_data.presence) {
+        // EMA-Glaettung auf die Zielhelligkeit: die Kurve in
+        // map_brightness_power() ist bei kleinen Lux-Werten steil, deshalb
+        // schlagen einzelne verrauschte Lux-Samples dort ueberproportional
+        // auf die Helligkeit durch - hier, hinter der Kurve, wird genau das
+        // geglaettet.
+        uint16_t raw_target = map_brightness_power(lux, true);
+        brightness_smoothed = BRIGHTNESS_EMA_ALPHA * raw_target + (1.0f - BRIGHTNESS_EMA_ALPHA) * brightness_smoothed;
+        target_brightness = (uint16_t)(brightness_smoothed + 0.5f);
+      } else {
+        // Abdunkeln bei fehlender Anwesenheit soll nicht durch die Glaettung
+        // verzoegert werden - direkt hart setzen und Glaettungszustand
+        // zuruecksetzen, damit es beim Wiederkommen sauber hochrampt.
+        brightness_smoothed = BRIGHTNESS_NO_PRESENCE;
+        target_brightness = BRIGHTNESS_NO_PRESENCE;
+      }
     }
 
     uint16_t diff = (target_brightness > current_brightness)
