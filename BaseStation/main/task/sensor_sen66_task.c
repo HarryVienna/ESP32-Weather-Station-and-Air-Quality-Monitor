@@ -83,9 +83,16 @@ void sensor_sen66_task(void *pvParameter) {
 // 23.67°
 // 5239
 
+    error = sen66_set_temperature_acceleration_parameters(100, 600, 50, 20);
+    if (error) {
+        ESP_LOGE(TAG, "Error executing sen66_set_temperature_acceleration_parameters(): %i", error);
+    } else {
+        ESP_LOGI(TAG, "Acceleration parameters set");
+    }
+
     // Temperature offset: T_compensated = T_ambient + (slope * T_ambient) + offset
     // offset scaled by 200, slope scaled by 10000, time_constant in seconds (0 = immediate)
-    float temp_offset = 0.0f;
+    float temp_offset = -1.4f;
     error = sen66_set_temperature_offset_parameters(
         (int16_t)(200.0f * temp_offset), /*slope=*/0, /*time_constant=*/0, /*slot=*/0);
     if (error) {

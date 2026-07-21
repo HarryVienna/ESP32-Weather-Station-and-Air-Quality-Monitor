@@ -1,10 +1,10 @@
 {
   "navigation": {
     "selectedUserPageObject": "[Wetterstation.eez-project]:/userPages/1",
-    "selectedUserWidgetObject": "[Wetterstation.eez-project]:/userWidgets/2",
+    "selectedUserWidgetObject": "[Wetterstation.eez-project]:/userWidgets/0",
     "selectedStyleObject": "[Wetterstation.eez-project]:/lvglStyles/styles/2",
-    "selectedFontObject": "[Wetterstation.eez-project]:/fonts/7",
-    "selectedBitmapObject": "[Wetterstation.eez-project]:/bitmaps/5",
+    "selectedFontObject": "[Wetterstation.eez-project]:/fonts/9",
+    "selectedBitmapObject": "[Wetterstation.eez-project]:/bitmaps/19",
     "subnavigationSelectedItems": {
       "variables-tab/sub-navigation/selected-item": "Global"
     }
@@ -28,7 +28,7 @@
           {
             "type": "border",
             "selected": 2,
-            "size": 240,
+            "size": 311.67777252197266,
             "location": "right",
             "children": [
               {
@@ -122,12 +122,12 @@
             {
               "type": "row",
               "id": "#9722ddea-7c51-4894-b5d3-89571c2b34ad",
-              "weight": 18.561362826664276,
+              "weight": 26.140132076620027,
               "children": [
                 {
                   "type": "tabset",
                   "id": "#6b74b635-7a66-4336-91ba-4808f2d949f2",
-                  "weight": 0.9682898579195383,
+                  "weight": 0.9421198617595508,
                   "selected": 1,
                   "enableClose": false,
                   "children": [
@@ -160,7 +160,7 @@
                 {
                   "type": "tabset",
                   "id": "#a96a3f6c-df23-495d-85c2-9b8115815633",
-                  "weight": 1.5342160248792682,
+                  "weight": 1.5603860210392562,
                   "enableClose": false,
                   "children": [
                     {
@@ -194,26 +194,15 @@
             {
               "type": "tabset",
               "id": "EDITORS",
-              "weight": 52.67612059108676,
-              "selected": 1,
+              "weight": 49.036598129133914,
+              "selected": 2,
               "enableDeleteWhenEmpty": false,
               "enableClose": false,
               "children": [
                 {
                   "type": "tab",
-                  "id": "#e968cab1-a5fe-490e-8ccd-cc380e98f98b",
-                  "name": "Sensor_Kohlenmonoxid",
-                  "component": "editor",
-                  "config": {
-                    "objectPath": "[Wetterstation.eez-project]:/userWidgets/4",
-                    "permanent": false
-                  },
-                  "icon": "svg:user_widget"
-                },
-                {
-                  "type": "tab",
-                  "id": "#cb400bcf-597a-4769-92e8-85053172872e",
-                  "name": "Sensor_BME280",
+                  "id": "#c4b2d526-6dbd-46fc-8f45-3f543bab0bc5",
+                  "name": "Sensor_Temp_Hum",
                   "component": "editor",
                   "config": {
                     "objectPath": "[Wetterstation.eez-project]:/userWidgets/2",
@@ -223,8 +212,19 @@
                 },
                 {
                   "type": "tab",
-                  "id": "#f882ce9e-f1bf-4c2d-962b-50bbf7a52ec8",
-                  "name": "SEN66_Widget",
+                  "id": "#2176c34a-6647-4960-9a27-aa80f4ebb6bf",
+                  "name": "Sensor_Temp_Hum_Press",
+                  "component": "editor",
+                  "config": {
+                    "objectPath": "[Wetterstation.eez-project]:/userWidgets/3",
+                    "permanent": true
+                  },
+                  "icon": "svg:user_widget"
+                },
+                {
+                  "type": "tab",
+                  "id": "#0cd68d64-09d4-4539-b849-7b7323693647",
+                  "name": "Current",
                   "component": "editor",
                   "config": {
                     "objectPath": "[Wetterstation.eez-project]:/userWidgets/0",
@@ -234,38 +234,37 @@
                 },
                 {
                   "type": "tab",
-                  "id": "#b31176f2-e0c3-4621-85a8-a82e7404ddfe",
-                  "name": "Sensor_SHT45",
-                  "component": "editor",
-                  "config": {
-                    "objectPath": "[Wetterstation.eez-project]:/userWidgets/1",
-                    "permanent": true
-                  },
-                  "icon": "svg:user_widget"
-                },
-                {
-                  "type": "tab",
-                  "id": "#54ed32e7-0820-49a7-b3c6-f81d26c921db",
+                  "id": "#1ae6d8fd-c71b-4ad1-a3f2-11e465dbbbf2",
                   "name": "WeatherstationScreen",
                   "component": "editor",
                   "config": {
                     "objectPath": "[Wetterstation.eez-project]:/userPages/1",
+                    "permanent": false
+                  },
+                  "icon": "svg:page"
+                },
+                {
+                  "type": "tab",
+                  "id": "#b592be0b-dd21-4018-a0f0-7de49a3267f8",
+                  "name": "SetupScreen",
+                  "component": "editor",
+                  "config": {
+                    "objectPath": "[Wetterstation.eez-project]:/userPages/0",
                     "permanent": true
                   },
                   "icon": "svg:page"
                 }
-              ],
-              "active": true
+              ]
             },
             {
               "type": "row",
               "id": "#c868a29f-91bb-4ff7-9e6f-e8b94cefd0ac",
-              "weight": 28.762516582248896,
+              "weight": 24.82326979424596,
               "children": [
                 {
                   "type": "tabset",
                   "id": "#9b10bf15-0b64-4e4e-a4ea-d0c702a4df13",
-                  "weight": 2.242021276595745,
+                  "weight": 1.8129032258064517,
                   "children": [
                     {
                       "type": "tab",
@@ -275,12 +274,13 @@
                       "enableClose": false,
                       "icon": "svg:properties"
                     }
-                  ]
+                  ],
+                  "active": true
                 },
                 {
                   "type": "tabset",
                   "id": "#bde4cd98-bdc4-405f-8ee3-ccbe1daf33f1",
-                  "weight": 0.7579787234042553,
+                  "weight": 1.1870967741935483,
                   "children": [
                     {
                       "type": "tab",
@@ -665,7 +665,7 @@
                 {
                   "type": "tabset",
                   "id": "#da90bac4-6f76-40bc-ad8c-8441ea5c2bd8",
-                  "weight": 75,
+                  "weight": 59.106529209621996,
                   "enableDrop": false,
                   "enableDrag": false,
                   "enableClose": false,
@@ -684,7 +684,7 @@
                 {
                   "type": "tabset",
                   "id": "#5b872e9d-3422-4eee-ae16-dc47b258bc8c",
-                  "weight": 25,
+                  "weight": 40.893470790378004,
                   "enableDrop": false,
                   "enableDrag": false,
                   "enableClose": false,
@@ -1145,10 +1145,10 @@
       },
       "transform": {
         "translate": {
-          "x": -644.1743836023973,
-          "y": -298.64806720781326
+          "x": -282.0451599504263,
+          "y": -308.27331417477393
         },
-        "scale": 0.75
+        "scale": 0.5
       },
       "timeline": {
         "isEditorActive": false,
@@ -1160,34 +1160,14 @@
       "selectionBack": {
         "0": {
           "0": {
-            "0": {
-              "0": {},
-              "1": {
-                "0": {}
-              },
-              "2": {}
-            },
-            "1": {
-              "2": {}
-            },
-            "2": {},
-            "3": {},
-            "4": {
-              "1": {},
-              "2": {
-                "$selected": true
-              }
-            },
-            "5": {},
             "6": {
               "1": {},
-              "3": {},
+              "3": {
+                "$selected": true
+              },
               "5": {}
             },
-            "7": {},
-            "8": {
-              "0": {}
-            }
+            "7": {}
           },
           "2": {},
           "3": {}
@@ -1211,10 +1191,10 @@
       },
       "transform": {
         "translate": {
-          "x": -437.86754592748593,
-          "y": -372.07736103005357
+          "x": -359.4427708630483,
+          "y": -241.23866651775393
         },
-        "scale": 0.67
+        "scale": 0.75
       },
       "timeline": {
         "isEditorActive": false,
@@ -1226,26 +1206,15 @@
       "selectionBack": {
         "0": {
           "0": {
-            "0": {
-              "1": {}
-            },
-            "1": {
-              "0": {
-                "$selected": true
-              }
-            }
+            "$selected": true
           },
-          "1": {
+          "1": {},
+          "2": {
+            "5": {}
+          },
+          "3": {
             "0": {}
           },
-          "2": {
-            "0": {},
-            "1": {},
-            "2": {
-              "0": {}
-            }
-          },
-          "3": {},
           "4": {
             "0": {}
           }
@@ -1256,10 +1225,10 @@
       "selection": {},
       "transform": {
         "translate": {
-          "x": -240.28881967317182,
-          "y": -498.93390450900375
+          "x": -245.37387295354768,
+          "y": -171.81634440841657
         },
-        "scale": 2
+        "scale": 1.25
       },
       "timeline": {
         "isEditorActive": false,
@@ -1271,26 +1240,27 @@
       "selectionBack": {
         "0": {
           "0": {},
-          "1": {},
-          "2": {},
-          "3": {
+          "1": {
+            "0": {},
             "1": {
-              "0": {
-                "$selected": true
-              }
+              "0": {},
+              "1": {},
+              "2": {},
+              "3": {}
             }
           },
-          "4": {
-            "0": {},
-            "1": {}
-          },
-          "5": {
-            "0": {},
-            "1": {}
-          },
-          "6": {
-            "0": {},
-            "1": {}
+          "2": {
+            "0": {
+              "0": {},
+              "1": {}
+            },
+            "1": {
+              "0": {},
+              "1": {
+                "1": {}
+              }
+            },
+            "2": {}
           }
         }
       }
@@ -1309,23 +1279,33 @@
       "selectionFront": {},
       "selectionBack": {
         "0": {
-          "0": {
-            "0": {},
-            "$selected": true
-          },
           "1": {},
           "2": {
-            "0": {},
-            "1": {}
+            "1": {
+              "$selected": true
+            }
+          },
+          "3": {
+            "0": {
+              "1": {
+                "3": {}
+              }
+            },
+            "1": {
+              "0": {}
+            }
+          },
+          "4": {
+            "0": {}
           }
         }
       },
       "transform": {
         "translate": {
-          "x": -340.0369430078656,
-          "y": -297.06083736021407
+          "x": -256.1548066508743,
+          "y": -239.42888500464352
         },
-        "scale": 3
+        "scale": 1.75
       },
       "timeline": {
         "isEditorActive": false,
@@ -1338,23 +1318,22 @@
       "selectionFront": {},
       "selectionBack": {
         "0": {
-          "0": {
-            "1": {},
-            "$selected": true
-          },
+          "0": {},
           "1": {
-            "0": {},
             "1": {}
           },
-          "2": {}
+          "2": {},
+          "3": {
+            "1": {}
+          }
         }
       },
       "transform": {
         "translate": {
-          "x": -196.71517481258266,
-          "y": -181.59856997437748
+          "x": -197.09349507649762,
+          "y": -179.12981287638334
         },
-        "scale": 1.25
+        "scale": 1.1
       },
       "timeline": {
         "isEditorActive": false,
@@ -1369,29 +1348,23 @@
         "0": {
           "0": {
             "1": {},
-            "$selected": true
+            "3": {}
           },
           "1": {
             "0": {}
           },
           "2": {
-            "0": {
-              "0": {},
-              "1": {}
-            },
-            "1": {
-              "0": {},
-              "2": {}
-            }
+            "0": {},
+            "1": {}
           }
         }
       },
       "transform": {
         "translate": {
-          "x": -292.50328369140624,
-          "y": -386.9889339109749
+          "x": -317.9607991800679,
+          "y": -147.164765428948
         },
-        "scale": 3
+        "scale": 2.5
       },
       "timeline": {
         "isEditorActive": false,
@@ -1404,22 +1377,24 @@
       "selectionFront": {},
       "selectionBack": {
         "0": {
-          "0": {
-            "$selected": true
+          "0": {},
+          "1": {
+            "1": {}
           },
-          "1": {},
           "2": {
-            "0": {},
+            "0": {
+              "$selected": true
+            },
             "1": {}
           }
         }
       },
       "transform": {
         "translate": {
-          "x": -213.56348266601563,
-          "y": -122.85650075276692
+          "x": -162.76955098470074,
+          "y": -145.53618494669584
         },
-        "scale": 2
+        "scale": 1.1
       },
       "timeline": {
         "isEditorActive": false,
@@ -1433,25 +1408,15 @@
       "selectionBack": {
         "0": {
           "0": {},
-          "1": {
-            "0": {}
-          },
-          "2": {},
-          "3": {
-            "0": {},
-            "1": {},
-            "2": {
-              "$selected": true
-            }
-          }
+          "1": {}
         }
       },
       "transform": {
         "translate": {
-          "x": -218.2991346945177,
-          "y": -339.2403756474341
+          "x": -107,
+          "y": -72
         },
-        "scale": 2.5
+        "scale": 1
       },
       "timeline": {
         "isEditorActive": false,
@@ -1464,23 +1429,37 @@
       "selectionFront": {},
       "selectionBack": {
         "0": {
-          "0": {
-            "3": {
-              "$selected": true
+          "0": {},
+          "1": {
+            "0": {
+              "0": {}
+            },
+            "1": {
+              "0": {},
+              "1": {},
+              "2": {},
+              "3": {}
             }
           },
-          "3": {
-            "0": {},
-            "1": {}
+          "2": {
+            "0": {
+              "0": {},
+              "1": {}
+            },
+            "1": {
+              "0": {},
+              "1": {}
+            },
+            "2": {}
           }
         }
       },
       "transform": {
         "translate": {
-          "x": -99,
-          "y": -86.5
+          "x": -281.4435674381007,
+          "y": -248.73291656288808
         },
-        "scale": 2
+        "scale": 1.1
       },
       "timeline": {
         "isEditorActive": false,
@@ -1548,7 +1527,9 @@
           "0": {},
           "1": {},
           "3": {
-            "$selected": true
+            "3": {
+              "$selected": true
+            }
           }
         }
       },
@@ -1627,16 +1608,14 @@
     "[Wetterstation.eez-project]:/userWidgets/12[flow-state]": {
       "selectionFront": {},
       "selectionBack": {
-        "0": {
-          "$selected": true
-        }
+        "0": {}
       },
       "transform": {
         "translate": {
-          "x": -265.0339285714289,
-          "y": -59.12046397981243
+          "x": -228.05654761904816,
+          "y": -141.27159951225252
         },
-        "scale": 0.75
+        "scale": 1.25
       },
       "timeline": {
         "isEditorActive": false,
@@ -1658,10 +1637,102 @@
       },
       "transform": {
         "translate": {
-          "x": -318.6,
-          "y": -220.0000030517578
+          "x": -277.04999999999995,
+          "y": -287.44688186645504
         },
-        "scale": 3
+        "scale": 1.5
+      },
+      "timeline": {
+        "isEditorActive": false,
+        "position": 0,
+        "secondToPx": 200,
+        "scrollLeft": 0
+      }
+    },
+    "[Wetterstation.eez-project]:/userWidgets/14[flow-state]": {
+      "selectionFront": {},
+      "selectionBack": {},
+      "transform": {
+        "translate": {
+          "x": -143.5499999999999,
+          "y": -226.81062393188478
+        },
+        "scale": 1.1
+      },
+      "timeline": {
+        "isEditorActive": false,
+        "position": 0,
+        "secondToPx": 200,
+        "scrollLeft": 0
+      }
+    },
+    "[Wetterstation.eez-project]:/userWidgets/16[flow-state]": {
+      "selectionFront": {},
+      "selectionBack": {},
+      "transform": {
+        "translate": {
+          "x": -258.70562770562765,
+          "y": -156.20865800865892
+        },
+        "scale": 1
+      },
+      "timeline": {
+        "isEditorActive": false,
+        "position": 0,
+        "secondToPx": 200,
+        "scrollLeft": 0
+      }
+    },
+    "[Wetterstation.eez-project]:/userWidgets/15[flow-state]": {
+      "selectionFront": {},
+      "selectionBack": {},
+      "transform": {
+        "translate": {
+          "x": -101.25,
+          "y": -163.18937606811522
+        },
+        "scale": 0.9
+      },
+      "timeline": {
+        "isEditorActive": false,
+        "position": 0,
+        "secondToPx": 200,
+        "scrollLeft": 0
+      }
+    },
+    "[Wetterstation.eez-project]:/userWidgets/17[flow-state]": {
+      "selectionFront": {},
+      "selectionBack": {
+        "0": {
+          "0": {},
+          "1": {},
+          "2": {},
+          "3": {}
+        }
+      },
+      "transform": {
+        "translate": {
+          "x": 25.588888888888874,
+          "y": -65.11111111111106
+        },
+        "scale": 1
+      },
+      "timeline": {
+        "isEditorActive": false,
+        "position": 0,
+        "secondToPx": 200,
+        "scrollLeft": 0
+      }
+    },
+    "[Wetterstation.eez-project]:/userWidgets/18[flow-state]": {
+      "selectionFront": {},
+      "selectionBack": {},
+      "transform": {
+        "translate": {
+          "x": -107,
+          "y": -72
+        },
+        "scale": 1
       },
       "timeline": {
         "isEditorActive": false,
@@ -1686,15 +1757,12 @@
   "lvglPart": "MAIN",
   "lvglState": "DEFAULT",
   "lvglExpandedPropertiesGroup": [
-    "PADDING",
-    "TEXT",
-    "MARGIN",
-    "BACKGROUND",
-    "MISCELLANEOUS"
+    "POSITION AND SIZE",
+    "BORDER"
   ],
   "showInactiveFlowsInDebugger": true,
   "globalFlowZoom": false,
   "flowZoom": 1,
   "implementationLanguage": "C",
-  "openDialogDefaultPath": "C:\\Users\\Harald\\Documents\\Projekte\\Wetterstation-ESP32-3.0\\Code\\EEZ-Studio-1280x800\\images\\sensor_kitchen.png"
+  "openDialogDefaultPath": "C:\\Users\\Harald\\Documents\\Projekte\\Wetterstation-ESP32-3.0\\Code\\EEZ-Studio-1280x800\\images\\arrow.png"
 }

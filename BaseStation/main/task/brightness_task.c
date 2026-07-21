@@ -9,7 +9,7 @@
 
 #include "i2c/i2c_manager.h"
 #include "brightness_task.h"
-#include "display/display.h"
+#include "gui/gui.h"
 #include "c4001.h"
 #include "bh1750.h"
 
@@ -26,85 +26,18 @@
 
 static const char* TAG = "brightness_task";
 
-/**
- * @brief     Map sensor value to a corresponding brightness level
- *
- * @param     lux   Sensor value to be mapped to brightness
- * @param     presence  Boolean value to show if a human is present
- *
- * @return    uint8_t The mapped brightness level
- *
- * @details   Maps sensor values within a specified range to corresponding brightness levels.
- *            Uses logarithmic scaling to convert sensor values to a suitable brightness scale.
- * 
- *            The values for a and b are calculated with this Python program:
- * 
- *  import numpy as np
- *  from scipy.optimize import curve_fit
- *
- *  # Function
- *  def log_funktion(x, a, b):
- *      return a * np.log10(x) + b
- *
- *  # Input and Output values
- *  lux = np.array([1, 1000])
- *  display_brightness = np.array([16,  128])
-
- *  # Find the optimal parmaters with curve_fit
- *  params, _ = curve_fit(log_funktion, lux, display_brightness)
- *  a_scipy, b_scipy = params
- *
- *  print(f"Optimal parameters (SciPy): a = {a_scipy:.2f}, b = {b_scipy:.2f}")
- *
- *
- *  for i in range(len(lux)):
- *      # Calculate the values for the input array
- *      output_brightness = log_funktion(lux[i], a_scipy, b_scipy)
- *      print("Brightness:", lux[i], output_brightness)
- *
- *
- */
-uint16_t map_brightness(uint16_t lux, bool presence) {
-
-  float a = 83.33f;
-  float b = 5.00f;
-
-  uint16_t brightness;
-  
-  if (lux == 0 || !presence) {
-    brightness = 5;
-  }
-  else {
-    brightness = (uint16_t)(a * log10(lux) + b);
-  }
-   
-  //ESP_LOGI(TAG, "                 Mapped value %f %d", brightness, (uint8_t)brightness); 
-
-  return brightness;
-}
+#define LUX_CALIBRATION_OFFSET   5     // Eigenlicht der Gehaeuse-LEDs (wetterstationsspezifisch
+#define BRIGHTNESS_NO_PRESENCE   5     // Display-Helligkeit, wenn keine Anwesenheit erkannt wird
 
 
 uint16_t map_brightness_power(uint16_t lux, bool presence) {
   if (!presence) {
-    return 5;
+    return BRIGHTNESS_NO_PRESENCE;
   }
   const float a = 9.658973f;
   const float b = 0.461319f;
   int brightness = (int)(a * powf((float)lux, b) + 10.0f);
   if (brightness < 10)   brightness = 10;
-  if (brightness > 255) brightness = 255;
-  return (uint16_t)brightness;
-}
-
-
-uint16_t map_brightness_linear(uint16_t lux, bool presence) {
-  if (!presence) {
-    return 5;
-  }
-  const float m = 0.432f;
-  const float c = 12.0f;
-  int brightness = (int)(m * lux + c);
-  if (brightness < 5)   brightness = 5;
   if (brightness > 255) brightness = 255;
   return (uint16_t)brightness;
 }
@@ -179,25 +112,14 @@ void brightness_task(void *pvParameter){
     // Sensor alle 250ms lesen (10 * 25ms)
     if (sensor_tick++ >= 10) {
       sensor_tick = 0;
-      bh1750_read(&lux_sensor, &lux);
+
+      uint16_t lux_raw = 0;
+      bh1750_read(&lux_sensor, &lux_raw);
+      lux = (lux_raw > LUX_CALIBRATION_OFFSET) ? (lux_raw - LUX_CALIBRATION_OFFSET) : 0;
+
       c4001_get_presence_status(&presence_sensor, &presence_data);
 
-      if (presence_data.presence) {
-        // EMA-Glaettung auf die Zielhelligkeit: die Kurve in
-        // map_brightness_power() ist bei kleinen Lux-Werten steil, deshalb
-        // schlagen einzelne verrauschte Lux-Samples dort ueberproportional
-        // auf die Helligkeit durch - hier, hinter der Kurve, wird genau das
-        // geglaettet.
-        uint16_t raw_target = map_brightness_power(lux, true);
-        brightness_smoothed = BRIGHTNESS_EMA_ALPHA * raw_target + (1.0f - BRIGHTNESS_EMA_ALPHA) * brightness_smoothed;
-        target_brightness = (uint16_t)(brightness_smoothed + 0.5f);
-      } else {
-        // Abdunkeln bei fehlender Anwesenheit soll nicht durch die Glaettung
-        // verzoegert werden - direkt hart setzen und Glaettungszustand
-        // zuruecksetzen, damit es beim Wiederkommen sauber hochrampt.
-        brightness_smoothed = BRIGHTNESS_NO_PRESENCE;
-        target_brightness = BRIGHTNESS_NO_PRESENCE;
-      }
+      target_brightness = map_brightness_power(lux, presence_data.presence);
     }
 
     uint16_t diff = (target_brightness > current_brightness)
@@ -221,7 +143,7 @@ void brightness_task(void *pvParameter){
         current_brightness = (current_brightness - target_brightness > step)
                              ? current_brightness - step : target_brightness;
       }
-      display_set_brightness(current_brightness);
+      set_brightness(current_brightness);
       ESP_LOGI(TAG, "Lux/Brightness: %d  %d", lux, current_brightness);
     }
 

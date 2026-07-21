@@ -60,12 +60,13 @@ static const char* TAG = "GUI";
  *
  * b) WELCHER Sensor-Typ (bme280/sht45/geiger) an WELCHER Stelle im
  *    Weatherstation-Screen fest verbaut ist: sensor_slots[]. Jeder der 6
- *    Sensor_X-Container hat in EEZ Studio dauerhaft einen fest verbauten
- *    Widget-Typ. Diese Tabelle sagt disp_sensor_values()/
- *    disp_sensor_link_quality(), welche von EEZ generierten Feldnamen
- *    (objects.objN__temp usw.) zu welchem Slot gehoeren. Aendert sich in
- *    EEZ Studio, welcher Typ in Slot X verbaut ist, wird NUR diese eine
- *    Tabellenzeile angepasst - der Rest der Datei bleibt unberuehrt.
+ *    Sensor_X-Widgets (in EEZ Studio direkt so benannt, X=0..5) hat
+ *    dauerhaft einen fest verbauten Widget-Typ. Diese Tabelle sagt
+ *    disp_sensor_values()/disp_sensor_link_quality(), welche von EEZ
+ *    generierten Feldnamen (objects.sensor_N__temp usw.) zu welchem Slot
+ *    gehoeren. Aendert sich in EEZ Studio, welcher Typ in Slot X verbaut
+ *    ist, wird NUR diese eine Tabellenzeile angepasst - der Rest der Datei
+ *    bleibt unberuehrt.
  *
  * Der Slot-Index (0-5) ist ueberall derselbe: die UI-Reihenfolge
  * "Sensor 1..6" im Setup Screen, packet_header_t.sensor_nr im Funkpaket
@@ -134,15 +135,15 @@ void disp_wifi_status(bool status, int8_t rssi_dbm)
                              : lv_color_hex(COLOR_RED);
 
   lvgl_port_lock(0);
-  lv_obj_set_style_img_recolor(objects.wifi, color, LV_PART_MAIN | LV_STATE_DEFAULT);
-  lv_obj_set_style_img_recolor_opa(objects.wifi, LV_OPA_COVER, LV_PART_MAIN | LV_STATE_DEFAULT);
+  lv_obj_set_style_img_recolor(objects.current__wifi, color, LV_PART_MAIN | LV_STATE_DEFAULT);
+  lv_obj_set_style_img_recolor_opa(objects.current__wifi, LV_OPA_COVER, LV_PART_MAIN | LV_STATE_DEFAULT);
   lvgl_port_unlock();
 }
 
 void disp_date_time(char *date_time)
 {
   lvgl_port_lock(0);
-  lv_label_set_text(objects.date_time, date_time);
+  lv_label_set_text(objects.current__date_time, date_time);
   lvgl_port_unlock();
 }
 
@@ -256,70 +257,72 @@ typedef struct
 } icon_mapping_t;
 
 icon_mapping_t icon_mapping_day[] = {
-      {0, &img_0d},
-      {1, &img_1d},
-      {2, &img_2},
-      {3, &img_3},
-      {45, &img_45},
-      {48, &img_48},
-      {51, &img_51},
-      {53, &img_53},
-      {55, &img_55},
-      {56, &img_56},
-      {57, &img_57},
-      {61, &img_61},
-      {63, &img_63},
-      {65, &img_65},
-      {66, &img_66},
-      {67, &img_67},
-      {71, &img_71},
-      {73, &img_73},
-      {75, &img_75},
-      {77, &img_77},
-      {80, &img_80},
-      {81, &img_81},
-      {82, &img_82},
-      {85, &img_85},
-      {86, &img_86},
-      {95, &img_95},
-      {96, &img_96},
-      {99, &img_99}};
+      {0, &img_day_0},
+      {1, &img_day_1},
+      {2, &img_day_2},
+      {3, &img_day_3},
+      {45, &img_day_45},
+      {48, &img_day_48},
+      {51, &img_day_51},
+      {53, &img_day_53},
+      {55, &img_day_55},
+      {56, &img_day_56},
+      {57, &img_day_57},
+      {61, &img_day_61},
+      {63, &img_day_63},
+      {65, &img_day_65},
+      {66, &img_day_66},
+      {67, &img_day_67},
+      {71, &img_day_71},
+      {73, &img_day_73},
+      {75, &img_day_75},
+      {77, &img_day_77},
+      {80, &img_day_80},
+      {81, &img_day_81},
+      {82, &img_day_82},
+      {85, &img_day_85},
+      {86, &img_day_86},
+      {95, &img_day_95},
+      {96, &img_day_96},
+      {99, &img_day_99}};
 
 icon_mapping_t icon_mapping_night[] = {
-      {0, &img_0n},
-      {1, &img_1n},
-      {2, &img_2},
-      {3, &img_3},
-      {45, &img_45},
-      {48, &img_48},
-      {51, &img_51},
-      {53, &img_53},
-      {55, &img_55},
-      {56, &img_56},
-      {57, &img_57},
-      {61, &img_61},
-      {63, &img_63},
-      {65, &img_65},
-      {66, &img_66},
-      {67, &img_67},
-      {71, &img_71},
-      {73, &img_73},
-      {75, &img_75},
-      {77, &img_77},
-      {80, &img_80},
-      {81, &img_81},
-      {82, &img_82},
-      {85, &img_85},
-      {86, &img_86},
-      {95, &img_95},
-      {96, &img_96},
-      {99, &img_99}};
+      {0, &img_night_0},
+      {1, &img_night_1},
+      {2, &img_night_2},
+      {3, &img_night_3},
+      {45, &img_night_45},
+      {48, &img_night_48},
+      {51, &img_night_51},
+      {53, &img_night_53},
+      {55, &img_night_55},
+      {56, &img_night_56},
+      {57, &img_night_57},
+      {61, &img_night_61},
+      {63, &img_night_63},
+      {65, &img_night_65},
+      {66, &img_night_66},
+      {67, &img_night_67},
+      {71, &img_night_71},
+      {73, &img_night_73},
+      {75, &img_night_75},
+      {77, &img_night_77},
+      {80, &img_night_80},
+      {81, &img_night_81},
+      {82, &img_night_82},
+      {85, &img_night_85},
+      {86, &img_night_86},
+      {95, &img_night_95},
+      {96, &img_night_96},
+      {99, &img_night_99}};
 
 void disp_weather(current_weather_data_t *current_weather, hourly_weather_data_t *hourly_weather, daily_weather_data_t *daily_weather) {
   lvgl_port_lock(0);
 
   // Current data
   char temp[8];
+  char humidity[8];
+  char pressure[8];
   char clouds[8];
   char uv_index[8];
   char wind_speed[8];
@@ -340,34 +343,40 @@ void disp_weather(current_weather_data_t *current_weather, hourly_weather_data_t
     if (current_weather->weather_code == icon_mapping[i].icon)
     {
       ESP_LOGI(TAG, "Weather code %d", current_weather->weather_code);
-      lv_img_set_src(objects.weather_icon, icon_mapping[i].icon_image);
+      lv_img_set_src(objects.current__weather_icon, icon_mapping[i].icon_image);
       break;
     }
   }
 
   sprintf(temp, "%.1f", current_weather->temperature_2m);
-  lv_label_set_text(objects.temp_current, temp);
+  lv_label_set_text(objects.current__temp, temp);
+
+  sprintf(humidity, "%d", current_weather->relative_humidity_2m);
+  lv_label_set_text(objects.current__humidity, humidity);
+
+  sprintf(pressure, "%.0f", current_weather->pressure_msl);
+  lv_label_set_text(objects.current__pressure, pressure);
 
   sprintf(clouds, "%d", current_weather->cloud_cover);
-  lv_label_set_text(objects.clouds_current, clouds);
+  lv_label_set_text(objects.current__clouds, clouds);
 
   sprintf(uv_index, "%d", (int) round(current_weather->uv_index));
-  lv_label_set_text(objects.uv_current, uv_index);
+  lv_label_set_text(objects.current__uv, uv_index);
 
   sprintf(wind_speed, "%.1f", current_weather->wind_speed_10m);
-  lv_label_set_text(objects.wind_speed_current, wind_speed);
+  lv_label_set_text(objects.current__wind_speed, wind_speed);
 
   sprintf(wind_gust, "%.1f", current_weather->wind_gusts_10m);
-  lv_label_set_text(objects.wind_gust_current, wind_gust);
+  lv_label_set_text(objects.current__wind_gust, wind_gust);
 
-  lv_img_set_angle(objects.wind_direction_current_icon, current_weather->wind_direction_10m * 10);
+  lv_img_set_angle(objects.current__wind_direction, current_weather->wind_direction_10m * 10);
 
   struct tm time_sunrise = daily_weather[0].sunrise;
   struct tm time_sunrset = daily_weather[0].sunset;
   strftime(str_sunrise, sizeof(str_sunrise), "%H:%M", &time_sunrise);
-  lv_label_set_text(objects.sunrise_current, str_sunrise);
+  lv_label_set_text(objects.current__sunrise, str_sunrise);
   strftime(str_sunset, sizeof(str_sunset), "%H:%M", &time_sunrset);
-  lv_label_set_text(objects.sunset_current, str_sunset);
+  lv_label_set_text(objects.current__sunset, str_sunset);
 
   // Hourly data
   lv_hourly_data hourly_data[NUM_HOURS];
@@ -541,39 +550,169 @@ static void save_basis_to_nvs(nvs_handle_t nvs_handle)
   put_uint8_to_nvs(nvs_handle, "icon_base", icon_idx);
 }
 
-/* b) Hardware-Zuordnung: jeder der 6 Sensor_X-Container in Container_Sensoren
- * (Weatherstation-Screen) hat in EEZ Studio dauerhaft einen fest verbauten
- * Widget-Typ (aktuell: Sensor_0=bme280, Sensor_1-4=sht45, Sensor_5=geiger).
- * Diese Tabelle ist die EINZIGE Stelle, die angepasst werden muss, wenn sich
- * in EEZ Studio aendert, welcher Typ in welchem Slot verbaut ist - Feldnamen
- * einfach durch die neuen ersetzen (siehe screens.h fuer die tatsaechlich
- * generierten objects.objN__xxx-Namen). */
+/* b) Hardware-Zuordnung: jedes der 6 Sensor_X-Widgets (X=0..5, in EEZ Studio
+ * direkt so benannt) hat dauerhaft einen fest verbauten Widget-Typ (aktuell:
+ * Sensor_0/1/2/3=Sensor_Temp_Hum, Sensor_4=Sensor_Temp_Hum_Press,
+ * Sensor_5=Sensor_Radiation; siehe screens.c fuer die tatsaechlich pro Slot
+ * instanziierten create_user_widget_*()-Aufrufe). Diese Tabelle ist die
+ * EINZIGE Stelle, die angepasst werden muss, wenn sich in EEZ Studio aendert,
+ * welcher Widget-Typ in welchem Slot verbaut ist - Feldnamen einfach durch
+ * die neuen ersetzen (siehe screens.h fuer die tatsaechlich generierten
+ * objects.sensor_N__xxx-Namen). Solange die 6 Widgets in EEZ Studio ihren
+ * Instanznamen (Sensor_0..Sensor_5) behalten, bleiben diese Feldnamen stabil
+ * - unabhaengig davon, was sich sonst im Layout aendert.
+ *
+ * Die EEZ-Studio-Widget-Typen (Sensor_Temp_Hum, Sensor_Temp_Hum_Press, ...)
+ * sind reine Layouts und bewusst NICHT nach Sensor-Hardware benannt - Temp+
+ * Humidity sehen unabhaengig vom Sensor (SHT45, BME280, ...) gleich aus.
+ * Jeder Widget-Typ hat eine eigene render()-Funktion, die den mitgegebenen
+ * sensor_type_t selbst per switch auswertet, um das richtige Payload-Struct
+ * zu casten - so kann z.B. dieselbe render_temp_hum() sowohl an einem
+ * SHT45- als auch an einem BME280-Slot haengen, OHNE dass am Aufrufer
+ * irgendwo Sensor-Hardware und Cast von Hand zusammenpassen muessen (genau
+ * das ging vorher schief: Sensor 3 wurde auf SENSOR_TYPE_BME280 umgestellt,
+ * die Render-Funktion castete aber weiter fix auf sht45_payload_t - falsche
+ * Feldreihenfolge, Druck und Temperatur landeten vertauscht in den Labels).
+ * sensor_type ist zusaetzlich weiterhin der Paket-Typ-Check auf Slot-Ebene
+ * (kommt ein Paket rein, das nicht zum an diesem Slot verbauten Sensor
+ * passt, wird es schon vor render() ignoriert). */
 typedef struct {
-  sensor_type_t type;
+  lv_obj_t **value1;   /* Temp (bme280/sht45) bzw. µSv/h (geiger) */
+  lv_obj_t **value2;   /* Humidity (bme280/sht45), sonst NULL */
+  lv_obj_t **value3;   /* Pressure (nur Temp_Hum_Press/-Compact), sonst NULL */
+} sensor_values_t;
+
+typedef void (*sensor_render_fn_t)(sensor_type_t type, const sensor_values_t *values, const void *payload);
+
+typedef struct {
+  sensor_type_t type;          /* erwarteter Pakettyp - fuer den Typ-Check */
+  sensor_render_fn_t render;   /* Widget-Typ: weiss, welche Values befuellt werden */
   lv_obj_t **name;
   lv_obj_t **icon;
   lv_obj_t **battery;
   lv_obj_t **wifi;
-  lv_obj_t **value1;   /* Temp (bme280/sht45) bzw. µSv/h (geiger) */
-  lv_obj_t **value2;   /* Humidity (bme280/sht45) bzw. CPM (geiger) */
-  lv_obj_t **value3;   /* Pressure (nur bme280), sonst NULL */
-  lv_obj_t **header;   /* Kopfzeile der Karte - wird bei "offline" rot eingefaerbt */
+  lv_obj_t **header;           /* Kopfzeile der Karte - wird bei "offline" rot eingefaerbt */
+  sensor_values_t values;
 } sensor_slot_t;
 
+/* lv_label_set_text_fmt()/lv_snprintf() unterstuetzen hier keine
+ * Float-Format-Specifier (CONFIG_LV_USE_FLOAT ist aus, nur
+ * LV_USE_BUILTIN_SPRINTF) - "%.1f" etc. wuerden nur Muell/"f" anzeigen.
+ * Deshalb wie im Rest von gui.c mit libc-sprintf in einen Puffer
+ * formatieren und als fertigen String setzen. */
+
+static void render_temp_hum(sensor_type_t type, const sensor_values_t *v, const void *payload)
+{
+  float temperature, humidity;
+  switch (type) {
+    case SENSOR_TYPE_SHT45: {
+      const sht45_payload_t *d = (const sht45_payload_t *)payload;
+      temperature = d->temperature;
+      humidity = d->humidity;
+      break;
+    }
+    case SENSOR_TYPE_BME280: {
+      const bme280_payload_t *d = (const bme280_payload_t *)payload;
+      temperature = d->temperature;
+      humidity = d->humidity;
+      break;
+    }
+    default:
+      return;   /* Sensor liefert keine Temp/Humidity-Werte */
+  }
+
+  char buf[16];
+  sprintf(buf, "%.1f", temperature);
+  lv_label_set_text(*v->value1, buf);
+  sprintf(buf, "%.1f", humidity);
+  lv_label_set_text(*v->value2, buf);
+}
+
+static void render_temp_hum_press(sensor_type_t type, const sensor_values_t *v, const void *payload)
+{
+  if (type != SENSOR_TYPE_BME280) {
+    return;   /* Druckwert gibt es nur vom BME280 */
+  }
+  const bme280_payload_t *d = (const bme280_payload_t *)payload;
+  char buf[16];
+
+  nvs_handle_t nvs_handle;
+  nvs_open("weatherstation", NVS_READONLY, &nvs_handle);
+  const char *height_c = get_string_from_nvs(nvs_handle, "height", "0");
+  nvs_close(nvs_handle);
+  float sea_level_pressure = calc_sea_level_pressure(d->pressure, d->temperature, (uint16_t)atol(height_c));
+
+  sprintf(buf, "%.1f", d->temperature);
+  lv_label_set_text(*v->value1, buf);
+  sprintf(buf, "%.1f", d->humidity);
+  lv_label_set_text(*v->value2, buf);
+  sprintf(buf, "%.0f", sea_level_pressure);
+  lv_label_set_text(*v->value3, buf);
+}
+
+/* Wie render_temp_hum_press(), nur Humidity ohne Nachkommastelle - im
+ * Sensor_Temp_Hum_Press_Compact-Widget ist dafuer weniger Platz. Noch
+ * keinem Slot zugewiesen (siehe sensor_slots[] unten). */
+static void render_temp_hum_press_compact(sensor_type_t type, const sensor_values_t *v, const void *payload)
+{
+  if (type != SENSOR_TYPE_BME280) {
+    return;
+  }
+  const bme280_payload_t *d = (const bme280_payload_t *)payload;
+  char buf[16];
+
+  nvs_handle_t nvs_handle;
+  nvs_open("weatherstation", NVS_READONLY, &nvs_handle);
+  const char *height_c = get_string_from_nvs(nvs_handle, "height", "0");
+  nvs_close(nvs_handle);
+  float sea_level_pressure = calc_sea_level_pressure(d->pressure, d->temperature, (uint16_t)atol(height_c));
+
+  sprintf(buf, "%.1f", d->temperature);
+  lv_label_set_text(*v->value1, buf);
+  sprintf(buf, "%.0f", d->humidity);
+  lv_label_set_text(*v->value2, buf);
+  sprintf(buf, "%.0f", sea_level_pressure);
+  lv_label_set_text(*v->value3, buf);
+}
+
+static void render_radiation(sensor_type_t type, const sensor_values_t *v, const void *payload)
+{
+  if (type != SENSOR_TYPE_GEIGER) {
+    return;
+  }
+  const geiger_payload_t *d = (const geiger_payload_t *)payload;
+  char buf[16];
+  sprintf(buf, "%.2f", d->usvh);
+  lv_label_set_text(*v->value1, buf);
+}
+
 static const sensor_slot_t sensor_slots[SENSOR_SLOT_COUNT] = {
-    { SENSOR_TYPE_BME280, &objects.obj1__name,      &objects.obj1__icon, &objects.obj1__battery, &objects.obj1__wifi,
-      &objects.obj1__temp, &objects.obj1__humidity, &objects.obj1__pressure, &objects.obj1__header },
-    { SENSOR_TYPE_SHT45,  &objects.obj2__name,      &objects.obj2__icon, &objects.obj2__battery, &objects.obj2__wifi,
-      &objects.obj2__temp, &objects.obj2__humidity, NULL, &objects.obj2__header },
-    { SENSOR_TYPE_SHT45,  &objects.obj3__name,      &objects.obj3__icon, &objects.obj3__battery, &objects.obj3__wifi,
-      &objects.obj3__temp, &objects.obj3__humidity, NULL, &objects.obj3__header },
-    { SENSOR_TYPE_SHT45,  &objects.obj4__name,      &objects.obj4__icon, &objects.obj4__battery, &objects.obj4__wifi,
-      &objects.obj4__temp, &objects.obj4__humidity, NULL, &objects.obj4__header },
-    { SENSOR_TYPE_SHT45,  &objects.obj5__name,      &objects.obj5__icon, &objects.obj5__battery, &objects.obj5__wifi,
-      &objects.obj5__temp, &objects.obj5__humidity, NULL, &objects.obj5__header },
-    { SENSOR_TYPE_GEIGER, &objects.obj6__name,      &objects.obj6__icon, &objects.obj6__battery, &objects.obj6__wifi,
-      &objects.obj6__micro_sievert, &objects.obj6__cpm, NULL, &objects.obj6__header },
+    // Schlafzimmer
+    { SENSOR_TYPE_SHT45,  render_temp_hum,       &objects.sensor_0__name, &objects.sensor_0__icon, &objects.sensor_0__battery, &objects.sensor_0__wifi,
+      &objects.sensor_0__header, { &objects.sensor_0__temp, &objects.sensor_0__humidity, NULL } },
+    // Bad
+    { SENSOR_TYPE_SHT45,  render_temp_hum,       &objects.sensor_1__name, &objects.sensor_1__icon, &objects.sensor_1__battery, &objects.sensor_1__wifi,
+      &objects.sensor_1__header, { &objects.sensor_1__temp, &objects.sensor_1__humidity, NULL } },
+    //Buero
+    { SENSOR_TYPE_SHT45,  render_temp_hum,       &objects.sensor_2__name, &objects.sensor_2__icon, &objects.sensor_2__battery, &objects.sensor_2__wifi,
+      &objects.sensor_2__header, { &objects.sensor_2__temp, &objects.sensor_2__humidity, NULL } },
+    // Werkstatt
+    { SENSOR_TYPE_BME280, render_temp_hum,       &objects.sensor_3__name, &objects.sensor_3__icon, &objects.sensor_3__battery, &objects.sensor_3__wifi,
+      &objects.sensor_3__header, { &objects.sensor_3__temp, &objects.sensor_3__humidity, NULL } },
+    // Balkon
+    { SENSOR_TYPE_BME280, render_temp_hum_press, &objects.sensor_4__name, &objects.sensor_4__icon, &objects.sensor_4__battery, &objects.sensor_4__wifi,
+      &objects.sensor_4__header, { &objects.sensor_4__temp, &objects.sensor_4__humidity, &objects.sensor_4__pressure } },
+    // Geigerzaehler
+    { SENSOR_TYPE_GEIGER, render_radiation,      &objects.sensor_5__name, &objects.sensor_5__icon, &objects.sensor_5__battery, &objects.sensor_5__wifi,
+      &objects.sensor_5__header, { &objects.sensor_5__micro_sievert, NULL, NULL } },
 };
+
+/* Neuer Widget-Typ oder Slot wechselt auf einen bestehenden Typ (z.B. einen
+ * Slot auf Sensor_Temp_Hum_Press_Compact umstellen): passende
+ * render_xxx()-Funktion oben eintragen und die objects.sensor_N__xxx-Felder
+ * unten anhand von screens.h aktualisieren (Achtung: EEZ Studio haengt bei
+ * mehreren Widget-Instanzen mit gleichem Label pro Screen ggf. Suffixe wie
+ * _1/_2 an die Feldnamen an - siehe sensor_4 oben). */
 
 /**
  * @brief  Uebertraegt Name/Icon aus dem Setup Screen in die Basisstation
@@ -644,51 +783,8 @@ void disp_sensor_values(uint8_t sensor_nr, sensor_type_t type, const void *paylo
     return;
   }
 
-  /* lv_label_set_text_fmt()/lv_snprintf() unterstuetzen hier keine
-   * Float-Format-Specifier (CONFIG_LV_USE_FLOAT ist aus, nur
-   * LV_USE_BUILTIN_SPRINTF) - "%.1f" etc. wuerden nur Muell/"f" anzeigen.
-   * Deshalb wie im Rest von gui.c mit libc-sprintf in einen Puffer
-   * formatieren und als fertigen String setzen. */
-  char buf[16];
-
   lvgl_port_lock(0);
-  switch (type) {
-    case SENSOR_TYPE_BME280: {
-      const bme280_payload_t *d = (const bme280_payload_t *)payload;
-
-      nvs_handle_t nvs_handle;
-      nvs_open("weatherstation", NVS_READONLY, &nvs_handle);
-      const char *height_c = get_string_from_nvs(nvs_handle, "height", "0");
-      nvs_close(nvs_handle);
-      float sea_level_pressure = calc_sea_level_pressure(d->pressure, d->temperature, (uint16_t)atol(height_c));
-
-      sprintf(buf, "%.1f", d->temperature);
-      lv_label_set_text(*slot->value1, buf);
-      sprintf(buf, "%.1f", d->humidity);
-      lv_label_set_text(*slot->value2, buf);
-      sprintf(buf, "%.0f", sea_level_pressure);
-      lv_label_set_text(*slot->value3, buf);
-      break;
-    }
-    case SENSOR_TYPE_SHT45: {
-      const sht45_payload_t *d = (const sht45_payload_t *)payload;
-      sprintf(buf, "%.1f", d->temperature);
-      lv_label_set_text(*slot->value1, buf);
-      sprintf(buf, "%.1f", d->humidity);
-      lv_label_set_text(*slot->value2, buf);
-      break;
-    }
-    case SENSOR_TYPE_GEIGER: {
-      const geiger_payload_t *d = (const geiger_payload_t *)payload;
-      sprintf(buf, "%.3f", d->usvh);
-      lv_label_set_text(*slot->value1, buf);
-      sprintf(buf, "%.1f", d->cpm);
-      lv_label_set_text(*slot->value2, buf);
-      break;
-    }
-    default:
-      break;
-  }
+  slot->render(type, &slot->values, payload);
   lvgl_port_unlock();
 }
 

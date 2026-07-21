@@ -11,6 +11,7 @@ typedef struct {
     double temperature_2m;          // Air temperature at 2 meters above ground
     double dew_point_2m;            // Dew point temperature at 2 meters above ground
     int relative_humidity_2m;       // Relative humidity at 2 meters above ground
+    double pressure_msl;            // Mean sea level pressure in hPa
     double apparent_temperature;    // Apparent temperature in °C
     int is_day;                     // Day indicator (1 = day, 0 = night)
     int weather_code;               // Weather code (WMO code)

@@ -90,7 +90,7 @@ static const char* DAY_NAMES[7] = { "So", "Mo", "Di", "Mi" , "Do" , "Fr" , "Sa" 
 #define NUM_HOURS 48
 #define MAX_HOURLY_PRECIPITATION 5
 
-#define NUM_DAYS 7
+#define NUM_DAYS 8
 #define MAX_DAILY_PRECIPITATION 20
 
 #endif /* CONFIG_H */

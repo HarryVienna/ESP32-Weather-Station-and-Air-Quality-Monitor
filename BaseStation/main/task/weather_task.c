@@ -30,7 +30,7 @@ static const char *WEATHER_URL_BASE = "https://api.open-meteo.com/v1/forecast";
 static const char *WEATHER_URL_CURRENT =
         "https://api.open-meteo.com/v1/forecast?"
         "latitude=%s&longitude=%s&"
-        "current=temperature_2m,dew_point_2m,relative_humidity_2m,apparent_temperature,"
+        "current=temperature_2m,dew_point_2m,relative_humidity_2m,pressure_msl,apparent_temperature,"
         "is_day,weather_code,cloud_cover,wind_speed_10m,wind_direction_10m,wind_gusts_10m,uv_index&"
         "timeformat=unixtime&timezone=auto";
 
@@ -49,7 +49,7 @@ static const char *WEATHER_URL_DAILY =
         "daylight_duration,sunshine_duration,"
         "rain_sum,showers_sum,snowfall_sum,precipitation_probability_max,"
         "wind_speed_10m_max,wind_gusts_10m_max,sunrise,sunset&"
-        "timeformat=unixtime&timezone=auto";
+        "timeformat=unixtime&timezone=auto&forecast_days=8";
 
 typedef struct {
     char *buffer;
@@ -179,8 +179,8 @@ void weather_task(void *pvParameter) {
     char url[512];
 
     current_weather_data_t current_data = {0};
-    hourly_weather_data_t hourly_data[48] = {0};
-    daily_weather_data_t daily_data[7] = {0};
+    hourly_weather_data_t hourly_data[NUM_HOURS] = {0};
+    daily_weather_data_t daily_data[NUM_DAYS] = {0};
 
     http_response_t response = {0};
 
@@ -243,6 +243,7 @@ void weather_task(void *pvParameter) {
                 cJSON *temp_2m = cJSON_GetObjectItem(current, "temperature_2m");
                 cJSON *dew_point = cJSON_GetObjectItem(current, "dew_point_2m");
                 cJSON *humidity = cJSON_GetObjectItem(current, "relative_humidity_2m");
+                cJSON *pressure_msl = cJSON_GetObjectItem(current, "pressure_msl");
                 cJSON *apparent_temp = cJSON_GetObjectItem(current, "apparent_temperature");
                 cJSON *is_day_item = cJSON_GetObjectItem(current, "is_day");
                 cJSON *weather_code_item = cJSON_GetObjectItem(current, "weather_code");
@@ -256,6 +257,7 @@ void weather_task(void *pvParameter) {
                 if (!temp_2m || !cJSON_IsNumber(temp_2m) ||
                     !dew_point || !cJSON_IsNumber(dew_point) ||
                     !humidity || !cJSON_IsNumber(humidity) ||
+                    !pressure_msl || !cJSON_IsNumber(pressure_msl) ||
                     !apparent_temp || !cJSON_IsNumber(apparent_temp) ||
                     !is_day_item || !cJSON_IsNumber(is_day_item) ||
                     !weather_code_item || !cJSON_IsNumber(weather_code_item) ||
@@ -280,6 +282,7 @@ void weather_task(void *pvParameter) {
                 current_data.temperature_2m = temp_2m->valuedouble;
                 current_data.dew_point_2m = dew_point->valuedouble;
                 current_data.relative_humidity_2m = humidity->valueint;
+                current_data.pressure_msl = pressure_msl->valuedouble;
                 current_data.apparent_temperature = apparent_temp->valuedouble;
                 current_data.is_day = is_day_item->valueint;
                 current_data.weather_code = weather_code_item->valueint;
