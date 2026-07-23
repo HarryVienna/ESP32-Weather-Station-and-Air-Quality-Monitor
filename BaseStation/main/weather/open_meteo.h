@@ -6,6 +6,7 @@ extern "C" {
 #endif
 
 #include <time.h>
+#include <stdbool.h>
 
 typedef struct {
     double temperature_2m;          // Air temperature at 2 meters above ground

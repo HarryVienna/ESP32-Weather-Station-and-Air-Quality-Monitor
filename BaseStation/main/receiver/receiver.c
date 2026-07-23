@@ -12,7 +12,7 @@
 #include "driver/gpio.h"
 #include "esp_rom_sys.h"
 
-#include "gui/gui.h"
+#include "gui/sensors/gui_sensors.h"
 
 #include "../../common/packet_format.h"
 

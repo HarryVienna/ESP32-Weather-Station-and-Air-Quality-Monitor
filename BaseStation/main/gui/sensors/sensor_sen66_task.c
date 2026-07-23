@@ -9,7 +9,7 @@
 #include "sensirion_common.h"
 #include "sensirion_i2c_hal.h"
 
-#include "gui/gui.h"
+#include "gui_sensors.h"
 
 
 static const char* TAG = "sensor_sen66_task";

@@ -14,9 +14,9 @@
 
 #include "cJSON.h"
 
-#include "../config/config.h"
+#include "config/config.h"
 
-#include "gui/gui.h"
+#include "gui_weather.h"
 
 #include "weather_task.h"
 #include "weather/open_meteo.h"

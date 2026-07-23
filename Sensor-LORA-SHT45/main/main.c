@@ -303,7 +303,7 @@ static void start_deep_sleep(void) {
 
 void app_main(void) {
  
-      bool show_menu = (esp_reset_reason() != ESP_RST_DEEPSLEEP);
+    bool show_menu = (esp_reset_reason() != ESP_RST_DEEPSLEEP);
 
     ESP_LOGI(TAG, "Boot: %s", show_menu ? "reset → config menu" : "timer wake");
 
@@ -351,6 +351,34 @@ void app_main(void) {
     // SHT45 braucht nach Power-on ~1ms; Soft-Reset für sauberen Zustand
     sht4x_soft_reset();
     sensirion_i2c_hal_sleep_usec(1000);
+
+    // --------------------------------------- 
+    // uint32_t serial_number = 0;
+    // int16_t serial_err = sht4x_serial_number(&serial_number);
+    // if (serial_err != 0) {
+    //     ESP_LOGE(TAG, "SHT45 serial number read failed: %d", serial_err);
+    // } else {
+    //     ESP_LOGI(TAG, "SHT45 serial number: 0x%08lX", serial_number);
+    // }
+
+    // int32_t heater_temp_milli = 0;
+    // int32_t heater_humi_milli = 0;
+    // int16_t heater_err = sht4x_activate_highest_heater_power_long(&heater_temp_milli, &heater_humi_milli);
+    // if (heater_err != 0) {
+    //     ESP_LOGE(TAG, "SHT45 heater measurement failed: %d", heater_err);
+    // } else {
+    //     ESP_LOGI(TAG, "SHT45 heater: %.2f°C / %.2f%%RH",
+    //              heater_temp_milli / 1000.0f, heater_humi_milli / 1000.0f);
+    // }
+
+    // // Test-Stopp: hier anhalten, kein Messen/Senden/Deep-Sleep
+    // sensirion_i2c_hal_free();
+    // i2c_del_master_bus(i2c_bus);
+    // ESP_LOGI(TAG, "Test done, halting.");
+    // while (1) {
+    //     vTaskDelay(pdMS_TO_TICKS(1000));
+    // }
+    // ---------------------------------------
 
     int32_t temp_milli = 0;
     int32_t humi_milli = 0;

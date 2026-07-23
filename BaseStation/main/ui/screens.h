@@ -192,17 +192,8 @@ void tick_user_widget_____________________________(int startWidgetIndex);
 void create_user_widget_sensor_kohlenmonoxid(lv_obj_t *parent_obj, int startWidgetIndex);
 void tick_user_widget_sensor_kohlenmonoxid(int startWidgetIndex);
 
-void create_user_widget_sensor_bme280_1(lv_obj_t *parent_obj, int startWidgetIndex);
-void tick_user_widget_sensor_bme280_1(int startWidgetIndex);
-
 void create_user_widget_sensor_bme280_2(lv_obj_t *parent_obj, int startWidgetIndex);
 void tick_user_widget_sensor_bme280_2(int startWidgetIndex);
-
-void create_user_widget_sensor_bme280_3(lv_obj_t *parent_obj, int startWidgetIndex);
-void tick_user_widget_sensor_bme280_3(int startWidgetIndex);
-
-void create_user_widget_sensor_bme280_4(lv_obj_t *parent_obj, int startWidgetIndex);
-void tick_user_widget_sensor_bme280_4(int startWidgetIndex);
 
 void create_user_widget_sen66_widget_2(lv_obj_t *parent_obj, int startWidgetIndex);
 void tick_user_widget_sen66_widget_2(int startWidgetIndex);

@@ -22,9 +22,10 @@
 #include "display/display.h"
 #include "receiver/receiver.h"
 #include "ui/ui.h"
-#include "gui/gui.h"
-#include "task/brightness_task.h"
-#include "task/sensor_sen66_task.h"
+#include "gui/weather/gui_weather.h"
+#include "gui/sensors/gui_sensors.h"
+#include "gui/status/gui_status.h"
+#include "gui/sensors/sensor_sen66_task.h"
 #include "wifi/network.h"
 
 static const char *TAG = "main";
@@ -57,7 +58,8 @@ void app_main(void)
 
     lvgl_port_lock(0);
     ui_init();
-    init_charts();
+    gui_weather_init_charts();
+    gui_sen66_init_charts();
     lvgl_port_unlock();
 
     ESP_ERROR_CHECK(i2c_manager_init());
@@ -66,14 +68,7 @@ void app_main(void)
     receiver_start();
 
 
-    xTaskCreatePinnedToCore(
-      brightness_task,
-      "Brightness Task",
-      4096,
-      NULL,
-      1,
-      NULL,
-      1);
+    gui_status_start_brightness_task();
 
 
     

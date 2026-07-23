@@ -8,9 +8,10 @@ extern "C" {
 #endif
 
 extern void action_event_setup_screen_loaded(lv_event_t * e);
+extern void action_event_weatherstation_start(lv_event_t * e);
+extern void action_event_weatherstation_screen_loaded(lv_event_t * e);
 extern void action_event_wifi_scan(lv_event_t * e);
 extern void action_event_wifi_connect(lv_event_t * e);
-extern void action_event_weatherstation_start(lv_event_t * e);
 extern void action_event_text_area_app_id(lv_event_t * e);
 extern void action_event_text_area_password(lv_event_t * e);
 extern void action_event_text_area_latitude(lv_event_t * e);
