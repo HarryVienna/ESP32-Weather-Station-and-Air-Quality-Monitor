@@ -1,5 +1,5 @@
-#ifndef OPEN_METEO_H
-#define OPEN_METEO_H
+#ifndef WEATHER_DATA_H
+#define WEATHER_DATA_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -7,6 +7,11 @@ extern "C" {
 
 #include <time.h>
 #include <stdbool.h>
+
+/* Providerneutrales Zielformat der Wetterdaten. Jeder Provider (Open-Meteo,
+ * OpenWeatherMap, ...) in den weather_*_provider.c-Dateien bildet seine
+ * eigenen Felder auf diese Structs ab - GUI (gui_weather.c) und
+ * weather_task.c kennen nur dieses Format, nie Provider-Details. */
 
 typedef struct {
     double temperature_2m;          // Air temperature at 2 meters above ground

@@ -43,7 +43,6 @@ void app_main(void)
     ESP_ERROR_CHECK(receiver_init());
     receiver_start();
 
-    {
     ESP_LOGI(TAG, "===================================================");
     ESP_LOGI(TAG, "           Initialization complete!                ");
     ESP_LOGI(TAG, "===================================================");

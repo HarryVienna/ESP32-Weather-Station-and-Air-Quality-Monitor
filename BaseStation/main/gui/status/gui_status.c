@@ -40,7 +40,7 @@ void set_brightness(uint16_t brightness)
   display_set_brightness(brightness);
 }
 
-void gui_status_start_task(void)
+void gui_status_start_clock_task(void)
 {
   xTaskCreatePinnedToCore(
       clock_task,

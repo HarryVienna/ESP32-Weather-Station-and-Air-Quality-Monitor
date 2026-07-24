@@ -178,6 +178,13 @@ static void print_packet(const uint8_t *buf, size_t buf_len)
     }
 }
 
+/* Tick-Rate des Sensor-Receivers (S3, siehe Sensor-Receiver/sdkconfig:
+ * CONFIG_FREERTOS_HZ=100), NICHT der BaseStation (P4: CONFIG_FREERTOS_HZ=1000,
+ * anderer Chip, andere Tick-Rate). link.timestamp in sensor_packet_t ist ein
+ * xTaskGetTickCount()-Wert vom S3 (siehe esp-now.c/lora.c dort) - portTICK_PERIOD_MS
+ * hier zu verwenden waere um Faktor 10 falsch. */
+#define SENSOR_RECEIVER_TICK_MS 10
+
 /* Watchdog: erkennt Sensoren, von denen laenger nichts mehr kam als erwartet.
  * Der Receiver kennt keine festen Sende-Intervalle der Sender (die schlafen
  * unterschiedlich lange, je nach Typ/Konfiguration) - deshalb wird das
@@ -185,11 +192,21 @@ static void print_packet(const uint8_t *buf, size_t buf_len)
  * Paketen selbst ermittelt. Erst ab dem zweiten Paket eines Sensors gibt es
  * einen Referenzwert; vorher (und wenn noch nie ein Paket kam) wird nicht auf
  * "offline" geprueft. Als Timeout gilt das 3-fache des zuletzt gemessenen
- * Intervalls - passt sich damit automatisch an jeden Sensor an. */
+ * Intervalls - passt sich damit automatisch an jeden Sensor an.
+ *
+ * Das Intervall wird aus link.timestamp (S3-Empfangszeit) berechnet, NICHT aus
+ * der BaseStation-Verarbeitungszeit: der S3 puffert Pakete in einer Queue, die
+ * die BaseStation erst beim naechsten I2C-Poll ausliest (alle 2s, siehe
+ * receiver_task) - liegen dabei mehrere Pakete im Backlog (z.B. weil der S3
+ * schon laenger lief, bevor die BaseStation zu pollen begann), werden die
+ * innerhalb weniger Millisekunden hintereinander verarbeitet, obwohl sie per
+ * Funk Minuten auseinander ankamen. Das hat vorher die gelernte Referenz auf
+ * einen viel zu kurzen Wert verfaelscht -> false "offline"-Meldungen. */
 typedef struct {
-    int64_t last_seen_us;      /* 0 = noch nie empfangen */
-    int64_t last_interval_us;  /* 0 = noch kein zweites Paket, kein Referenzwert */
-    bool    offline;
+    int64_t  last_seen_us;      /* 0 = noch nie empfangen (BaseStation-Zeit, fuer den "wie lange her"-Check in watchdog_check_all) */
+    uint32_t last_pkt_tick;     /* xTaskGetTickCount() des Sensor-Receivers beim letzten Paket */
+    int64_t  last_interval_us;  /* 0 = noch kein zweites Paket, kein Referenzwert */
+    bool     offline;
 } sensor_watchdog_t;
 
 static sensor_watchdog_t s_watchdog[SENSOR_SLOT_COUNT];
@@ -198,7 +215,7 @@ static sensor_watchdog_t s_watchdog[SENSOR_SLOT_COUNT];
  * Aktualisiert Zeitstempel/Intervall und meldet zurueck, ob die Karte gerade
  * als "offline" markiert war (damit der Aufrufer sie unter dem bestehenden
  * lvgl-Lock wieder normalfarbig machen kann). */
-static bool watchdog_note_packet(uint8_t sensor_nr)
+static bool watchdog_note_packet(uint8_t sensor_nr, uint32_t pkt_tick)
 {
     if (sensor_nr >= SENSOR_SLOT_COUNT) {
         return false;
@@ -207,9 +224,13 @@ static bool watchdog_note_packet(uint8_t sensor_nr)
     int64_t now = esp_timer_get_time();
 
     if (wd->last_seen_us != 0) {
-        wd->last_interval_us = now - wd->last_seen_us;
+        // Unsigned-Subtraktion behandelt einen Tick-Ueberlauf (alle ~497 Tage
+        // bei 10ms/Tick) automatisch korrekt.
+        uint32_t delta_ticks = pkt_tick - wd->last_pkt_tick;
+        wd->last_interval_us = (int64_t)delta_ticks * SENSOR_RECEIVER_TICK_MS * 1000;
     }
     wd->last_seen_us = now;
+    wd->last_pkt_tick = pkt_tick;
 
     bool was_offline = wd->offline;
     wd->offline = false;
@@ -283,7 +304,7 @@ static void update_sensor_display(const sensor_packet_t *pkt)
             return;
     }
 
-    bool was_offline = watchdog_note_packet(pkt->header.sensor_nr);
+    bool was_offline = watchdog_note_packet(pkt->header.sensor_nr, pkt->link.timestamp);
 
     if (was_offline) {
         disp_sensor_offline(pkt->header.sensor_nr, false);

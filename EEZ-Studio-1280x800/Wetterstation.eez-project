@@ -230,6 +230,15 @@
       "componentGroups": [],
       "userProperties": [],
       "name": "event_timezone_value_changed"
+    },
+    {
+      "objID": "d61b8494-1814-4fc0-e0b7-d9181a35b4b8",
+      "components": [],
+      "connectionLines": [],
+      "localVariables": [],
+      "componentGroups": [],
+      "userProperties": [],
+      "name": "event_api_value_changed"
     }
   ],
   "userPages": [
@@ -878,11 +887,147 @@
                   "heightUnit": "content",
                   "children": [
                     {
-                      "objID": "362307ea-56a5-4cd9-9fc1-2e8f797b84da",
+                      "objID": "bdd7a113-9214-458b-d959-2f61f19b9bb3",
                       "type": "LVGLLabelWidget",
                       "left": 0,
                       "top": 0,
                       "width": 11,
+                      "height": 36,
+                      "customInputs": [],
+                      "customOutputs": [],
+                      "style": {
+                        "objID": "6696c538-aedd-47b0-fc31-94edd0648435",
+                        "useStyle": "default",
+                        "conditionalStyles": [],
+                        "childStyles": []
+                      },
+                      "timeline": [],
+                      "eventHandlers": [],
+                      "identifier": "",
+                      "leftUnit": "px",
+                      "topUnit": "px",
+                      "widthUnit": "%",
+                      "heightUnit": "content",
+                      "children": [],
+                      "widgetFlags": "CLICK_FOCUSABLE|GESTURE_BUBBLE|PRESS_LOCK|SCROLLABLE|SCROLL_CHAIN_HOR|SCROLL_CHAIN_VER|SCROLL_ELASTIC|SCROLL_MOMENTUM|SCROLL_WITH_ARROW|SNAPPABLE",
+                      "hiddenFlagType": "literal",
+                      "clickableFlagType": "literal",
+                      "flagScrollbarMode": "",
+                      "flagScrollDirection": "",
+                      "checkedStateType": "literal",
+                      "disabledStateType": "literal",
+                      "states": "",
+                      "useStyle": "Setup Button Label",
+                      "localStyles": {
+                        "objID": "59a70357-83ed-433b-94f8-679f87ae151b"
+                      },
+                      "groupIndex": 0,
+                      "text": "API",
+                      "textType": "literal",
+                      "longMode": "WRAP",
+                      "recolor": false
+                    },
+                    {
+                      "objID": "c4d02b5b-77ca-4e57-98c3-27b38ce3cda7",
+                      "type": "LVGLDropdownWidget",
+                      "left": 555,
+                      "top": 360,
+                      "width": 30,
+                      "height": 52,
+                      "customInputs": [],
+                      "customOutputs": [],
+                      "style": {
+                        "objID": "41ab20a5-6b47-4aca-aa72-aa77bb860491",
+                        "useStyle": "default",
+                        "conditionalStyles": [],
+                        "childStyles": []
+                      },
+                      "timeline": [],
+                      "eventHandlers": [
+                        {
+                          "objID": "9e8a8e3f-151a-490e-c1f2-0bcb85315cf2",
+                          "eventName": "VALUE_CHANGED",
+                          "handlerType": "action",
+                          "action": "event_api_value_changed",
+                          "userData": 0
+                        }
+                      ],
+                      "identifier": "DropdownApi",
+                      "leftUnit": "px",
+                      "topUnit": "px",
+                      "widthUnit": "%",
+                      "heightUnit": "px",
+                      "children": [
+                        {
+                          "objID": "d963794e-669e-4078-ba01-83d4d5b05652",
+                          "type": "LVGLContainerWidget",
+                          "left": 0,
+                          "top": 0,
+                          "width": 130,
+                          "height": 130,
+                          "customInputs": [],
+                          "customOutputs": [],
+                          "style": {
+                            "objID": "852404bd-4f28-4278-9faa-5f73a8f2a1c7",
+                            "useStyle": "default",
+                            "conditionalStyles": [],
+                            "childStyles": []
+                          },
+                          "timeline": [],
+                          "eventHandlers": [],
+                          "leftUnit": "px",
+                          "topUnit": "px",
+                          "widthUnit": "px",
+                          "heightUnit": "px",
+                          "children": [],
+                          "widgetFlags": "CLICK_FOCUSABLE|GESTURE_BUBBLE|PRESS_LOCK|SCROLLABLE|SCROLL_CHAIN_HOR|SCROLL_CHAIN_VER|SCROLL_ELASTIC|SCROLL_MOMENTUM|SCROLL_WITH_ARROW|SNAPPABLE",
+                          "hiddenFlagType": "literal",
+                          "clickableFlag": true,
+                          "clickableFlagType": "literal",
+                          "flagScrollbarMode": "",
+                          "flagScrollDirection": "",
+                          "scrollSnapX": "",
+                          "scrollSnapY": "",
+                          "checkedStateType": "literal",
+                          "disabledStateType": "literal",
+                          "states": "",
+                          "useStyle": "Setup Dropdown List",
+                          "localStyles": {
+                            "objID": "a15ed0ed-83fd-4d01-f1f4-461d9efe7e74"
+                          },
+                          "group": "",
+                          "groupIndex": 0
+                        }
+                      ],
+                      "widgetFlags": "CLICK_FOCUSABLE|GESTURE_BUBBLE|PRESS_LOCK|SCROLLABLE|SCROLL_CHAIN_HOR|SCROLL_CHAIN_VER|SCROLL_ELASTIC|SCROLL_MOMENTUM|SCROLL_ON_FOCUS|SCROLL_WITH_ARROW|SNAPPABLE",
+                      "hiddenFlagType": "literal",
+                      "clickableFlag": true,
+                      "clickableFlagType": "literal",
+                      "flagScrollbarMode": "",
+                      "flagScrollDirection": "",
+                      "scrollSnapX": "",
+                      "scrollSnapY": "",
+                      "checkedStateType": "literal",
+                      "disabledStateType": "literal",
+                      "states": "",
+                      "useStyle": "Setup Dropdown",
+                      "localStyles": {
+                        "objID": "50fbbed1-5923-4c13-82f9-24e7e6811dd8"
+                      },
+                      "group": "",
+                      "groupIndex": 0,
+                      "options": "Open-Meteo\nOpen Weather Map\nVisual Crossing",
+                      "optionsType": "literal",
+                      "selected": 0,
+                      "selectedType": "literal",
+                      "direction": "bottom"
+                    },
+                    {
+                      "objID": "362307ea-56a5-4cd9-9fc1-2e8f797b84da",
+                      "type": "LVGLLabelWidget",
+                      "left": 0,
+                      "top": 0,
+                      "width": 13,
                       "height": 36,
                       "customInputs": [],
                       "customOutputs": [],
@@ -910,7 +1055,15 @@
                       "states": "",
                       "useStyle": "Setup Label",
                       "localStyles": {
-                        "objID": "24de6d16-a7b2-4d28-bd40-857c6944923c"
+                        "objID": "24de6d16-a7b2-4d28-bd40-857c6944923c",
+                        "definition": {
+                          "MAIN": {
+                            "DEFAULT": {
+                              "text_align": "RIGHT",
+                              "margin_right": 10
+                            }
+                          }
+                        }
                       },
                       "groupIndex": 0,
                       "text": "AppId:",
@@ -923,7 +1076,7 @@
                       "type": "LVGLTextareaWidget",
                       "left": 0,
                       "top": 0,
-                      "width": 89,
+                      "width": 46,
                       "height": 54,
                       "customInputs": [],
                       "customOutputs": [],
@@ -973,7 +1126,7 @@
                       },
                       "group": "",
                       "groupIndex": 0,
-                      "text": "",
+                      "text": "a4ff3e92fe619cd7573850bc3cf43ca7",
                       "textType": "literal",
                       "placeholder": "",
                       "oneLineMode": true,

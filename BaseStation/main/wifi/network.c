@@ -125,6 +125,31 @@ static int s_retry_num = 0;
  * hinweg bestehen, sobald sie einmal gesetzt wurde. */
 static bool s_stay_connected_forever = false;
 
+/* Menschenlesbare Kurzbeschreibung der gaengigsten WIFI_REASON_*-Codes (siehe
+ * esp_wifi_types_generic.h) - hilft beim Einordnen, ob ein langsamer/
+ * fehlschlagender Connect am Passwort, am Router oder an schlechtem Empfang
+ * liegt, statt nur die nackte Zahl zu sehen. */
+static const char* wifi_disconnect_reason_str(uint8_t reason) {
+    switch (reason) {
+        case WIFI_REASON_UNSPECIFIED: return "unspecified";
+        case WIFI_REASON_AUTH_EXPIRE: return "auth expired";
+        case WIFI_REASON_AUTH_LEAVE: return "auth leave";
+        case WIFI_REASON_DISASSOC_DUE_TO_INACTIVITY: return "disassoc (inactivity)";
+        case WIFI_REASON_ASSOC_LEAVE: return "assoc leave (STA disconnected)";
+        case WIFI_REASON_4WAY_HANDSHAKE_TIMEOUT: return "4-way handshake timeout (falsches Passwort?)";
+        case WIFI_REASON_MIC_FAILURE: return "MIC failure";
+        case WIFI_REASON_BEACON_TIMEOUT: return "beacon timeout (schlechter Empfang)";
+        case WIFI_REASON_NO_AP_FOUND: return "AP nicht gefunden";
+        case WIFI_REASON_AUTH_FAIL: return "Authentifizierung fehlgeschlagen (falsches Passwort?)";
+        case WIFI_REASON_ASSOC_FAIL: return "Assoziation fehlgeschlagen";
+        case WIFI_REASON_HANDSHAKE_TIMEOUT: return "Handshake-Timeout";
+        case WIFI_REASON_CONNECTION_FAIL: return "Verbindung fehlgeschlagen";
+        case WIFI_REASON_NO_AP_FOUND_W_COMPATIBLE_SECURITY: return "kein AP mit passender Sicherheit gefunden";
+        case WIFI_REASON_NO_AP_FOUND_IN_RSSI_THRESHOLD: return "AP-Signal zu schwach (RSSI-Schwelle)";
+        default: return "unbekannt";
+    }
+}
+
 static void event_handler(void* arg, esp_event_base_t event_base,
                                 int32_t event_id, void* event_data)
 {
@@ -132,9 +157,19 @@ static void event_handler(void* arg, esp_event_base_t event_base,
         esp_wifi_connect();
     }
     else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_DISCONNECTED) {
+        wifi_event_sta_disconnected_t *disconnected = (wifi_event_sta_disconnected_t *)event_data;
+        ESP_LOGW(TAG, "WiFi disconnected: reason=%d (%s), rssi=%d",
+                 disconnected->reason, wifi_disconnect_reason_str(disconnected->reason), disconnected->rssi);
+
         disp_wifi_status(false, 0);
 
         if (s_stay_connected_forever || s_retry_num < WIFI_CONNECT_MAX_RETRIES) {
+            // Kurze Pause vor dem Retry: manche Router/APs (Band-Steering, Mesh)
+            // haben den alten Assoziations-Eintrag fuer diese Station noch nicht
+            // abgeraeumt, wenn sofort erneut connect() aufgerufen wird - das
+            // aeussert sich als auth-expired/4-way-handshake-timeout trotz gutem
+            // RSSI (siehe wifi_disconnect_reason_str() oben).
+            vTaskDelay(pdMS_TO_TICKS(1000));
             esp_wifi_connect();
             s_retry_num++;
             ESP_LOGI(TAG, "retry to connect to the AP");

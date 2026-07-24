@@ -64,7 +64,7 @@ uint8_t get_uint8_from_nvs(nvs_handle_t handle, const char* key, uint8_t default
 
     esp_err_t err = nvs_get_u8(handle, key, &value);
     if (err != ESP_OK) {
-        ESP_LOGE(TAG, "nvs_get_u32 fail: %s %s", key, nvs_error(err));
+        ESP_LOGE(TAG, "nvs_get_u8 fail: %s %s", key, nvs_error(err));
     }
 
     return value;
@@ -75,7 +75,7 @@ size_t put_uint8_to_nvs(nvs_handle_t handle, const char* key, uint8_t value) {
 
     esp_err_t err = nvs_set_u8(handle, key, value);
     if (err != ESP_OK) {
-        ESP_LOGE(TAG,"nvs_set_u32 fail: %s %s", key, nvs_error(err));
+        ESP_LOGE(TAG,"nvs_set_u8 fail: %s %s", key, nvs_error(err));
         return 0;
     }
 

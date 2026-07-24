@@ -17,8 +17,33 @@
 #include "sensors/gui_sensors.h"
 #include "status/gui_status.h"
 #include "weather/gui_weather.h"
+#include "weather/weather_provider.h"
 
 static const char* TAG = "gui_actions";
+
+/* Ein Textfeld (TextAreaAppId) fuer zwei API-Keys (OpenWeatherMap/
+ * VisualCrossing) - je nach DropdownApi-Auswahl wird der passende, in NVS
+ * hinterlegte Key eingeblendet. Open-Meteo braucht keinen Key, das Feld wird
+ * dafuer geleert und deaktiviert. Wird von action_event_setup_screen_loaded()
+ * und action_event_api_value_changed() (Dropdown-Wechsel) genutzt. */
+static void apply_appid_for_provider(uint8_t provider, const char *appid_owm, const char *appid_vc)
+{
+  switch (provider) {
+    case WEATHER_PROVIDER_OPENWEATHERMAP:
+      lv_textarea_set_text(objects.text_area_app_id, appid_owm);
+      lv_obj_clear_state(objects.text_area_app_id, LV_STATE_DISABLED);
+      break;
+    case WEATHER_PROVIDER_VISUALCROSSING:
+      lv_textarea_set_text(objects.text_area_app_id, appid_vc);
+      lv_obj_clear_state(objects.text_area_app_id, LV_STATE_DISABLED);
+      break;
+    case WEATHER_PROVIDER_OPEN_METEO:
+    default:
+      lv_textarea_set_text(objects.text_area_app_id, "");
+      lv_obj_add_state(objects.text_area_app_id, LV_STATE_DISABLED);
+      break;
+  }
+}
 
 void action_event_setup_screen_loaded(lv_event_t *e)
 {
@@ -30,12 +55,15 @@ void action_event_setup_screen_loaded(lv_event_t *e)
 
   char* ssid = get_string_from_nvs(nvs_handle, "ssid", "");
   char* password = get_string_from_nvs(nvs_handle, "password", "");
-  char* appid = get_string_from_nvs(nvs_handle, "appid", "");
+  uint8_t weather_provider = get_uint8_from_nvs(nvs_handle, "weather_api", 0);
+  char* appid_owm = get_string_from_nvs(nvs_handle, "appid_owm", "");
+  char* appid_vc = get_string_from_nvs(nvs_handle, "appid_vc", "");
   char* latitude = get_string_from_nvs(nvs_handle, "latitude", "");
   char* longitude =get_string_from_nvs(nvs_handle, "longitude", "");
   char* height = get_string_from_nvs(nvs_handle, "height", "");
   uint8_t region_id = get_uint8_from_nvs(nvs_handle, "region", 0);
   uint8_t city_id = get_uint8_from_nvs(nvs_handle, "city", 0);
+
   load_basis_from_nvs(nvs_handle);
   load_sensor_slots_from_nvs(nvs_handle);
 
@@ -47,7 +75,9 @@ void action_event_setup_screen_loaded(lv_event_t *e)
     lv_dropdown_add_option(objects.dropdown_networks, ssid, LV_DROPDOWN_POS_LAST);
   }
   lv_textarea_set_text(objects.text_area_password, password);
-  lv_textarea_set_text(objects.text_area_app_id, appid);
+
+  lv_dropdown_set_selected(objects.dropdown_api, weather_provider);
+  apply_appid_for_provider(weather_provider, appid_owm, appid_vc);
 
   lv_textarea_set_text(objects.text_area_latitude, latitude);
   lv_textarea_set_text(objects.text_area_longitude, longitude);
@@ -126,7 +156,23 @@ void action_event_timezone_value_changed(lv_event_t *e)
   lv_dropdown_set_selected(objects.dropdown_city, 0);
 }
 
+/* Dropdown-Wechsel im Setup: blendet den zum neu gewaehlten Provider
+ * passenden, in NVS gespeicherten API-Key ins TextAreaAppId ein (siehe
+ * apply_appid_for_provider()). Ungespeicherte Eingaben fuer den zuvor
+ * gewaehlten Provider gehen dabei verloren, wenn vorher nicht "Starten"
+ * gedrueckt wurde. */
+void action_event_api_value_changed(lv_event_t *e)
+{
+  uint8_t provider = lv_dropdown_get_selected(objects.dropdown_api);
 
+  nvs_handle_t nvs_handle;
+  nvs_open("weatherstation", NVS_READONLY, &nvs_handle);
+  char* appid_owm = get_string_from_nvs(nvs_handle, "appid_owm", "");
+  char* appid_vc = get_string_from_nvs(nvs_handle, "appid_vc", "");
+  nvs_close(nvs_handle);
+
+  apply_appid_for_provider(provider, appid_owm, appid_vc);
+}
 
 void action_event_weatherstation_start(lv_event_t *e)
 {
@@ -141,8 +187,23 @@ void action_event_weatherstation_start(lv_event_t *e)
   const char* password = lv_textarea_get_text(objects.text_area_password);
   put_string_to_nvs(nvs_handle, "password", password);
 
+  uint8_t weather_provider = lv_dropdown_get_selected(objects.dropdown_api);
+  put_uint8_to_nvs(nvs_handle, "weather_api", weather_provider);
+
+  // Nur der zum gewaehlten Provider passende Key wird geschrieben - der
+  // jeweils andere bleibt unangetastet in NVS stehen (siehe apply_appid_for_provider()).
   const char* appid = lv_textarea_get_text(objects.text_area_app_id);
-  put_string_to_nvs(nvs_handle, "appid", appid);
+  switch (weather_provider) {
+    case WEATHER_PROVIDER_OPENWEATHERMAP:
+      put_string_to_nvs(nvs_handle, "appid_owm", appid);
+      break;
+    case WEATHER_PROVIDER_VISUALCROSSING:
+      put_string_to_nvs(nvs_handle, "appid_vc", appid);
+      break;
+    case WEATHER_PROVIDER_OPEN_METEO:
+    default:
+      break; // kein Key noetig
+  }
 
   const char* latitude = lv_textarea_get_text(objects.text_area_latitude);
   put_string_to_nvs(nvs_handle, "latitude", latitude);
@@ -194,7 +255,7 @@ void action_event_weatherstation_start(lv_event_t *e)
 void action_event_weatherstation_screen_loaded(lv_event_t *e)
 {
   gui_status_start_brightness_task();
-  gui_status_start_task();
+  gui_status_start_clock_task();
   gui_weather_start_task();
   gui_sen66_start_task();
 }

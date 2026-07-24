@@ -12,7 +12,7 @@ void set_brightness(uint16_t brightness);
 
 /* Startet clock_task (Uhrzeit/Datum) - von gui_actions.c aufgerufen, sobald
  * WLAN/NTP steht (clock_task zeigt sonst eine nicht synchronisierte Uhrzeit). */
-void gui_status_start_task(void);
+void gui_status_start_clock_task(void);
 
 /* Startet brightness_task (Helligkeits-/Anwesenheitssensor) - unabhaengig
  * von WLAN, deshalb separat und von main.c direkt beim Boot aufgerufen statt

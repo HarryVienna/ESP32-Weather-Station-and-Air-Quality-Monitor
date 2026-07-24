@@ -1,7 +1,7 @@
 #ifndef GUI_WEATHER_H
 #define GUI_WEATHER_H
 
-#include "weather/open_meteo.h"
+#include "weather/weather_data.h"
 
 /* Wettervorhersage (Open-Meteo) - aktuell/stuendlich/taeglich */
 

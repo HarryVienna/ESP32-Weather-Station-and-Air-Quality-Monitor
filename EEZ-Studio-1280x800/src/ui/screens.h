@@ -29,6 +29,7 @@ typedef struct _objects_t {
     lv_obj_t *button_connect;
     lv_obj_t *label_connect;
     lv_obj_t *panel_app_id;
+    lv_obj_t *dropdown_api;
     lv_obj_t *text_area_app_id;
     lv_obj_t *panel_location;
     lv_obj_t *text_area_latitude;
