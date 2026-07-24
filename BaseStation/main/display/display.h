@@ -11,6 +11,13 @@ extern "C" {
 #define DISPLAY_WIDTH   1280
 #define DISPLAY_HEIGHT  800
 
+/* Helligkeit, auf die display_init() die Hintergrundbeleuchtung beim Boot
+ * setzt (siehe display.c) - brightness_task.c startet seine lokale
+ * current_brightness-Schattenvariable hiermit, statt bei 0, damit sie beim
+ * (verzoegerten) Task-Start nicht erst sichtbar runter- und wieder
+ * hochrampt. */
+#define DISPLAY_INIT_BRIGHTNESS 64
+
 /**
  * @brief Display-Subsystem initialisieren.
  *

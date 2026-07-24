@@ -193,6 +193,7 @@ void action_event_weatherstation_start(lv_event_t *e)
  * Tasks hier bedenkenlos starten. */
 void action_event_weatherstation_screen_loaded(lv_event_t *e)
 {
+  gui_status_start_brightness_task();
   gui_status_start_task();
   gui_weather_start_task();
   gui_sen66_start_task();

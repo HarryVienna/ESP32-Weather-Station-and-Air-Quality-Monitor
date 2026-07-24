@@ -7,6 +7,7 @@
 #include "freertos/task.h"
 
 #include "i2c/i2c_manager.h"
+#include "display/display.h"
 #include "gui_status.h"
 #include "c4001.h"
 #include "bh1750.h"
@@ -25,6 +26,16 @@ static const char* TAG = "brightness_task";
 
 #define LUX_CALIBRATION_OFFSET   5     // Eigenlicht der Gehaeuse-LEDs (wetterstationsspezifisch
 #define BRIGHTNESS_NO_PRESENCE   5     // Display-Helligkeit, wenn keine Anwesenheit erkannt wird
+
+/* Der C4001-Radar liefert direkt nach dem Konfigurieren (RECOVER_SEN/
+ * PRESENCE_MODE/START_SEN/Range/Sensitivity/Delay) noch eine Weile
+ * "presence=false", auch wenn jemand davorsteht (vermutlich interne
+ * Kalibrierung/Einschwingzeit) - deshalb wird nach der Konfiguration erst
+ * gewartet, bevor ueberhaupt ein Presence-Wert abgefragt wird. Wert ist
+ * eine erste Schaetzung, ggf. anhand der Lux/Brightness-Logs nachjustieren
+ * (faengt der erste Wert schon bei einem sinnvollen Ziel statt bei
+ * BRIGHTNESS_NO_PRESENCE an?). */
+#define PRESENCE_WARMUP_MS 5000
 
 static uint16_t map_brightness_power(uint16_t lux, bool presence)
 {
@@ -93,11 +104,19 @@ void brightness_task(void *pvParameter)
     ESP_LOGI(TAG, "set delay successfully");
   }
 
+  // Radar-Einschwingzeit abwarten (siehe PRESENCE_WARMUP_MS oben), bevor
+  // ueberhaupt ein Presence-Wert abgefragt wird - die Beleuchtung steht bis
+  // dahin unveraendert auf DISPLAY_INIT_BRIGHTNESS (siehe unten).
+  vTaskDelay(pdMS_TO_TICKS(PRESENCE_WARMUP_MS));
+
   presence_data_t presence_data = {0};
 
   uint16_t lux = 0;
-  uint16_t target_brightness = 0;
-  uint16_t current_brightness = 0;
+  // Beide auf die tatsaechliche Boot-Helligkeit vorbelegt (nicht 0) - sonst
+  // rampt current_brightness beim Task-Start sichtbar von schwarz hoch,
+  // obwohl die Beleuchtung real schon auf DISPLAY_INIT_BRIGHTNESS steht.
+  uint16_t target_brightness = DISPLAY_INIT_BRIGHTNESS;
+  uint16_t current_brightness = DISPLAY_INIT_BRIGHTNESS;
   uint8_t sensor_tick = 0;
 
   for (;;) {

@@ -40,13 +40,13 @@ static const color_thresh_t THRESH_BATTERY_VOLTAGE = {4.0f, 3.8f, 3.6f, 3.4f};
 static const color_thresh_t THRESH_RSSI_DBM = {-70.0f, -85.0f, -95.0f, -105.0f};
 
 // SEN66-Luftqualitaets-Schwellwerte
-static const color_thresh_t THRESH_PM1   = {11.6f, 32.0f,  50.0f,  68.0f};
-static const color_thresh_t THRESH_PM2P5 = {13.0f, 35.0f,  55.0f,  75.0f};
-static const color_thresh_t THRESH_PM4   = {14.4f, 38.0f,  60.0f,  82.0f};
-static const color_thresh_t THRESH_PM10  = {20.0f, 50.0f,  80.0f, 110.0f};
-static const color_thresh_t THRESH_VOC   = {50.0f, 150.0f, 250.0f, 400.0f};
-static const color_thresh_t THRESH_NOX   = { 1.0f,  20.0f, 150.0f, 300.0f};
-static const color_thresh_t THRESH_CO2   = {600.0f,1000.0f,1500.0f,1900.0f};
+static const color_thresh_t THRESH_PM1   = {11.6f,   32.0f,  50.0f,   68.0f};
+static const color_thresh_t THRESH_PM2P5 = {13.0f,   35.0f,  55.0f,   75.0f};
+static const color_thresh_t THRESH_PM4   = {14.4f,   38.0f,  60.0f,   82.0f};
+static const color_thresh_t THRESH_PM10  = {20.0f,   50.0f,  80.0f,   110.0f};
+static const color_thresh_t THRESH_VOC   = {50.0f,   150.0f, 250.0f,  400.0f};
+static const color_thresh_t THRESH_NOX   = { 1.0f,   20.0f,  150.0f,  300.0f};
+static const color_thresh_t THRESH_CO2   = {600.0f, 1000.0f, 1500.0f, 1900.0f};
 
 // Timezone-Tabelle fuer den Setup Screen (Region-Dropdown + Stadt/TZ je Region)
 static const char *regionNames[] = {

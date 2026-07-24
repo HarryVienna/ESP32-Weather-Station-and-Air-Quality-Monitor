@@ -1,7 +1,8 @@
 {
   "navigation": {
-    "selectedUserPageObject": "[Wetterstation.eez-project]:/userPages/1",
+    "selectedUserPageObject": "[Wetterstation.eez-project]:/userPages/0",
     "selectedUserWidgetObject": "[Wetterstation.eez-project]:/userWidgets/0",
+    "selectedActionObject": "[Wetterstation.eez-project]:/actions/-1",
     "selectedStyleObject": "[Wetterstation.eez-project]:/lvglStyles/styles/2",
     "selectedFontObject": "[Wetterstation.eez-project]:/fonts/9",
     "selectedBitmapObject": "[Wetterstation.eez-project]:/bitmaps/14",
@@ -126,8 +127,8 @@
                 {
                   "type": "tabset",
                   "id": "#6b74b635-7a66-4336-91ba-4808f2d949f2",
-                  "weight": 0.9421198617595508,
-                  "selected": 1,
+                  "weight": 1.17437857767944,
+                  "selected": 2,
                   "enableClose": false,
                   "children": [
                     {
@@ -159,7 +160,7 @@
                 {
                   "type": "tabset",
                   "id": "#a96a3f6c-df23-495d-85c2-9b8115815633",
-                  "weight": 1.5603860210392562,
+                  "weight": 1.3281273051193667,
                   "enableClose": false,
                   "children": [
                     {
@@ -193,14 +194,13 @@
             {
               "type": "tabset",
               "id": "EDITORS",
-              "weight": 54.271699005101134,
-              "selected": 1,
+              "weight": 49.1863889575361,
               "enableDeleteWhenEmpty": false,
               "enableClose": false,
               "children": [
                 {
                   "type": "tab",
-                  "id": "#0cd68d64-09d4-4539-b849-7b7323693647",
+                  "id": "#112bcc9a-6f77-4142-be99-3a83de9f291b",
                   "name": "Current",
                   "component": "editor",
                   "config": {
@@ -237,7 +237,7 @@
             {
               "type": "row",
               "id": "#c868a29f-91bb-4ff7-9e6f-e8b94cefd0ac",
-              "weight": 24.82326979424596,
+              "weight": 29.908579841810994,
               "children": [
                 {
                   "type": "tabset",
@@ -1139,12 +1139,15 @@
           "0": {
             "6": {
               "1": {},
-              "3": {
-                "$selected": true
-              },
+              "3": {},
               "5": {}
             },
-            "7": {}
+            "7": {},
+            "8": {
+              "0": {
+                "$selected": true
+              }
+            }
           },
           "2": {},
           "3": {}
@@ -1182,7 +1185,9 @@
       "selectionFront": {},
       "selectionBack": {
         "0": {
-          "0": {},
+          "0": {
+            "$selected": true
+          },
           "1": {},
           "2": {
             "5": {}
@@ -1214,7 +1219,9 @@
       "selectionFront": {},
       "selectionBack": {
         "0": {
-          "0": {},
+          "0": {
+            "$selected": true
+          },
           "1": {
             "0": {},
             "1": {
@@ -1222,9 +1229,7 @@
               "1": {},
               "2": {},
               "3": {
-                "3": {
-                  "$selected": true
-                }
+                "3": {}
               }
             }
           },
@@ -1260,9 +1265,7 @@
         "0": {
           "1": {},
           "2": {
-            "1": {
-              "$selected": true
-            }
+            "1": {}
           },
           "3": {
             "0": {
@@ -1275,6 +1278,13 @@
             }
           },
           "4": {
+            "0": {}
+          },
+          "5": {
+            "0": {},
+            "1": {}
+          },
+          "6": {
             "0": {}
           }
         }
@@ -1334,7 +1344,9 @@
           },
           "2": {
             "0": {},
-            "1": {}
+            "1": {
+              "$selected": true
+            }
           }
         }
       },
@@ -1361,9 +1373,7 @@
             "1": {}
           },
           "2": {
-            "0": {
-              "$selected": true
-            },
+            "0": {},
             "1": {}
           }
         }
@@ -1387,7 +1397,11 @@
       "selectionBack": {
         "0": {
           "0": {},
-          "1": {}
+          "1": {
+            "0": {
+              "$selected": true
+            }
+          }
         }
       },
       "transform": {
@@ -1531,19 +1545,7 @@
       "selectionBack": {
         "0": {
           "0": {},
-          "1": {},
-          "3": {
-            "$selected": true
-          },
-          "4": {
-            "$selected": true
-          },
-          "5": {
-            "$selected": true
-          },
-          "6": {
-            "$selected": true
-          }
+          "1": {}
         }
       },
       "transform": {
@@ -1573,7 +1575,6 @@
         "0": {
           "0": {},
           "1": {},
-          "2": {},
           "$selected": true
         }
       },
@@ -1735,10 +1736,7 @@
   "selectedStylePropertyName": "",
   "lvglPart": "MAIN",
   "lvglState": "DEFAULT",
-  "lvglExpandedPropertiesGroup": [
-    "POSITION AND SIZE",
-    "BORDER"
-  ],
+  "lvglExpandedPropertiesGroup": [],
   "showInactiveFlowsInDebugger": true,
   "globalFlowZoom": false,
   "flowZoom": 1,

@@ -378,7 +378,7 @@ static esp_err_t init_backlight(void)
                         TAG, "Backlight off failed");
 
     vTaskDelay(pdMS_TO_TICKS(100));
-    display_set_brightness(0);
+    display_set_brightness(DISPLAY_INIT_BRIGHTNESS);
     //vTaskDelay(pdMS_TO_TICKS(1000));
 
     ESP_LOGI(TAG, "Backlight initialized");

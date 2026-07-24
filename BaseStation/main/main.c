@@ -1,12 +1,6 @@
 /*******************************************************************************
- * LVGL on ESP32-P4-Module-DEV-KIT-C with 10.1" DSI Display
+ * ESP32 Weather Station & Air Quality Monitor
  *******************************************************************************
- *
- * Demonstrates:
- *   - Display initialization (MIPI DSI, JD9365, landscape mode)
- *   - GT911 capacitive touch input
- *   - LVGL 8
- *   - Sensor-Empfang via I2C vom ESP32-S3 Slave
  *
  * Hardware:
  *   Board:   Waveshare ESP32-P4-Module-DEV-KIT
@@ -24,33 +18,15 @@
 #include "ui/ui.h"
 #include "gui/weather/gui_weather.h"
 #include "gui/sensors/gui_sensors.h"
-#include "gui/status/gui_status.h"
-#include "gui/sensors/sensor_sen66_task.h"
 #include "wifi/network.h"
 
 static const char *TAG = "main";
 
-
-// void set_brightness(int32_t value) {
-//     display_set_brightness(value);
-
-//     char str[10];
-//     sprintf(str, "%lu", value);
-//     //lv_label_set_text(objects.label_brightness, str);
-// }
-
-// void action_slider_set_backlight_brightness(lv_event_t *e) {
-//     lv_obj_t *slider = lv_event_get_target(e);
-//     int32_t value = lv_slider_get_value(slider);
-//     set_brightness(value);
-// }
-
-
 void app_main(void)
 {
-    ESP_LOGI(TAG, "============================================");
-    ESP_LOGI(TAG, "      ESP32-P4 + 10.1\" DSI Display         ");
-    ESP_LOGI(TAG, "============================================");
+    ESP_LOGI(TAG, "===================================================");
+    ESP_LOGI(TAG, "      ESP32 Wetterstation & Raumluft-Monitor       ");
+    ESP_LOGI(TAG, "===================================================");
 
     ESP_ERROR_CHECK(display_init());
 
@@ -67,14 +43,9 @@ void app_main(void)
     ESP_ERROR_CHECK(receiver_init());
     receiver_start();
 
-
-    gui_status_start_brightness_task();
-
-
-    
-
-    ESP_LOGI(TAG, "============================================");
-    ESP_LOGI(TAG, " Initialization complete!");
-    ESP_LOGI(TAG, "============================================");
+    {
+    ESP_LOGI(TAG, "===================================================");
+    ESP_LOGI(TAG, "           Initialization complete!                ");
+    ESP_LOGI(TAG, "===================================================");
 
 }
