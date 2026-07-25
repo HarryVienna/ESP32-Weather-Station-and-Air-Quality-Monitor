@@ -9,7 +9,6 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
-#include "config/config.h"
 #include "ui/ui.h"
 #include "lvgl/lv_common.h"
 #include "lvgl/lv_hourly_chart.h"

@@ -9,7 +9,7 @@
 #include "sensirion_common.h"
 #include "sensirion_i2c_hal.h"
 
-#include "gui_sensors.h"
+#include "gui_sen66.h"
 
 
 static const char* TAG = "sensor_sen66_task";
@@ -119,7 +119,7 @@ void sensor_sen66_task(void *pvParameter) {
 
     for (;;) {
         // Read Measurement
-        vTaskDelay(pdMS_TO_TICKS(1000 * 10));
+        vTaskDelay(pdMS_TO_TICKS(1000 * SEN66_SAMPLE_INTERVAL_SEC));
 
         error = sen66_read_measured_values_as_integers(
             &mass_concentration_pm1p0, &mass_concentration_pm2p5,

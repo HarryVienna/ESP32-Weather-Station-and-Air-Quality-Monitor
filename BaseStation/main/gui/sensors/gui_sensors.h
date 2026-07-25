@@ -4,39 +4,35 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#include "lvgl.h"
-
 #include "nvs/preferences.h"
-#include "config/config.h"
 #include "../../../common/packet_format.h"
 
-/* Sensoren - Basis (SEN66) + 6 Fernsensoren (LoRa/ESP-NOW), plus die
- * gemeinsamen Wert->Farbe-Funktionen (frueher gui_color.c/h) - alles hier
- * drin, weil praktisch nur von gui_sensors.c selbst gebraucht; einzige
- * Ausnahme ist level_color_desc(), das auch gui_status.c fuer das
- * WLAN-Icon braucht.
+/* Sensoren - 6 Fernsensoren (LoRa/ESP-NOW). Die gemeinsamen Wert->Farbe-
+ * Funktionen liegen in gui_color_scale.h, der Name+Icon-Katalog in
+ * gui_icon_catalog.h und das 24h-Verlaufschart-Bucketing in
+ * gui_history_chart.h (alle drei auch von SEN66 gebraucht, siehe
+ * gui_sen66.h) - hier geht es nur um die 6 fest verbauten Sensor-Karten im
+ * Weatherstation-Screen.
  *
  * -----------------------------------------------------------------------
  * Wie fuege ich einen Sensor hinzu / aendere einen bestehenden?
  * -----------------------------------------------------------------------
- * "Ein Sensor" besteht aus zwei unabhaengigen Dingen, beide in gui_sensors.c:
+ * "Ein Sensor" besteht aus zwei unabhaengigen Dingen:
  *
- * a) WAS man im Setup Screen auswaehlen kann (Name+Icon-Katalog):
- *    sensor_icon_options[]. Jeder Eintrag ist ein Name+Icon-Paar, das im
- *    Dropdown erscheint (z.B. {"Schlafzimmer", &img_sensor_bedroom}). Ein
- *    Dropdown legt beides zugleich fest - es gibt keine separaten
- *    Namensfelder mehr. Neues Icon zur Auswahl hinzufuegen = eine neue
- *    Zeile hier, sonst nichts.
+ * a) WAS man im Setup Screen auswaehlen kann (Name+Icon-Katalog): siehe
+ *    sensor_icon_options[] in gui_icon_catalog.c. Ein Dropdown legt Name UND
+ *    Icon gemeinsam fest - es gibt keine separaten Namensfelder. Neues Icon
+ *    zur Auswahl hinzufuegen = eine neue Zeile dort, sonst nichts.
  *
  * b) WELCHER Sensor-Typ (bme280/sht45/geiger) an WELCHER Stelle im
- *    Weatherstation-Screen fest verbaut ist: sensor_slots[]. Jeder der 6
- *    Sensor_X-Widgets (in EEZ Studio direkt so benannt, X=0..5) hat
- *    dauerhaft einen fest verbauten Widget-Typ. Diese Tabelle sagt
- *    disp_sensor_values()/disp_sensor_link_quality(), welche von EEZ
- *    generierten Feldnamen (objects.sensor_N__temp usw.) zu welchem Slot
- *    gehoeren. Aendert sich in EEZ Studio, welcher Typ in Slot X verbaut
- *    ist, wird NUR diese eine Tabellenzeile angepasst - der Rest der Datei
- *    bleibt unberuehrt.
+ *    Weatherstation-Screen fest verbaut ist: sensor_slots[] in
+ *    gui_sensors.c. Jeder der 6 Sensor_X-Widgets (in EEZ Studio direkt so
+ *    benannt, X=0..5) hat dauerhaft einen fest verbauten Widget-Typ. Diese
+ *    Tabelle sagt disp_sensor_values()/disp_sensor_link_quality(), welche
+ *    von EEZ generierten Feldnamen (objects.sensor_N__temp usw.) zu welchem
+ *    Slot gehoeren. Aendert sich in EEZ Studio, welcher Typ in Slot X
+ *    verbaut ist, wird NUR diese eine Tabellenzeile angepasst - der Rest
+ *    der Datei bleibt unberuehrt.
  *
  * Der Slot-Index (0-5) ist ueberall derselbe: die UI-Reihenfolge
  * "Sensor 1..6" im Setup Screen, packet_header_t.sensor_nr im Funkpaket
@@ -50,38 +46,27 @@
  * kennen. */
 #define SENSOR_SLOT_COUNT 6
 
-/* Absteigend: t1 = bester (hoechster) Wert. Fuer Messgroessen bei denen ein
- * hoeherer Wert besser ist (Akkuspannung, RSSI). Einzige der beiden
- * Farbskalen-Funktionen, die auch ausserhalb von gui_sensors.c gebraucht
- * wird (gui_status.c, WLAN-Icon) - sen66_value_color() bleibt dagegen
- * static in gui_sensors.c, da nur intern fuer SEN66-Werte benutzt. */
-lv_color_t level_color_desc(float val, const color_thresh_t *t);
-
 void disp_sensor_link_quality(uint8_t sensor_nr, uint32_t voltage_mv, int16_t rssi_dbm);
 void disp_sensor_values(uint8_t sensor_nr, sensor_type_t type, const void *payload);
 void disp_sensor_offline(uint8_t sensor_nr, bool offline);
 
-/* Von gui_actions.c benutzte Kernfunktionen (Setup Screen <-> NVS/Weatherstation-Screen) */
-void apply_slot_configs(void);
+/* Von gui_setup_screen_actions.c benutzte Kernfunktionen (Setup Screen <->
+ * NVS/Weatherstation-Screen). Gegenstueck fuer SEN66 ("Basis") sind
+ * load/save_basis_to_nvs() und apply_sen66_config() in gui_sen66.h. */
+void apply_sensor_slot_configs(void);
 void load_sensor_slots_from_nvs(nvs_handle_t nvs_handle);
 void save_sensor_slots_to_nvs(nvs_handle_t nvs_handle);
-void load_basis_from_nvs(nvs_handle_t nvs_handle);
-void save_basis_to_nvs(nvs_handle_t nvs_handle);
 
-/* SEN66 - eingebauter Luftqualitaetssensor der Basisstation. Name/Icon der
- * SEN66-Karte werden wie bei den Fernsensoren im Setup Screen konfiguriert
- * (siehe apply_slot_configs() oben) - hier geht es nur um die eigentlichen
- * Messwerte (Temp/Feuchte/Feinstaub/VOC/NOx/CO2). */
-void disp_sen6x(float ambientTemperature, float ambientHumidity, float massConcentrationPm1p0, float massConcentrationPm2p5, float massConcentrationPm4p0, float massConcentrationPm10p0, float vocIndex, float noxIndex, uint16_t co2);
-void update_sen66_charts(float pm1, float pm2p5, float pm4, float pm10, float voc, float nox, uint16_t co2);
+/* Geigerzaehler - Sende-Intervall (auf der Sensor-Seite fest verdrahtet, von
+ * der Basisstation aus nicht steuerbar - anders als SEN66_SAMPLE_INTERVAL_SEC
+ * in gui_sen66.h). Fuer die 24h-Verlaufschart (siehe gui_radiation_init_chart())
+ * daraus Samples/Tag abgeleitet. */
+#define RADIATION_SAMPLE_INTERVAL_SEC 60
+#define RADIATION_HISTORY_SAMPLES_PER_DAY (24 * 60 * 60 / RADIATION_SAMPLE_INTERVAL_SEC)
 
-/* SEN66-Teil des Chart-Setups (die 4 Balken-Charts PM/VOC/NOx/CO2) - ersetzt
- * das frueher gemeinsame init_charts() fuer die SEN66-Domaene. Von main.c
- * aufgerufen, unabhaengig von gui_weather_init_charts() (siehe gui_weather.h). */
-void gui_sen66_init_charts(void);
-
-/* Startet sensor_sen66_task (I2C-Messungen) - von gui_actions.c aufgerufen,
- * sobald WLAN steht. */
-void gui_sen66_start_task(void);
+/* Geigerzaehler (Slot 5) - 24h-Verlaufschart. Wie gui_sen66_init_charts()
+ * (siehe gui_sen66.h) einmalig beim Start aufrufen, bevor Pakete ueber
+ * disp_sensor_values() reinkommen. */
+void gui_radiation_init_chart(void);
 
 #endif /* GUI_SENSORS_H */

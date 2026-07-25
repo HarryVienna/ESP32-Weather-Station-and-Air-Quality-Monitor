@@ -4,6 +4,7 @@
 
 #include "config/config.h"
 #include "ui/ui.h"
+#include "timezone_data.h"
 
 void set_cities(const char *region)
 {

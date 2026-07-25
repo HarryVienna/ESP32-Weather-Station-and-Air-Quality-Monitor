@@ -22,7 +22,6 @@ extern "C" {
 /*********************
  *      INCLUDES
  *********************/
-#include "../config/config.h"
 #include "lvgl.h"
 #include "core/lv_obj_private.h"   /* lv_obj_t as by-value base member */
 #include <time.h>
@@ -32,6 +31,13 @@ extern "C" {
  *********************/
 
 #define LV_DAILY_CHART_LABEL_MAX_TEXT_LENGTH 16
+
+/* Anzahl Forecast-Tage, die der Chart darstellt - fest verdrahtet, weil
+ * lv_daily_chart_t.data_array[] eine feste Groesse braucht (kein
+ * dynamisches Array). weather_task.c fragt beim Provider exakt NUM_DAYS
+ * Tage ab, damit Fetch-Puffer und Chart-Kapazitaet 1:1 zusammenpassen. */
+#define NUM_DAYS 8
+#define MAX_DAILY_PRECIPITATION 20
 
 /**********************
  *      TYPEDEFS

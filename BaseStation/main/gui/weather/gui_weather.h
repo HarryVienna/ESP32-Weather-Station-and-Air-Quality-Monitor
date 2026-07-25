@@ -16,8 +16,8 @@ void disp_weather(current_weather_data_t *current_weather, hourly_weather_data_t
  * gui_sen66_init_charts() (siehe dort). */
 void gui_weather_init_charts(void);
 
-/* Startet weather_task (Open-Meteo-Abruf) - von gui_actions.c aufgerufen,
- * sobald WLAN steht. */
+/* Startet weather_task (Open-Meteo-Abruf) - von
+ * gui_weatherstation_screen_actions.c aufgerufen, sobald WLAN steht. */
 void gui_weather_start_task(void);
 
 #endif /* GUI_WEATHER_H */

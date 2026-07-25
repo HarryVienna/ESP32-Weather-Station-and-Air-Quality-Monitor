@@ -17,9 +17,9 @@ static const char *TAG = "visualcrossing_provider";
  * This is true even for an hourly forecast.") - anders als bei historischen
  * Daten, wo pro Zeile abgerechnet wird. */
 /* Kein Datumsbereich im Pfad noetig - ohne Angabe liefert VC den Standard-
- * 15-Tage-Forecast, davon werden per NUM_DAYS/NUM_HOURS (config.h) einfach
- * nur die ersten `daily_count`/`hourly_count` Eintraege benutzt, der Rest
- * wird ignoriert. */
+ * 15-Tage-Forecast, davon werden per NUM_DAYS/NUM_HOURS (lv_daily_chart.h/
+ * lv_hourly_chart.h) einfach nur die ersten `daily_count`/`hourly_count`
+ * Eintraege benutzt, der Rest wird ignoriert. */
 static const char *VC_URL_TIMELINE =
         "https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/%s,%s?"
         "unitGroup=metric&key=%s&contentType=json&include=days,hours,current&iconSet=icons2";

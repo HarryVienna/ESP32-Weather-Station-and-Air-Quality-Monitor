@@ -6,14 +6,14 @@
 #include "esp_log.h"
 #include "nvs/preferences.h"
 
-#include "config/config.h"
-
 #include "gui_weather.h"
 
 #include "weather_task.h"
 #include "weather/weather_data.h"
 #include "weather/weather_http.h"
 #include "weather/weather_provider.h"
+#include "lvgl/lv_hourly_chart.h"
+#include "lvgl/lv_daily_chart.h"
 
 static const char* TAG = "weather_task";
 
@@ -76,7 +76,7 @@ void weather_task(void *pvParameter) {
     weather_provider_t provider = (weather_provider_t)get_uint8_from_nvs(nvs_handle, "weather_api", WEATHER_PROVIDER_OPEN_METEO);
 
     // Jeder Provider mit eigenem API-Key hat seinen eigenen NVS-Key (siehe
-    // apply_appid_for_provider() in gui_actions.c) - Open-Meteo braucht keinen.
+    // apply_appid_for_provider() in gui_setup_screen_actions.c) - Open-Meteo braucht keinen.
     char* api_key;
     switch (provider) {
         case WEATHER_PROVIDER_OPENWEATHERMAP:

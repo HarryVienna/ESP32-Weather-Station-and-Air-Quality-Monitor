@@ -37,7 +37,7 @@
 #include "lvgl.h"
 #include "lv_screenshot.h"
 
-#define WEBSERVER "http://192.168.0.101/upload.php"  // Replace with your server URL
+#define WEBSERVER "http://192.168.0.100:8080/screenshot"  // Replace with your server URL
 
 /* Color format used for the snapshot. RGB565 for a 16-bit display. */
 #define SCREENSHOT_CF   LV_COLOR_FORMAT_RGB565

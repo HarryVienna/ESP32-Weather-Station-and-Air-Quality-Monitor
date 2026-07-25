@@ -18,7 +18,9 @@
 #include "ui/ui.h"
 #include "gui/weather/gui_weather.h"
 #include "gui/sensors/gui_sensors.h"
+#include "gui/sensors/gui_sen66.h"
 #include "wifi/network.h"
+#include "lvgl/lv_screenshot.h"
 
 static const char *TAG = "main";
 
@@ -36,12 +38,22 @@ void app_main(void)
     ui_init();
     gui_weather_init_charts();
     gui_sen66_init_charts();
+    gui_radiation_init_chart();
     lvgl_port_unlock();
 
     ESP_ERROR_CHECK(i2c_manager_init());
 
     ESP_ERROR_CHECK(receiver_init());
-    receiver_start();
+
+
+    // Only for Screenshot Task
+    if (wifi_connect("xxx", "xxx")) {
+        wifi_stay_connected_forever();
+        wifi_sync_time();
+        start_screenshot(10, 60);
+    } else {
+        ESP_LOGE(TAG, "WLAN-Verbindung fehlgeschlagen, Screenshot-Task wird nicht gestartet");
+    }
 
     ESP_LOGI(TAG, "===================================================");
     ESP_LOGI(TAG, "           Initialization complete!                ");

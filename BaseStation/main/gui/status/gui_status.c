@@ -7,7 +7,7 @@
 #include "display/display.h"
 #include "config/config.h"
 #include "ui/ui.h"
-#include "../sensors/gui_sensors.h"
+#include "../sensors/gui_color_scale.h"
 #include "clock_task.h"
 #include "brightness_task.h"
 

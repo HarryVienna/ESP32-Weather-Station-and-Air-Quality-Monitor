@@ -13,6 +13,7 @@
 #include "esp_log.h"
 #include "esp_heap_caps.h"
 
+#include "../config/config.h"
 #include "lv_hourly_chart.h"
 #include "lv_common.h"
 

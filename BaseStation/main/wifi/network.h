@@ -25,13 +25,13 @@ bool wifi_connect(const char* ssid, const char* password);
  * aufzugeben) - z.B. wenn nur der Router neu startet, soll die
  * Wetterstation im laufenden Betrieb nie endgueltig aufgeben. Vom
  * Setup-Screen-"Verbinden"-Button bei Erfolg aufgerufen (siehe
- * gui_actions.c) - ab da IST das die echte, dauerhafte Verbindung; der
+ * gui_setup_network_actions.c) - ab da IST das die echte, dauerhafte Verbindung; der
  * "Starten"-Button muss WLAN danach nicht mehr extra aufbauen. */
 void wifi_stay_connected_forever(void);
 
 /* Blockierend, bounded (10s Timeout): synchronisiert die Systemzeit per NTP.
  * Vom Setup-Screen-"Verbinden"-Button nach erfolgreichem wifi_connect()
- * aufgerufen (siehe gui_actions.c) - laeuft dort bereits auf einem eigenen
+ * aufgerufen (siehe gui_setup_network_actions.c) - laeuft dort bereits auf einem eigenen
  * Task (wificonnect_task), blockiert also nicht die UI. Mehrfacher Aufruf
  * ist sicher (SNTP wird nur beim ersten Mal initialisiert). */
 void wifi_sync_time(void);
@@ -52,7 +52,7 @@ typedef void (*wificonnect_done_cb_t)(bool connected);
 /* Verbindet ssid/password (Setup-Screen-"Verbinden"-Button), bounded (siehe
  * wifi_connect()). Das ist mittlerweile die einzige Stelle, die WLAN wirklich
  * aufbaut - der Aufrufer sollte bei Erfolg wifi_stay_connected_forever() und
- * wifi_sync_time() aufrufen (siehe gui_actions.c: on_wificonnect_done()). */
+ * wifi_sync_time() aufrufen (siehe gui_setup_network_actions.c: on_wificonnect_done()). */
 void wificonnect_start(const char *ssid, const char *password, wificonnect_done_cb_t on_done);
 
 #ifdef __cplusplus

@@ -136,14 +136,14 @@ typedef struct _objects_t {
     lv_obj_t *sensor_3__obj7;
     lv_obj_t *sensor_3__humidity;
     lv_obj_t *sensor_4;
-    lv_obj_t *sensor_4__obj8;
+    lv_obj_t *sensor_4__obj10;
     lv_obj_t *sensor_4__header;
     lv_obj_t *sensor_4__icon;
     lv_obj_t *sensor_4__name;
     lv_obj_t *sensor_4__battery;
     lv_obj_t *sensor_4__wifi;
     lv_obj_t *sensor_4__temp;
-    lv_obj_t *sensor_4__obj9;
+    lv_obj_t *sensor_4__obj11;
     lv_obj_t *sensor_4__humidity;
     lv_obj_t *sensor_4__pressure;
     lv_obj_t *sensor_5;
@@ -155,6 +155,9 @@ typedef struct _objects_t {
     lv_obj_t *sensor_5__wifi;
     lv_obj_t *sensor_5__micro_sievert;
     lv_obj_t *sensor_5__obj13;
+    lv_obj_t *sensor_5__container_m_sv;
+    lv_obj_t *sensor_5__chart_m_sv;
+    lv_obj_t *sensor_5__m_sv;
     lv_obj_t *hourly;
     lv_obj_t *hourly_chart;
     lv_obj_t *daily;
@@ -186,6 +189,9 @@ void tick_user_widget_sensor_temp_hum_press_compact(int startWidgetIndex);
 
 void create_user_widget_sensor_radiation(lv_obj_t *parent_obj, int startWidgetIndex);
 void tick_user_widget_sensor_radiation(int startWidgetIndex);
+
+void create_user_widget_sensor_radiation_compact(lv_obj_t *parent_obj, int startWidgetIndex);
+void tick_user_widget_sensor_radiation_compact(int startWidgetIndex);
 
 void create_user_widget_____________________________(lv_obj_t *parent_obj, int startWidgetIndex);
 void tick_user_widget_____________________________(int startWidgetIndex);

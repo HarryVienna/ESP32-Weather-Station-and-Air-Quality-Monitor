@@ -26,6 +26,7 @@
 
 #include "esp_log.h"
 
+#include "../config/config.h"
 #include "lv_daily_chart.h"
 #include "lv_common.h"
 
