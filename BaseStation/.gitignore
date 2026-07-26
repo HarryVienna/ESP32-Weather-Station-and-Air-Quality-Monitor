@@ -1,5 +1,6 @@
 .claude
 .vscode/
+CLAUDE.md
 build
 dependencies.lock
 managed_components
