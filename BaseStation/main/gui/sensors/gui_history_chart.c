@@ -37,7 +37,13 @@ void history_chart_init(history_chart_t *hc, lv_obj_t *chart, int32_t y_max,
   if (point_count < 1) point_count = 1;
   lv_chart_set_point_count(chart, point_count);
 
-  lv_obj_set_style_pad_all(chart, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+  /* lv_chart's Plot-Bereich wird nur durch Padding eingerueckt, nicht durch
+   * die Border-Breite - ohne dieses Padding zeichnen die Balken bis an den
+   * Rand der Box und damit genau ueber die Border (am staerksten sichtbar
+   * unten/rechts, wo Wert=Max bzw. die juengsten Balken liegen). Padding =
+   * Border-Breite laesst dafuer genug Platz. */
+  int32_t border_width = lv_obj_get_style_border_width(chart, LV_PART_MAIN);
+  lv_obj_set_style_pad_all(chart, border_width, LV_PART_MAIN | LV_STATE_DEFAULT);
   lv_obj_set_style_pad_column(chart, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
 
   hc->chart = chart;

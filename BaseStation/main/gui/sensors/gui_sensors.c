@@ -298,19 +298,19 @@ void gui_radiation_init_chart(void)
 static const sensor_slot_t sensor_slots[SENSOR_SLOT_COUNT] = {
     // Schlafzimmer
     { SENSOR_TYPE_SHT45,  render_temp_hum,       &objects.sensor_0__name, &objects.sensor_0__icon, &objects.sensor_0__battery, &objects.sensor_0__wifi,
-      &objects.sensor_0__header, { &objects.sensor_0__temp, &objects.sensor_0__humidity, NULL } },
+      &objects.sensor_0__header, { &objects.sensor_0__temp, &objects.sensor_0__humidity, NULL, NULL, NULL } },
     // Bad
     { SENSOR_TYPE_SHT45,  render_temp_hum,       &objects.sensor_1__name, &objects.sensor_1__icon, &objects.sensor_1__battery, &objects.sensor_1__wifi,
-      &objects.sensor_1__header, { &objects.sensor_1__temp, &objects.sensor_1__humidity, NULL } },
+      &objects.sensor_1__header, { &objects.sensor_1__temp, &objects.sensor_1__humidity, NULL, NULL, NULL } },
     //Buero
     { SENSOR_TYPE_SHT45,  render_temp_hum,       &objects.sensor_2__name, &objects.sensor_2__icon, &objects.sensor_2__battery, &objects.sensor_2__wifi,
-      &objects.sensor_2__header, { &objects.sensor_2__temp, &objects.sensor_2__humidity, NULL } },
+      &objects.sensor_2__header, { &objects.sensor_2__temp, &objects.sensor_2__humidity, NULL, NULL, NULL } },
     // Werkstatt
     { SENSOR_TYPE_SHT45,  render_temp_hum,       &objects.sensor_3__name, &objects.sensor_3__icon, &objects.sensor_3__battery, &objects.sensor_3__wifi,
-      &objects.sensor_3__header, { &objects.sensor_3__temp, &objects.sensor_3__humidity, NULL } },
+      &objects.sensor_3__header, { &objects.sensor_3__temp, &objects.sensor_3__humidity, NULL, NULL, NULL } },
     // Balkon
     { SENSOR_TYPE_BME280, render_temp_hum_press, &objects.sensor_4__name, &objects.sensor_4__icon, &objects.sensor_4__battery, &objects.sensor_4__wifi,
-      &objects.sensor_4__header, { &objects.sensor_4__temp, &objects.sensor_4__humidity, &objects.sensor_4__pressure } },
+      &objects.sensor_4__header, { &objects.sensor_4__temp, &objects.sensor_4__humidity, &objects.sensor_4__pressure, NULL, NULL } },
     // Geigerzaehler
     { SENSOR_TYPE_GEIGER, render_radiation,      &objects.sensor_5__name, &objects.sensor_5__icon, &objects.sensor_5__battery, &objects.sensor_5__wifi,
       &objects.sensor_5__header, { &objects.sensor_5__micro_sievert, NULL, NULL, &objects.sensor_5__chart_m_sv, &objects.sensor_5__m_sv } },

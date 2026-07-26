@@ -47,13 +47,13 @@ void app_main(void)
 
 
     // Only for Screenshot Task
-    if (wifi_connect("xxx", "xxx")) {
-        wifi_stay_connected_forever();
-        wifi_sync_time();
-        start_screenshot(10, 60);
-    } else {
-        ESP_LOGE(TAG, "WLAN-Verbindung fehlgeschlagen, Screenshot-Task wird nicht gestartet");
-    }
+    // if (wifi_connect("xxx", "xxx")) {
+    //     wifi_stay_connected_forever();
+    //     wifi_sync_time();
+    //     start_screenshot(10, 60);
+    // } else {
+    //     ESP_LOGE(TAG, "WLAN-Verbindung fehlgeschlagen, Screenshot-Task wird nicht gestartet");
+    // }
 
     ESP_LOGI(TAG, "===================================================");
     ESP_LOGI(TAG, "           Initialization complete!                ");

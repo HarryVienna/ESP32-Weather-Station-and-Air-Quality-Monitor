@@ -287,8 +287,20 @@ bool openweathermap_fetch_hourly(esp_http_client_handle_t client, weather_http_r
         cJSON *next = cJSON_GetObjectItem(json, "next");
         bool has_next = next && cJSON_IsString(next) && next->valuestring[0] != '\0';
         if (has_next) {
-            strncpy(url, next->valuestring, sizeof(url) - 1);
-            url[sizeof(url) - 1] = '\0';
+            const char *next_url = next->valuestring;
+            /* OWM's "next" pagination link sometimes comes back as plain
+             * http:// even though the API is HTTPS-only. esp_http_client
+             * only re-detects the transport (plain/TLS) when the host or
+             * port changes on set_url(), not the scheme, so a bare http://
+             * here would reuse the still-open TLS transport from the
+             * previous page and fail the handshake against port 80. Force
+             * https so the same client handle can be reused across pages. */
+            if (strncmp(next_url, "http://", 7) == 0) {
+                snprintf(url, sizeof(url), "https://%s", next_url + 7);
+            } else {
+                strncpy(url, next_url, sizeof(url) - 1);
+                url[sizeof(url) - 1] = '\0';
+            }
         }
         cJSON_Delete(json);
 

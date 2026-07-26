@@ -29,13 +29,28 @@ CONFIG_CACHE_L2_CACHE_LINE_128B=y
 # --- FreeRTOS ---
 CONFIG_ESP_MAIN_TASK_STACK_SIZE=10240
 CONFIG_FREERTOS_HZ=1000
+CONFIG_FREERTOS_TIMER_TASK_STACK_DEPTH=4096
+CONFIG_ESP_TASK_WDT_EN
 
 # --- Experimental features (required for ESP32-P4 MIPI DSI) ---
 CONFIG_IDF_EXPERIMENTAL_FEATURES=y
 
 # --- Wi-Fi (ESP32-P4 has no native radio: routed to the on-board ESP32-C6 ---
 # --- co-processor over ESP-Hosted/SDIO via esp_wifi_remote) ---
-CONFIG_ESP_HOST_WIFI_ENABLED=y
+# NOTE: do NOT set CONFIG_ESP_HOST_WIFI_ENABLED=y here. Under IDF <6.0 that
+# symbol didn't exist, so it was a harmless no-op left over from an older
+# config. IDF 6.0 introduced its own *different*, unrelated "Host WiFi"
+# feature under this exact same Kconfig name (esp_wifi/Kconfig), which is
+# mutually exclusive with ESP_WIFI_REMOTE_ENABLED - enabling it silently
+# disables the whole esp_wifi_remote/esp_hosted stack this project actually
+# uses, leaving WiFi completely dead (no scan results, no connect).
+#
+# The two symbols below *should* default to "y" on their own once
+# ESP_HOST_WIFI_ENABLED is off, but under IDF 6.0.2 they didn't come out that
+# way after a full reconfigure (still resolved to "not set" as their computed
+# default) - so they're set explicitly here instead of relying on that chain.
+CONFIG_ESP_WIFI_REMOTE_ENABLED=y
+CONFIG_ESP_HOSTED_ENABLED=y
 CONFIG_ESP_WIFI_REMOTE_LIBRARY_HOSTED=y
 
 # --- LVGL Configuration ---

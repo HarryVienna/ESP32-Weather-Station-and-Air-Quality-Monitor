@@ -423,7 +423,7 @@ static esp_err_t init_display_panel(void)
     ESP_LOGI(TAG, "Creating JD9365 panel (%dx%d)", PHYS_H_RES, PHYS_V_RES);
 
     esp_lcd_dpi_panel_config_t dpi_cfg =
-        JD9365_800_1280_PANEL_60HZ_DPI_CONFIG(LCD_COLOR_PIXEL_FORMAT_RGB565);
+        JD9365_800_1280_PANEL_60HZ_DPI_CONFIG_CF(LCD_COLOR_FMT_RGB565);
     dpi_cfg.num_fbs = 2;
     dpi_cfg.video_timing.vsync_back_porch = 10;
 
