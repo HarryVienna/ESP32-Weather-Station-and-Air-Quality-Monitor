@@ -6,6 +6,7 @@
 #include "nvs_flash.h"
 #include "nvs.h"
 #include "esp_log.h"
+#include "esp_check.h"
 #include "esp_sntp.h"
 
 #include "esp_now.h"
@@ -59,56 +60,41 @@ char* get_mac_string(const uint8_t *mac_addr, char *macStrBuffer) {
  *
  * This function initializes the WIFI driver.
  */
-void wifi_init(void) {
+esp_err_t wifi_init(void) {
     ESP_LOGI(TAG, "Install WIFI driver");
 
-    esp_err_t ret;
-
-    //Initialize NVS
-    ret = nvs_flash_init();
+    // Initialize NVS
+    esp_err_t ret = nvs_flash_init();
     if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
-      ESP_ERROR_CHECK(nvs_flash_erase());
-      if (nvs_flash_init() != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to init nvs flash");
-      }
+        ESP_RETURN_ON_ERROR(nvs_flash_erase(), TAG, "Failed to erase nvs flash");
+        ret = nvs_flash_init();
     }
+    ESP_RETURN_ON_ERROR(ret, TAG, "Failed to init nvs flash");
 
     // Initialize the underlying TCP/IP stack
-    if (esp_netif_init() != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to init netif");  
-    }
+    ESP_RETURN_ON_ERROR(esp_netif_init(), TAG, "Failed to init netif");
 
     // Create default event loop
-    if (esp_event_loop_create_default() != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to set create event loop");      
-    }
+    ESP_RETURN_ON_ERROR(esp_event_loop_create_default(), TAG, "Failed to create event loop");
 
-    // Creates default WIFI ST
+    // Creates default WIFI STA
     esp_netif_t *sta_netif = esp_netif_create_default_wifi_sta();
-    assert(sta_netif);
+    ESP_RETURN_ON_FALSE(sta_netif, ESP_FAIL, TAG, "Failed to create default WiFi STA netif");
 
     // Set hostname
-    if (esp_netif_set_hostname(sta_netif, HOST_NAME)) {
-        ESP_LOGE(TAG, "Failed to set hostname");
-    }
+    ESP_RETURN_ON_ERROR(esp_netif_set_hostname(sta_netif, HOST_NAME), TAG, "Failed to set hostname");
 
     //  Init WiFi
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
-    if (esp_wifi_init(&cfg) != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to init wifi");   
-    }
-    
+    ESP_RETURN_ON_ERROR(esp_wifi_init(&cfg), TAG, "Failed to init wifi");
+
     // Set the WiFi operating mode
-    if (esp_wifi_set_mode(WIFI_MODE_STA) != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to set mode");   
-    }
+    ESP_RETURN_ON_ERROR(esp_wifi_set_mode(WIFI_MODE_STA), TAG, "Failed to set mode");
 
     // Set storage to RAM
-    if (esp_wifi_set_storage(WIFI_STORAGE_RAM) != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to set storage");
-    }
+    ESP_RETURN_ON_ERROR(esp_wifi_set_storage(WIFI_STORAGE_RAM), TAG, "Failed to set storage");
 
-
+    return ESP_OK;
 }
 
 

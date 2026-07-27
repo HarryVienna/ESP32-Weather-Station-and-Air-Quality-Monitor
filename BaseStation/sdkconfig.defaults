@@ -14,6 +14,12 @@ CONFIG_ESPTOOLPY_FLASHSIZE_16MB=y
 # --- Partition Table ---
 CONFIG_PARTITION_TABLE_CUSTOM=y
 
+# --- OTA ---
+# Auto-revert to the previous ota_0/ota_1 slot if the new app never confirms
+# itself healthy (esp_ota_mark_app_valid_cancel_rollback() in main.c) - safety
+# net for a device that isn't physically reachable if an update goes bad.
+CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE=y
+
 # --- Compiler ---
 CONFIG_COMPILER_OPTIMIZATION_PERF=y
 

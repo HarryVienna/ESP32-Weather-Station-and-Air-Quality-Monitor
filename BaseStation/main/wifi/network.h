@@ -4,13 +4,14 @@
 #include <stdio.h>
 #include <stdbool.h>
 
+#include "esp_err.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 // Function declarations
-void wifi_init(void);
+esp_err_t wifi_init(void);
 
 /* Verbindet mit ssid/password, wartet bounded (WIFI_CONNECT_MAX_RETRIES
  * Versuche, siehe network.c) und gibt zurueck, ob es geklappt hat. Gleiches

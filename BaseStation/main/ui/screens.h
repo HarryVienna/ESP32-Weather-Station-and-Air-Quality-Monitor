@@ -13,12 +13,14 @@ enum ScreensEnum {
     _SCREEN_ID_FIRST = 1,
     SCREEN_ID_SETUP_SCREEN = 1,
     SCREEN_ID_WEATHERSTATION_SCREEN = 2,
-    _SCREEN_ID_LAST = 2
+    SCREEN_ID_UPDATE_SCREEN = 3,
+    _SCREEN_ID_LAST = 3
 };
 
 typedef struct _objects_t {
     lv_obj_t *setup_screen;
     lv_obj_t *weatherstation_screen;
+    lv_obj_t *update_screen;
     lv_obj_t *panel_setup;
     lv_obj_t *panel_networks;
     lv_obj_t *dropdown_networks;
@@ -162,6 +164,8 @@ typedef struct _objects_t {
     lv_obj_t *hourly_chart;
     lv_obj_t *daily;
     lv_obj_t *daily_chart;
+    lv_obj_t *panel_update;
+    lv_obj_t *progress_bar;
 } objects_t;
 
 extern objects_t objects;
@@ -171,6 +175,9 @@ void tick_screen_setup_screen();
 
 void create_screen_weatherstation_screen();
 void tick_screen_weatherstation_screen();
+
+void create_screen_update_screen();
+void tick_screen_update_screen();
 
 void create_user_widget_current(lv_obj_t *parent_obj, int startWidgetIndex);
 void tick_user_widget_current(int startWidgetIndex);

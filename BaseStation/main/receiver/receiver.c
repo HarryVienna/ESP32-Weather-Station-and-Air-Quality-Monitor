@@ -5,6 +5,7 @@
 #include <time.h>
 
 #include "esp_log.h"
+#include "esp_check.h"
 #include "esp_timer.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -340,15 +341,16 @@ esp_err_t receiver_init(void)
 
     i2c_scan();
 
-    esp_err_t ret = i2c_master_bus_add_device(i2c_manager_get_bus(), &s_dev_cfg, &s_dev);
-    if (ret != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to add slave device: %s", esp_err_to_name(ret));
-        return ret;
-    }
+    ESP_RETURN_ON_ERROR(i2c_master_bus_add_device(i2c_manager_get_bus(), &s_dev_cfg, &s_dev),
+                        TAG, "Failed to add slave device");
 
+    // Rueckgabewerte bewusst ignoriert: schlaegt die I2C-Kommunikation mit
+    // dem S3 fehl (z.B. weil der beim Boot noch nicht bereit ist), soll das
+    // nur geloggt werden, nicht receiver_init() fehlschlagen lassen - sonst
+    // wuerde ESP_ERROR_CHECK(receiver_init()) in main.c das ganze Geraet bei
+    // jedem langsam bootenden S3 neu starten.
     i2c_set_timezone(SLAVE_TIMEZONE);
 
-    
     time_t now = time(NULL);
     if (now > 1000000000) {
         i2c_set_time(now);

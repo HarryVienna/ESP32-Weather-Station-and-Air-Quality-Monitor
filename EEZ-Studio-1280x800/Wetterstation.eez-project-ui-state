@@ -1,6 +1,6 @@
 {
   "navigation": {
-    "selectedUserPageObject": "[Wetterstation.eez-project]:/userPages/1",
+    "selectedUserPageObject": "[Wetterstation.eez-project]:/userPages/2",
     "selectedUserWidgetObject": "[Wetterstation.eez-project]:/userWidgets/5",
     "selectedActionObject": "[Wetterstation.eez-project]:/actions/13",
     "selectedStyleObject": "[Wetterstation.eez-project]:/lvglStyles/styles/2",
@@ -122,13 +122,12 @@
             {
               "type": "row",
               "id": "#9722ddea-7c51-4894-b5d3-89571c2b34ad",
-              "weight": 20.905031200652825,
+              "weight": 23.388245847763876,
               "children": [
                 {
                   "type": "tabset",
                   "id": "#6b74b635-7a66-4336-91ba-4808f2d949f2",
                   "weight": 1.17437857767944,
-                  "selected": 1,
                   "enableClose": false,
                   "children": [
                     {
@@ -194,11 +193,21 @@
             {
               "type": "tabset",
               "id": "EDITORS",
-              "weight": 49.1863889575361,
-              "selected": 1,
+              "weight": 46.70317431042505,
               "enableDeleteWhenEmpty": false,
               "enableClose": false,
               "children": [
+                {
+                  "type": "tab",
+                  "id": "#b27e30d4-1fc9-46f1-acc0-11dc0dc4371e",
+                  "name": "UpdateScreen",
+                  "component": "editor",
+                  "config": {
+                    "objectPath": "[Wetterstation.eez-project]:/userPages/2",
+                    "permanent": false
+                  },
+                  "icon": "svg:page"
+                },
                 {
                   "type": "tab",
                   "id": "#c52b0c8e-4864-42c8-872c-53eec828ef96",
@@ -1163,7 +1172,8 @@
             "7": {},
             "8": {
               "0": {}
-            }
+            },
+            "$selected": true
           },
           "2": {},
           "3": {}
@@ -1720,6 +1730,31 @@
         "secondToPx": 200,
         "scrollLeft": 0
       }
+    },
+    "[Wetterstation.eez-project]:/userPages/2[flow-state]": {
+      "selectionFront": {},
+      "selectionBack": {
+        "0": {
+          "0": {
+            "0": {},
+            "1": {},
+            "$selected": true
+          }
+        }
+      },
+      "transform": {
+        "translate": {
+          "x": -308.3718395811139,
+          "y": -174.5373386730315
+        },
+        "scale": 0.5
+      },
+      "timeline": {
+        "isEditorActive": false,
+        "position": 0,
+        "secondToPx": 200,
+        "scrollLeft": 0
+      }
     }
   },
   "activeOutputSection": 0,
@@ -1741,7 +1776,6 @@
     "TEXT",
     "PADDING",
     "BACKGROUND",
-    "POSITION AND SIZE",
     "BORDER"
   ],
   "showInactiveFlowsInDebugger": true,

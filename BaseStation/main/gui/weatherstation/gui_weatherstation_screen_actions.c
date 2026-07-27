@@ -5,6 +5,7 @@
 #include "../weather/gui_weather.h"
 #include "../sensors/gui_sen66.h"
 #include "receiver/receiver.h"
+#include "ota/ota_task.h"
 
 /* Von EEZ Studio verdrahtet auf LV_EVENT_SCREEN_LOADED des Weatherstation-
  * Screens (siehe screens.c) - WLAN steht zu diesem Zeitpunkt garantiert
@@ -23,4 +24,5 @@ void action_event_weatherstation_screen_loaded(lv_event_t *e)
   gui_weather_start_task();
   gui_sen66_start_task();
   receiver_start();
+  ota_task_start();
 }

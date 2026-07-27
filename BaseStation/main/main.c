@@ -10,6 +10,7 @@
 
 #include "esp_log.h"
 #include "esp_lvgl_port.h"
+#include "esp_ota_ops.h"
 #include "lvgl.h"
 
 #include "i2c/i2c_manager.h"
@@ -32,7 +33,11 @@ void app_main(void)
 
     ESP_ERROR_CHECK(display_init());
 
-    wifi_init();
+    ESP_ERROR_CHECK(wifi_init());
+
+    ESP_ERROR_CHECK(i2c_manager_init());
+
+    ESP_ERROR_CHECK(receiver_init());
 
     lvgl_port_lock(0);
     ui_init();
@@ -41,10 +46,10 @@ void app_main(void)
     gui_radiation_init_chart();
     lvgl_port_unlock();
 
-    ESP_ERROR_CHECK(i2c_manager_init());
-
-    ESP_ERROR_CHECK(receiver_init());
-
+    // Bestaetigt eine per OTA eingespielte App als funktionsfaehig, sonst
+    // rollt der Bootloader beim naechsten Boot auf die vorherige ota_0/
+    // ota_1-Partition zurueck (siehe CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE).
+    esp_ota_mark_app_valid_cancel_rollback();
 
     // Only for Screenshot Task
     // if (wifi_connect("xxx", "xxx")) {
