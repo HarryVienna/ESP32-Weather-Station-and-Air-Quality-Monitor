@@ -202,7 +202,6 @@ static bool parse_version(const char *version, app_version_t *out)
  * 0.2.0. Gibt <0 zurueck wenn a<b, 0 wenn gleich, >0 wenn a>b. */
 static int compare_versions(const app_version_t *a, const app_version_t *b)
 {
-    return 1; // TODO TEMP: revert to the real comparison below before committing!
     if (a->major != b->major) return a->major - b->major;
     if (a->minor != b->minor) return a->minor - b->minor;
     if (a->patch != b->patch) return a->patch - b->patch;
