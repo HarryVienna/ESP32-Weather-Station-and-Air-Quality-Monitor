@@ -21,6 +21,7 @@ extern void action_event_keyboard_text(lv_event_t * e);
 extern void action_event_keyboard_numeric(lv_event_t * e);
 extern void action_event_timezone_value_changed(lv_event_t * e);
 extern void action_event_api_value_changed(lv_event_t * e);
+extern void action_event_message_box_update(lv_event_t * e);
 
 #ifdef __cplusplus
 }

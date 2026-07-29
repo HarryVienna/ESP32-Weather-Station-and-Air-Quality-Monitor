@@ -14,6 +14,16 @@ extern "C" {
  */
 void ota_task_start(void);
 
+/**
+ * @brief Startet den Download/Flash des zuletzt gefundenen Updates.
+ *
+ * Wird vom "Installieren"-Button der Update-verfuegbar-MessageBox aufgerufen
+ * (siehe gui/ota/gui_ota.c: action_event_message_box_update()). Startet
+ * einen eigenen Task fuer den (blockierenden) Download, damit der LVGL-Task,
+ * von dem der Button-Klick kommt, nicht blockiert. Kehrt sofort zurueck.
+ */
+void ota_task_install_available_update(void);
+
 #ifdef __cplusplus
 }
 #endif

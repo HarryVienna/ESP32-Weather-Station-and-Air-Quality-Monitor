@@ -1,8 +1,8 @@
 {
   "navigation": {
-    "selectedUserPageObject": "[Wetterstation.eez-project]:/userPages/2",
-    "selectedUserWidgetObject": "[Wetterstation.eez-project]:/userWidgets/5",
-    "selectedActionObject": "[Wetterstation.eez-project]:/actions/13",
+    "selectedUserPageObject": "[Wetterstation.eez-project]:/userPages/0",
+    "selectedUserWidgetObject": "[Wetterstation.eez-project]:/userWidgets/1",
+    "selectedActionObject": "[Wetterstation.eez-project]:/actions/14",
     "selectedStyleObject": "[Wetterstation.eez-project]:/lvglStyles/styles/2",
     "selectedFontObject": "[Wetterstation.eez-project]:/fonts/9",
     "selectedBitmapObject": "[Wetterstation.eez-project]:/bitmaps/14",
@@ -28,6 +28,7 @@
           },
           {
             "type": "border",
+            "selected": 0,
             "size": 311.67777252197266,
             "location": "right",
             "children": [
@@ -122,7 +123,7 @@
             {
               "type": "row",
               "id": "#9722ddea-7c51-4894-b5d3-89571c2b34ad",
-              "weight": 23.388245847763876,
+              "weight": 22.06853291591513,
               "children": [
                 {
                   "type": "tabset",
@@ -193,42 +194,20 @@
             {
               "type": "tabset",
               "id": "EDITORS",
-              "weight": 46.70317431042505,
+              "weight": 48.02288724227379,
               "enableDeleteWhenEmpty": false,
               "enableClose": false,
               "children": [
                 {
                   "type": "tab",
-                  "id": "#b27e30d4-1fc9-46f1-acc0-11dc0dc4371e",
-                  "name": "UpdateScreen",
+                  "id": "#a6e4e18f-4f78-4ead-91d6-7c6d7aeec012",
+                  "name": "SetupScreen",
                   "component": "editor",
                   "config": {
-                    "objectPath": "[Wetterstation.eez-project]:/userPages/2",
+                    "objectPath": "[Wetterstation.eez-project]:/userPages/0",
                     "permanent": false
                   },
                   "icon": "svg:page"
-                },
-                {
-                  "type": "tab",
-                  "id": "#c52b0c8e-4864-42c8-872c-53eec828ef96",
-                  "name": "Base_2",
-                  "component": "editor",
-                  "config": {
-                    "objectPath": "[Wetterstation.eez-project]:/userWidgets/13",
-                    "permanent": false
-                  },
-                  "icon": "svg:user_widget"
-                },
-                {
-                  "type": "tab",
-                  "id": "#af93d8d7-44fa-4f47-8253-9cdf8d4fb1a8",
-                  "name": "Sensor_Radiation",
-                  "component": "editor",
-                  "config": {
-                    "objectPath": "[Wetterstation.eez-project]:/userWidgets/5",
-                    "permanent": true
-                  },
-                  "icon": "svg:user_widget"
                 },
                 {
                   "type": "tab",
@@ -252,8 +231,7 @@
                   },
                   "icon": "svg:page"
                 }
-              ],
-              "active": true
+              ]
             },
             {
               "type": "row",
@@ -273,7 +251,8 @@
                       "enableClose": false,
                       "icon": "svg:properties"
                     }
-                  ]
+                  ],
+                  "active": true
                 },
                 {
                   "type": "tabset",
@@ -1143,10 +1122,10 @@
       },
       "transform": {
         "translate": {
-          "x": -387.0397095858069,
-          "y": -286.0661993899476
+          "x": -977.1755735433446,
+          "y": -495.5249156279999
         },
-        "scale": 0.67
+        "scale": 1.1
       },
       "timeline": {
         "isEditorActive": false,
@@ -1158,11 +1137,18 @@
       "selectionBack": {
         "0": {
           "0": {
+            "0": {
+              "2": {}
+            },
             "2": {
               "1": {}
             },
             "3": {},
-            "4": {},
+            "4": {
+              "2": {
+                "$selected": true
+              }
+            },
             "5": {},
             "6": {
               "1": {},
@@ -1172,8 +1158,7 @@
             "7": {},
             "8": {
               "0": {}
-            },
-            "$selected": true
+            }
           },
           "2": {},
           "3": {}
@@ -1197,10 +1182,10 @@
       },
       "transform": {
         "translate": {
-          "x": -840.6477507059353,
-          "y": -282.5818443593716
+          "x": -431.8793285717169,
+          "y": -304.3197311612655
         },
-        "scale": 0.9
+        "scale": 0.67
       },
       "timeline": {
         "isEditorActive": false,
@@ -1211,18 +1196,27 @@
       "selectionFront": {},
       "selectionBack": {
         "0": {
-          "0": {},
-          "1": {},
-          "2": {
-            "5": {
-              "$selected": true
+          "0": {
+            "0": {},
+            "1": {},
+            "3": {
+              "0": {}
+            },
+            "4": {
+              "0": {}
             }
           },
-          "3": {
-            "0": {}
-          },
-          "4": {
-            "0": {}
+          "1": {
+            "0": {
+              "0": {},
+              "1": {
+                "0": {}
+              },
+              "2": {
+                "0": {}
+              }
+            },
+            "$selected": true
           }
         }
       }
@@ -1737,8 +1731,9 @@
         "0": {
           "0": {
             "0": {},
-            "1": {},
-            "$selected": true
+            "1": {
+              "$selected": true
+            }
           }
         }
       },
@@ -1772,11 +1767,15 @@
   "lvglPart": "MAIN",
   "lvglState": "DEFAULT",
   "lvglExpandedPropertiesGroup": [
-    "MARGIN",
-    "TEXT",
-    "PADDING",
+    "BORDER",
     "BACKGROUND",
-    "BORDER"
+    "TEXT",
+    "MARGIN",
+    "LAYOUT",
+    "PADDING",
+    "POSITION AND SIZE",
+    "MISCELLANEOUS",
+    "OUTLINE"
   ],
   "showInactiveFlowsInDebugger": true,
   "globalFlowZoom": false,

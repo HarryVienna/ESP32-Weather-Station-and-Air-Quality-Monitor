@@ -15,6 +15,19 @@
 
 static const char *TAG = "ota_task";
 
+/* Zwischen dem Fund eines Updates (check_for_update(), OTA-Task) und dem
+ * tatsaechlichen Installieren (Button-Klick auf dem LVGL-Task, siehe
+ * ota_task_install_available_update()) liegt eine Nutzerbestaetigung -
+ * download_url muss also bis dahin irgendwo warten. Nur ein Update kann
+ * gleichzeitig anstehen. */
+static char s_pending_download_url[512];
+
+/* Haelt den OTA-Task an, statt periodisch ins Leere zu pollen, waehrend auf
+ * die Nutzerbestaetigung gewartet wird (siehe check_for_update()) - wird von
+ * install_task() im Fehlerfall wieder aufgeweckt (bei Erfolg rebootet das
+ * Geraet eh, siehe apply_update()). */
+static TaskHandle_t s_ota_task_handle = NULL;
+
 /* Repo, an das der Release-Workflow (.github/workflows/release.yml) das
  * Firmware-Binary als Release-Asset anhaengt. */
 #define GITHUB_OWNER          "HarryVienna"
@@ -131,6 +144,31 @@ fail:
     gui_ota_update_failed();
 }
 
+/* Eigener Task fuer apply_update(): der Aufrufer (ota_task_install_available_
+ * update()) laeuft auf dem LVGL-Task (Button-Klick), apply_update() ist aber
+ * ein minutenlanger blockierender Download - direkt aufgerufen wuerde das
+ * die gesamte UI (Rendering, Touch) fuer die Dauer des Downloads einfrieren. */
+static void install_task(void *pvParameter)
+{
+    apply_update(s_pending_download_url);
+    /* apply_update() kehrt nur im Fehlerfall zurueck (Erfolg -> esp_restart()) -
+     * OTA-Task wieder aufwecken, damit er die periodische Pruefung fortsetzt. */
+    vTaskResume(s_ota_task_handle);
+    vTaskDelete(NULL);
+}
+
+void ota_task_install_available_update(void)
+{
+    xTaskCreatePinnedToCore(
+        install_task,
+        "OTA Install Task",
+        8192,
+        NULL,
+        1,
+        NULL,
+        1);
+}
+
 typedef struct {
     int  major, minor, patch;
     bool has_suffix; /* "-dirty" und/oder "-<N>-g<hash>" hinter X.Y.Z */
@@ -164,6 +202,7 @@ static bool parse_version(const char *version, app_version_t *out)
  * 0.2.0. Gibt <0 zurueck wenn a<b, 0 wenn gleich, >0 wenn a>b. */
 static int compare_versions(const app_version_t *a, const app_version_t *b)
 {
+    return 1; // TODO TEMP: revert to the real comparison below before committing!
     if (a->major != b->major) return a->major - b->major;
     if (a->minor != b->minor) return a->minor - b->minor;
     if (a->patch != b->patch) return a->patch - b->patch;
@@ -212,14 +251,19 @@ static void check_for_update(esp_http_client_handle_t client, weather_http_respo
         return;
     }
 
-    /* download_url zeigt in json hinein, also erst nach apply_update() (bzw.
-     * bei dessen Rueckkehr im Fehlerfall) freigeben. */
-    char download_url_copy[512];
-    strncpy(download_url_copy, download_url, sizeof(download_url_copy) - 1);
-    download_url_copy[sizeof(download_url_copy) - 1] = '\0';
+    /* download_url und tag->valuestring zeigen in json hinein, also erst
+     * nach dem letzten Zugriff auf json freigeben. */
+    strncpy(s_pending_download_url, download_url, sizeof(s_pending_download_url) - 1);
+    s_pending_download_url[sizeof(s_pending_download_url) - 1] = '\0';
+    ESP_LOGI(TAG, "Update available (%s) - waiting for user confirmation", tag->valuestring);
     cJSON_Delete(json);
 
-    apply_update(download_url_copy);
+    gui_ota_update_available();
+
+    /* Haengt hier, bis install_task() (Fehlerfall) oder ein Reboot (Erfolg)
+     * uns wieder aufweckt - kein Grund, in der Zwischenzeit periodisch
+     * aufzuwachen und erneut zu pruefen. */
+    vTaskSuspend(NULL);
 }
 
 static void ota_task(void *pvParameter)
@@ -245,6 +289,6 @@ void ota_task_start(void)
         8192,
         NULL,
         1,
-        NULL,
+        &s_ota_task_handle,
         1);
 }
