@@ -419,6 +419,62 @@ void create_screen_setup_screen() {
                     }
                 }
                 {
+                    // PanelLanguage
+                    lv_obj_t *obj = lv_obj_create(parent_obj);
+                    objects.panel_language = obj;
+                    lv_obj_set_pos(obj, 168, 110);
+                    lv_obj_set_size(obj, LV_PCT(100), LV_SIZE_CONTENT);
+                    lv_obj_set_style_layout(obj, LV_LAYOUT_FLEX, LV_PART_MAIN | LV_STATE_DEFAULT);
+                    lv_obj_set_style_flex_main_place(obj, LV_FLEX_ALIGN_START, LV_PART_MAIN | LV_STATE_DEFAULT);
+                    lv_obj_set_style_flex_cross_place(obj, LV_FLEX_ALIGN_CENTER, LV_PART_MAIN | LV_STATE_DEFAULT);
+                    lv_obj_set_style_flex_track_place(obj, LV_FLEX_ALIGN_CENTER, LV_PART_MAIN | LV_STATE_DEFAULT);
+                    lv_obj_set_style_pad_top(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+                    lv_obj_set_style_pad_bottom(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+                    lv_obj_set_style_pad_left(obj, 20, LV_PART_MAIN | LV_STATE_DEFAULT);
+                    lv_obj_set_style_pad_right(obj, 20, LV_PART_MAIN | LV_STATE_DEFAULT);
+                    lv_obj_set_style_text_font(obj, &lv_font_montserrat_14, LV_PART_MAIN | LV_STATE_DEFAULT);
+                    lv_obj_set_style_border_width(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+                    lv_obj_set_style_pad_row(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+                    lv_obj_set_style_pad_column(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+                    {
+                        lv_obj_t *parent_obj = obj;
+                        {
+                            lv_obj_t *obj = lv_label_create(parent_obj);
+                            lv_obj_set_pos(obj, 0, 0);
+                            lv_obj_set_size(obj, LV_PCT(13), LV_SIZE_CONTENT);
+                            add_style_button_label(obj);
+                            lv_label_set_text(obj, _("Language:"));
+                        }
+                        {
+                            // DropdownLanguage
+                            lv_obj_t *obj = lv_dropdown_create(parent_obj);
+                            objects.dropdown_language = obj;
+                            lv_obj_set_pos(obj, 555, 360);
+                            lv_obj_set_size(obj, LV_PCT(18), 52);
+                            lv_dropdown_set_options_static(obj, "Deutsch\nEnglish");
+                            lv_dropdown_set_selected(obj, 0);
+                            add_style_dropdown(obj);
+                            {
+                                lv_obj_t *parent_obj = obj;
+                                {
+                                    lv_obj_t *obj = lv_dropdown_get_list(parent_obj);
+                                    add_style_dropdown_list(obj);
+                                }
+                            }
+                        }
+                        {
+                            // LanguageDescription
+                            lv_obj_t *obj = lv_label_create(parent_obj);
+                            objects.language_description = obj;
+                            lv_obj_set_pos(obj, 0, 0);
+                            lv_obj_set_size(obj, LV_PCT(69), LV_SIZE_CONTENT);
+                            add_style_button_label(obj);
+                            lv_obj_set_style_margin_left(obj, 20, LV_PART_MAIN | LV_STATE_DEFAULT);
+                            lv_label_set_text(obj, _("Restart required to change language"));
+                        }
+                    }
+                }
+                {
                     // PanelBase
                     lv_obj_t *obj = lv_obj_create(parent_obj);
                     objects.panel_base = obj;
@@ -450,7 +506,7 @@ void create_screen_setup_screen() {
                             lv_obj_t *obj = lv_dropdown_create(parent_obj);
                             objects.basis_icon = obj;
                             lv_obj_set_pos(obj, 555, 360);
-                            lv_obj_set_size(obj, LV_PCT(20), 52);
+                            lv_obj_set_size(obj, LV_PCT(18), 52);
                             lv_dropdown_set_options_static(obj, "");
                             lv_dropdown_set_selected(obj, 0);
                             add_style_dropdown(obj);
@@ -676,7 +732,7 @@ void create_screen_setup_screen() {
                     lv_obj_set_style_pad_left(obj, 20, LV_PART_MAIN | LV_STATE_DEFAULT);
                     lv_obj_set_style_pad_right(obj, 20, LV_PART_MAIN | LV_STATE_DEFAULT);
                     lv_obj_set_style_border_width(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
-                    lv_obj_set_style_pad_top(obj, 90, LV_PART_MAIN | LV_STATE_DEFAULT);
+                    lv_obj_set_style_pad_top(obj, 40, LV_PART_MAIN | LV_STATE_DEFAULT);
                     {
                         lv_obj_t *parent_obj = obj;
                         {
@@ -812,7 +868,7 @@ void create_screen_weatherstation_screen() {
                     lv_obj_set_style_pad_bottom(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
                     lv_obj_set_style_bg_opa(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
                     lv_obj_set_style_border_width(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
-                    create_user_widget_current(obj, 39);
+                    create_user_widget_current(obj, 42);
                 }
                 {
                     // SEN66
@@ -826,7 +882,7 @@ void create_screen_weatherstation_screen() {
                     lv_obj_set_style_pad_bottom(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
                     lv_obj_set_style_bg_opa(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
                     lv_obj_set_style_border_width(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
-                    create_user_widget_sensor_sen66(obj, 56);
+                    create_user_widget_sensor_sen66(obj, 59);
                 }
                 {
                     // Container_Sensoren
@@ -861,7 +917,7 @@ void create_screen_weatherstation_screen() {
                             lv_obj_set_style_pad_bottom(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
                             lv_obj_set_style_bg_opa(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
                             lv_obj_set_style_border_width(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
-                            create_user_widget_sensor_temp_hum(obj, 80);
+                            create_user_widget_sensor_temp_hum(obj, 83);
                         }
                         {
                             // Sensor_1
@@ -875,7 +931,7 @@ void create_screen_weatherstation_screen() {
                             lv_obj_set_style_pad_bottom(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
                             lv_obj_set_style_bg_opa(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
                             lv_obj_set_style_border_width(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
-                            create_user_widget_sensor_temp_hum(obj, 90);
+                            create_user_widget_sensor_temp_hum(obj, 93);
                         }
                         {
                             // Sensor_2
@@ -889,7 +945,7 @@ void create_screen_weatherstation_screen() {
                             lv_obj_set_style_pad_bottom(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
                             lv_obj_set_style_bg_opa(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
                             lv_obj_set_style_border_width(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
-                            create_user_widget_sensor_temp_hum(obj, 100);
+                            create_user_widget_sensor_temp_hum(obj, 103);
                         }
                         {
                             // Sensor_3
@@ -903,7 +959,7 @@ void create_screen_weatherstation_screen() {
                             lv_obj_set_style_pad_bottom(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
                             lv_obj_set_style_bg_opa(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
                             lv_obj_set_style_border_width(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
-                            create_user_widget_sensor_temp_hum(obj, 110);
+                            create_user_widget_sensor_temp_hum(obj, 113);
                         }
                         {
                             // Sensor_4
@@ -917,7 +973,7 @@ void create_screen_weatherstation_screen() {
                             lv_obj_set_style_pad_bottom(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
                             lv_obj_set_style_bg_opa(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
                             lv_obj_set_style_border_width(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
-                            create_user_widget_sensor_temp_hum_press_compact(obj, 120);
+                            create_user_widget_sensor_temp_hum_press_compact(obj, 123);
                         }
                         {
                             // Sensor_5
@@ -931,7 +987,7 @@ void create_screen_weatherstation_screen() {
                             lv_obj_set_style_pad_bottom(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
                             lv_obj_set_style_bg_opa(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
                             lv_obj_set_style_border_width(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
-                            create_user_widget_sensor_radiation(obj, 131);
+                            create_user_widget_sensor_radiation(obj, 134);
                         }
                     }
                 }
@@ -1139,14 +1195,14 @@ void create_screen_weatherstation_screen() {
 }
 
 void tick_screen_weatherstation_screen() {
-    tick_user_widget_current(39);
-    tick_user_widget_sensor_sen66(56);
-    tick_user_widget_sensor_temp_hum(80);
-    tick_user_widget_sensor_temp_hum(90);
-    tick_user_widget_sensor_temp_hum(100);
-    tick_user_widget_sensor_temp_hum(110);
-    tick_user_widget_sensor_temp_hum_press_compact(120);
-    tick_user_widget_sensor_radiation(131);
+    tick_user_widget_current(42);
+    tick_user_widget_sensor_sen66(59);
+    tick_user_widget_sensor_temp_hum(83);
+    tick_user_widget_sensor_temp_hum(93);
+    tick_user_widget_sensor_temp_hum(103);
+    tick_user_widget_sensor_temp_hum(113);
+    tick_user_widget_sensor_temp_hum_press_compact(123);
+    tick_user_widget_sensor_radiation(134);
 }
 
 void create_user_widget_current(lv_obj_t *parent_obj, int startWidgetIndex) {

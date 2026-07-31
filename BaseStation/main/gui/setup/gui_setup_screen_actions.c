@@ -59,6 +59,7 @@ void action_event_setup_screen_loaded(lv_event_t *e)
   char* height = get_string_from_nvs(nvs_handle, "height", "");
   uint8_t region_id = get_uint8_from_nvs(nvs_handle, "region", 0);
   uint8_t city_id = get_uint8_from_nvs(nvs_handle, "city", 0);
+  uint8_t language = get_uint8_from_nvs(nvs_handle, "language", 0);
 
   load_basis_from_nvs(nvs_handle);
   load_sensor_slots_from_nvs(nvs_handle);
@@ -92,6 +93,8 @@ void action_event_setup_screen_loaded(lv_event_t *e)
   set_cities(region);
   // set the selected city id
   lv_dropdown_set_selected(objects.dropdown_city, city_id);
+
+  lv_dropdown_set_selected(objects.dropdown_language, language);
 }
 
 void action_event_timezone_value_changed(lv_event_t *e)
@@ -170,6 +173,9 @@ void action_event_weatherstation_start(lv_event_t *e)
 
   uint8_t city_id = lv_dropdown_get_selected(objects.dropdown_city);
   put_uint8_to_nvs(nvs_handle, "city", city_id);
+
+  uint8_t language = lv_dropdown_get_selected(objects.dropdown_language);
+  put_uint8_to_nvs(nvs_handle, "language", language);
 
   const char* tz = NULL;
   const char *region = regionNames[region_id];

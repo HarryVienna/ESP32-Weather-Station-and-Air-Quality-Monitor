@@ -1,5 +1,8 @@
 #include "i18n.h"
 
+#include "nvs_flash.h"
+#include "nvs/preferences.h"
+
 /* The first language in the list is the fallback if a tag is missing in
  * the currently selected language (see lv_translation_get() in
  * lv_translation.c).
@@ -25,10 +28,12 @@ static const char * const s_tags[] = {
     "Connect",
     "Downloading:",
     "Install",
+    "Language:",
     "Latitude:",
     "Longitude:",
     "Network:",
     "Password:",
+    "Restart required to change language",
     "Scan",
     "Sensor 0:",
     "Sensor 1:",
@@ -97,12 +102,14 @@ static const char * const s_translations[] = {
     "AppId:",            "AppId:",
     "Basis:",            "Base:",
     "Verbinden",         "Connect",
-    "Downloading:",      "Downloading:",
+    "Download:",         "Downloading:",
     "Installieren",      "Install",
+    "Sprache:",          "Language:",
     "Latitude:",         "Latitude:",
     "Longitude:",        "Longitude:",
     "Netzwerk:",         "Network:",
     "Passwort:",         "Password:",
+    "Neustart erforderlich, um die Sprache zu ändern", "Restart required to change language",
     "Scan",              "Scan",
     "Sensor 0:",         "Sensor 0:",
     "Sensor 1:",         "Sensor 1:",
@@ -151,7 +158,12 @@ static const char * const s_translations[] = {
 
 void i18n_init(void)
 {
+    nvs_handle_t nvs_handle;
+    nvs_open("weatherstation", NVS_READONLY, &nvs_handle);
+    uint8_t language = get_uint8_from_nvs(nvs_handle, "language", 0);
+    nvs_close(nvs_handle);
+
     lv_translation_init();
     lv_translation_add_static(s_languages, s_tags, s_translations);
-    lv_translation_set_language("en");
+    lv_translation_set_language(language == 1 ? "en" : "de");
 }
