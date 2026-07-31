@@ -27,6 +27,7 @@
 #include "esp_log.h"
 
 #include "../config/config.h"
+#include "../i18n/i18n.h"
 #include "lv_daily_chart.h"
 #include "lv_common.h"
 
@@ -290,11 +291,12 @@ static void draw_daily_x_ticks(lv_obj_t * obj, lv_layer_t * layer)
         int32_t px = x_ofs + (int32_t)(w * i) / (NUM_DAYS - 1);
         int32_t py = y_ofs;
 
-        char day_name[4];
+        char wday_tag[8];
+        char day_name[8];
         struct tm dt = chart->data_array[i].dt;
-        int wday = dt.tm_wday;
-        if (wday < 0 || wday > 6) wday = 0;
-        snprintf(day_name, sizeof(day_name), "%s", DAY_NAMES[wday]);
+        if (dt.tm_wday < 0 || dt.tm_wday > 6) dt.tm_wday = 0;
+        strftime(wday_tag, sizeof(wday_tag), "%a", &dt);
+        snprintf(day_name, sizeof(day_name), "%s", _(wday_tag));
 
         lv_point_t size;
         lv_text_get_size(&size, day_name, label_dsc.font, label_dsc.letter_space,

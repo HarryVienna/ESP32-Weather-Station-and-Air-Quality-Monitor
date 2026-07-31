@@ -9,7 +9,7 @@
 #include "freertos/task.h"
 
 #include "gui_status.h"
-#include "config/config.h"
+#include "i18n/i18n.h"
 
 static const char* TAG = "clock_task";
 
@@ -29,15 +29,17 @@ void clock_task(void *pvParameter)
   time_t now;
 
   char str_ftime[24];
-  char date_time[32];
+  char wday_tag[16];   // "%A" z.B. "Wednesday" (9+\0) - Marge fuer laengere Namen
+  char date_time[48];  // laengster Wochentag ("Donnerstag", 10) + " " + str_ftime + Marge
 
   for (;;) {
 
     time(&now);
     localtime_r(&now, &timeinfo);
 
-    strftime(str_ftime, sizeof(str_ftime), "%d.%m.%Y  %H:%M:%S", &timeinfo);
-    snprintf(date_time, sizeof(date_time), "%s %s", DAY_NAMES[timeinfo.tm_wday], str_ftime);
+    strftime(str_ftime, sizeof(str_ftime), _("%d.%m.%Y  %H:%M:%S"), &timeinfo);
+    strftime(wday_tag, sizeof(wday_tag), "%A", &timeinfo);
+    snprintf(date_time, sizeof(date_time), "%s %s", _(wday_tag), str_ftime);
 
     disp_date_time(date_time);
 

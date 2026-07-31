@@ -21,9 +21,6 @@
 #define COLOR_BLACK 0x000000
 #define COLOR_WHITE 0xFFFFFF
 
-// Day names
-static const char* DAY_NAMES[7] = { "So", "Mo", "Di", "Mi" , "Do" , "Fr" , "Sa" };
-
 // WIFI
 #define HOST_NAME   "ESP32-WEATHERSTATION"
 #define NTP_SERVER  "de.pool.ntp.org"

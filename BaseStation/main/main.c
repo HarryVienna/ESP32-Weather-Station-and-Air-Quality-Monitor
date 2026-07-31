@@ -13,6 +13,7 @@
 #include "esp_ota_ops.h"
 #include "lvgl.h"
 
+#include "i18n/i18n.h"
 #include "i2c/i2c_manager.h"
 #include "display/display.h"
 #include "receiver/receiver.h"
@@ -40,6 +41,7 @@ void app_main(void)
     ESP_ERROR_CHECK(receiver_init());
 
     lvgl_port_lock(0);
+    i18n_init(); // vor ui_init(): Screens rufen beim Aufbau schon _() auf
     ui_init();
     gui_weather_init_charts();
     gui_sen66_init_charts();

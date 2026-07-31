@@ -7,6 +7,7 @@
 #include "vars.h"
 #include "styles.h"
 #include "ui.h"
+#include "i18n/i18n.h"
 
 #include <string.h>
 
@@ -79,7 +80,7 @@ void create_screen_setup_screen() {
                             lv_obj_set_pos(obj, 0, 0);
                             lv_obj_set_size(obj, LV_PCT(11), LV_SIZE_CONTENT);
                             add_style_label(obj);
-                            lv_label_set_text_static(obj, "Netzwerk:");
+                            lv_label_set_text(obj, _("Netzwerk:"));
                         }
                         {
                             // DropdownNetworks
@@ -117,7 +118,7 @@ void create_screen_setup_screen() {
                                     lv_obj_set_pos(obj, 0, 0);
                                     lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
                                     add_style_button_label(obj);
-                                    lv_label_set_text_static(obj, "Scan");
+                                    lv_label_set_text(obj, _("Scan"));
                                 }
                             }
                         }
@@ -149,7 +150,7 @@ void create_screen_setup_screen() {
                             lv_obj_set_pos(obj, 0, 0);
                             lv_obj_set_size(obj, LV_PCT(11), LV_SIZE_CONTENT);
                             add_style_label(obj);
-                            lv_label_set_text_static(obj, "Passwort:");
+                            lv_label_set_text(obj, _("Passwort:"));
                         }
                         {
                             // TextAreaPassword
@@ -187,7 +188,7 @@ void create_screen_setup_screen() {
                                     lv_obj_set_pos(obj, 0, 0);
                                     lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
                                     add_style_button_label(obj);
-                                    lv_label_set_text_static(obj, "Verbinden");
+                                    lv_label_set_text(obj, _("Verbinden"));
                                 }
                             }
                         }
@@ -217,7 +218,7 @@ void create_screen_setup_screen() {
                             lv_obj_set_pos(obj, 0, 0);
                             lv_obj_set_size(obj, LV_PCT(11), LV_SIZE_CONTENT);
                             add_style_button_label(obj);
-                            lv_label_set_text_static(obj, "API");
+                            lv_label_set_text(obj, _("API"));
                         }
                         {
                             // DropdownApi
@@ -244,7 +245,7 @@ void create_screen_setup_screen() {
                             add_style_label(obj);
                             lv_obj_set_style_text_align(obj, LV_TEXT_ALIGN_RIGHT, LV_PART_MAIN | LV_STATE_DEFAULT);
                             lv_obj_set_style_margin_right(obj, 10, LV_PART_MAIN | LV_STATE_DEFAULT);
-                            lv_label_set_text_static(obj, "AppId:");
+                            lv_label_set_text(obj, _("AppId:"));
                         }
                         {
                             // TextAreaAppId
@@ -287,7 +288,7 @@ void create_screen_setup_screen() {
                             lv_obj_set_pos(obj, 0, 0);
                             lv_obj_set_size(obj, LV_PCT(11), LV_SIZE_CONTENT);
                             add_style_label(obj);
-                            lv_label_set_text_static(obj, "Latitude:");
+                            lv_label_set_text(obj, _("Latitude:"));
                         }
                         {
                             // TextAreaLatitude
@@ -310,7 +311,7 @@ void create_screen_setup_screen() {
                             add_style_label(obj);
                             lv_obj_set_style_margin_right(obj, 10, LV_PART_MAIN | LV_STATE_DEFAULT);
                             lv_obj_set_style_text_align(obj, LV_TEXT_ALIGN_RIGHT, LV_PART_MAIN | LV_STATE_DEFAULT);
-                            lv_label_set_text_static(obj, "Longitude:");
+                            lv_label_set_text(obj, _("Longitude:"));
                         }
                         {
                             // TextAreaLongitude
@@ -333,7 +334,7 @@ void create_screen_setup_screen() {
                             add_style_label(obj);
                             lv_obj_set_style_text_align(obj, LV_TEXT_ALIGN_RIGHT, LV_PART_MAIN | LV_STATE_DEFAULT);
                             lv_obj_set_style_margin_right(obj, 10, LV_PART_MAIN | LV_STATE_DEFAULT);
-                            lv_label_set_text_static(obj, "Höhe:");
+                            lv_label_set_text(obj, _("Höhe:"));
                         }
                         {
                             // TextAreaHoehe
@@ -376,7 +377,7 @@ void create_screen_setup_screen() {
                             lv_obj_set_pos(obj, 0, 0);
                             lv_obj_set_size(obj, LV_PCT(11), LV_SIZE_CONTENT);
                             lv_obj_set_style_text_font(obj, &ui_font_free_sans30, LV_PART_MAIN | LV_STATE_DEFAULT);
-                            lv_label_set_text_static(obj, "Zeitzone:");
+                            lv_label_set_text(obj, _("Zeitzone:"));
                         }
                         {
                             // DropdownRegion
@@ -442,7 +443,7 @@ void create_screen_setup_screen() {
                             lv_obj_set_pos(obj, 0, 0);
                             lv_obj_set_size(obj, LV_PCT(11), LV_SIZE_CONTENT);
                             add_style_button_label(obj);
-                            lv_label_set_text_static(obj, "Basis:");
+                            lv_label_set_text(obj, _("Basis:"));
                         }
                         {
                             // Basis_Icon
@@ -450,7 +451,7 @@ void create_screen_setup_screen() {
                             objects.basis_icon = obj;
                             lv_obj_set_pos(obj, 555, 360);
                             lv_obj_set_size(obj, LV_PCT(20), 52);
-                            lv_dropdown_set_options_static(obj, "Balkon\nBad\nKüche");
+                            lv_dropdown_set_options(obj, _("Bad\nBalkon\nBüro\nKeller\nKüche\nSchlafzimmer\nStrahlung\nWerkstatt\nWohnzimmer"));
                             lv_dropdown_set_selected(obj, 0);
                             add_style_dropdown(obj);
                             {
@@ -489,7 +490,7 @@ void create_screen_setup_screen() {
                             lv_obj_set_pos(obj, 0, 0);
                             lv_obj_set_size(obj, LV_PCT(11), LV_SIZE_CONTENT);
                             add_style_label(obj);
-                            lv_label_set_text_static(obj, "Sensor 0:");
+                            lv_label_set_text(obj, _("Sensor 0:"));
                         }
                         {
                             // Sensor_0_Name
@@ -497,7 +498,7 @@ void create_screen_setup_screen() {
                             objects.sensor_0_name = obj;
                             lv_obj_set_pos(obj, 53, 601);
                             lv_obj_set_size(obj, LV_PCT(20), 52);
-                            lv_dropdown_set_options_static(obj, "Balkon\nBad\nKüche");
+                            lv_dropdown_set_options(obj, _("Bad\nBalkon\nBüro\nKeller\nKüche\nSchlafzimmer\nStrahlung\nWerkstatt\nWohnzimmer"));
                             lv_dropdown_set_selected(obj, 0);
                             add_style_dropdown(obj);
                             {
@@ -515,7 +516,7 @@ void create_screen_setup_screen() {
                             add_style_label(obj);
                             lv_obj_set_style_text_align(obj, LV_TEXT_ALIGN_RIGHT, LV_PART_MAIN | LV_STATE_DEFAULT);
                             lv_obj_set_style_pad_right(obj, 10, LV_PART_MAIN | LV_STATE_DEFAULT);
-                            lv_label_set_text_static(obj, "Sensor 2:");
+                            lv_label_set_text(obj, _("Sensor 2:"));
                         }
                         {
                             // Sensor_2_Name
@@ -523,7 +524,7 @@ void create_screen_setup_screen() {
                             objects.sensor_2_name = obj;
                             lv_obj_set_pos(obj, 256, 602);
                             lv_obj_set_size(obj, LV_PCT(20), 52);
-                            lv_dropdown_set_options_static(obj, "Balkon\nBad\nKüche");
+                            lv_dropdown_set_options(obj, _("Bad\nBalkon\nBüro\nKeller\nKüche\nSchlafzimmer\nStrahlung\nWerkstatt\nWohnzimmer"));
                             lv_dropdown_set_selected(obj, 0);
                             add_style_dropdown(obj);
                             {
@@ -541,7 +542,7 @@ void create_screen_setup_screen() {
                             add_style_label(obj);
                             lv_obj_set_style_text_align(obj, LV_TEXT_ALIGN_RIGHT, LV_PART_MAIN | LV_STATE_DEFAULT);
                             lv_obj_set_style_pad_right(obj, 10, LV_PART_MAIN | LV_STATE_DEFAULT);
-                            lv_label_set_text_static(obj, "Sensor 4:");
+                            lv_label_set_text(obj, _("Sensor 4:"));
                         }
                         {
                             // Sensor_4_Name
@@ -549,7 +550,7 @@ void create_screen_setup_screen() {
                             objects.sensor_4_name = obj;
                             lv_obj_set_pos(obj, 456, 601);
                             lv_obj_set_size(obj, LV_PCT(20), 52);
-                            lv_dropdown_set_options_static(obj, "Balkon\nBad\nKüche");
+                            lv_dropdown_set_options(obj, _("Bad\nBalkon\nBüro\nKeller\nKüche\nSchlafzimmer\nStrahlung\nWerkstatt\nWohnzimmer"));
                             lv_dropdown_set_selected(obj, 0);
                             add_style_dropdown(obj);
                             {
@@ -588,7 +589,7 @@ void create_screen_setup_screen() {
                             lv_obj_set_pos(obj, 0, 0);
                             lv_obj_set_size(obj, LV_PCT(11), LV_SIZE_CONTENT);
                             add_style_label(obj);
-                            lv_label_set_text_static(obj, "Sensor 1:");
+                            lv_label_set_text(obj, _("Sensor 1:"));
                         }
                         {
                             // Sensor_1_Name
@@ -596,7 +597,7 @@ void create_screen_setup_screen() {
                             objects.sensor_1_name = obj;
                             lv_obj_set_pos(obj, 53, 601);
                             lv_obj_set_size(obj, LV_PCT(20), 52);
-                            lv_dropdown_set_options_static(obj, "Balkon\nBad\nKüche");
+                            lv_dropdown_set_options(obj, _("Bad\nBalkon\nBüro\nKeller\nKüche\nSchlafzimmer\nStrahlung\nWerkstatt\nWohnzimmer"));
                             lv_dropdown_set_selected(obj, 0);
                             add_style_dropdown(obj);
                             {
@@ -614,7 +615,7 @@ void create_screen_setup_screen() {
                             add_style_label(obj);
                             lv_obj_set_style_text_align(obj, LV_TEXT_ALIGN_RIGHT, LV_PART_MAIN | LV_STATE_DEFAULT);
                             lv_obj_set_style_pad_right(obj, 10, LV_PART_MAIN | LV_STATE_DEFAULT);
-                            lv_label_set_text_static(obj, "Sensor 3:");
+                            lv_label_set_text(obj, _("Sensor 3:"));
                         }
                         {
                             // Sensor_3_Name
@@ -622,7 +623,7 @@ void create_screen_setup_screen() {
                             objects.sensor_3_name = obj;
                             lv_obj_set_pos(obj, 256, 602);
                             lv_obj_set_size(obj, LV_PCT(20), 52);
-                            lv_dropdown_set_options_static(obj, "Balkon\nBad\nKüche");
+                            lv_dropdown_set_options(obj, _("Bad\nBalkon\nBüro\nKeller\nKüche\nSchlafzimmer\nStrahlung\nWerkstatt\nWohnzimmer"));
                             lv_dropdown_set_selected(obj, 0);
                             add_style_dropdown(obj);
                             {
@@ -640,7 +641,7 @@ void create_screen_setup_screen() {
                             add_style_label(obj);
                             lv_obj_set_style_text_align(obj, LV_TEXT_ALIGN_RIGHT, LV_PART_MAIN | LV_STATE_DEFAULT);
                             lv_obj_set_style_pad_right(obj, 10, LV_PART_MAIN | LV_STATE_DEFAULT);
-                            lv_label_set_text_static(obj, "Sensor 5:");
+                            lv_label_set_text(obj, _("Sensor 5:"));
                         }
                         {
                             // Sensor_5_Name
@@ -648,7 +649,7 @@ void create_screen_setup_screen() {
                             objects.sensor_5_name = obj;
                             lv_obj_set_pos(obj, 456, 601);
                             lv_obj_set_size(obj, LV_PCT(20), 52);
-                            lv_dropdown_set_options_static(obj, "Balkon\nBad\nKüche");
+                            lv_dropdown_set_options(obj, _("Bad\nBalkon\nBüro\nKeller\nKüche\nSchlafzimmer\nStrahlung\nWerkstatt\nWohnzimmer"));
                             lv_dropdown_set_selected(obj, 0);
                             add_style_dropdown(obj);
                             {
@@ -696,7 +697,7 @@ void create_screen_setup_screen() {
                                     lv_obj_set_pos(obj, 0, 0);
                                     lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
                                     add_style_button_label(obj);
-                                    lv_label_set_text_static(obj, "Starten");
+                                    lv_label_set_text(obj, _("Starten"));
                                 }
                             }
                         }
@@ -1047,7 +1048,7 @@ void create_screen_weatherstation_screen() {
                                     lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
                                     lv_obj_set_style_text_font(obj, &ui_font_free_sans36, LV_PART_MAIN | LV_STATE_DEFAULT);
                                     lv_obj_set_style_text_align(obj, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN | LV_STATE_DEFAULT);
-                                    lv_label_set_text_static(obj, "Update verfügbar:");
+                                    lv_label_set_text(obj, _("Update verfügbar:"));
                                 }
                                 {
                                     // UpdateVersion
@@ -1091,7 +1092,7 @@ void create_screen_weatherstation_screen() {
                                             lv_obj_set_pos(obj, 0, 0);
                                             lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
                                             add_style_button_label(obj);
-                                            lv_label_set_text_static(obj, "Installieren");
+                                            lv_label_set_text(obj, _("Installieren"));
                                         }
                                     }
                                 }
@@ -1117,7 +1118,7 @@ void create_screen_weatherstation_screen() {
                                     lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
                                     add_style_label(obj);
                                     lv_obj_set_style_pad_right(obj, 10, LV_PART_MAIN | LV_STATE_DEFAULT);
-                                    lv_label_set_text_static(obj, "Downloading:");
+                                    lv_label_set_text(obj, _("Downloading:"));
                                 }
                                 {
                                     // ProgressBarUpdate
@@ -1816,7 +1817,7 @@ void create_user_widget_sensor_sen66(lv_obj_t *parent_obj, int startWidgetIndex)
                             lv_obj_set_size(obj, LV_PCT(86), LV_SIZE_CONTENT);
                             lv_obj_set_style_text_font(obj, &ui_font_free_sans20, LV_PART_MAIN | LV_STATE_DEFAULT);
                             lv_obj_set_style_text_align(obj, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN | LV_STATE_DEFAULT);
-                            lv_label_set_text_static(obj, "Wohnzimmer");
+                            lv_label_set_text(obj, _("Wohnzimmer"));
                         }
                     }
                 }

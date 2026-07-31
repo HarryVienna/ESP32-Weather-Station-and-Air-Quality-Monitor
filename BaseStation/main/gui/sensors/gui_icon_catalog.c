@@ -1,5 +1,6 @@
 #include "gui_icon_catalog.h"
 
+#include "i18n/i18n.h"
 #include "ui/ui.h"
 
 /* ============================================================================
@@ -38,6 +39,6 @@ void populate_sensor_icon_dropdown(lv_obj_t *dropdown)
 {
   lv_dropdown_clear_options(dropdown);
   for (size_t i = 0; i < SENSOR_ICON_ARR_COUNT; i++) {
-    lv_dropdown_add_option(dropdown, sensor_icon_options[i].label, LV_DROPDOWN_POS_LAST);
+    lv_dropdown_add_option(dropdown, _(sensor_icon_options[i].label), LV_DROPDOWN_POS_LAST);
   }
 }

@@ -7,6 +7,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
+#include "i18n/i18n.h"
 #include "ui/ui.h"
 #include "gui_color_scale.h"
 #include "gui_history_chart.h"
@@ -119,6 +120,6 @@ void apply_sen66_config(void)
 {
   uint8_t basis_icon_idx = lv_dropdown_get_selected(objects.basis_icon);
   const sensor_icon_option_t *opt = sensor_icon_option(basis_icon_idx);
-  lv_label_set_text(objects.sen66__name, opt->label);
+  lv_label_set_text(objects.sen66__name, _(opt->label));
   lv_image_set_src(objects.sen66__icon, opt->icon);
 }

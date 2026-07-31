@@ -13,8 +13,7 @@
  * echte 24h soll aber trotzdem reinpassen. Deshalb wird nicht jeder Messwert
  * einzeln gepusht, sondern pro Balken das MAXIMUM aller Messwerte seit dem
  * letzten Balken (statt z.B. dem Mittelwert) gespeichert - kurze Spitzen
- * (Zigarette am Balkon bei offenem Fenster, kurzzeitig erhoehte Strahlung,
- * ...) gehen so nicht unter, wie es bei einem gemittelten Wert der Fall
+ * gehen so nicht unter, wie es bei einem gemittelten Wert der Fall
  * waere.
  * ============================================================================ */
 typedef struct {

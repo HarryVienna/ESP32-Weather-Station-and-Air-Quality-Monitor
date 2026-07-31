@@ -7,6 +7,7 @@
 #include "esp_lvgl_port.h"
 
 #include "config/config.h"
+#include "i18n/i18n.h"
 #include "ui/ui.h"
 #include "gui_color_scale.h"
 #include "gui_history_chart.h"
@@ -334,7 +335,7 @@ void apply_sensor_slot_configs(void)
   for (int i = 0; i < SENSOR_SLOT_COUNT; i++) {
     uint8_t icon_idx = lv_dropdown_get_selected(*sensor_dropdown_widgets[i]);
     const sensor_icon_option_t *opt = sensor_icon_option(icon_idx);
-    lv_label_set_text(*sensor_slots[i].name, opt->label);
+    lv_label_set_text(*sensor_slots[i].name, _(opt->label));
     lv_image_set_src(*sensor_slots[i].icon, opt->icon);
   }
 }
