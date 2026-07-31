@@ -1,10 +1,10 @@
 #include "ui/ui.h"
 #include "ui/actions.h"
 
-/* Blendet die passende Bildschirmtastatur ein/aus und haengt sie an das
- * fokussierte Textfeld - eine action_event_text_area_*() Funktion pro
- * Textfeld, weil EEZ Studio pro Widget ein eigenes Event verdrahtet. Reine
- * LVGL-Mechanik, kein Bezug zu WLAN/Wetter/Sensoren. */
+/* Shows/hides the matching on-screen keyboard and attaches it to the
+ * focused text field - one action_event_text_area_*() function per text
+ * field, because EEZ Studio wires up a separate event per widget. Pure
+ * LVGL mechanics, unrelated to WiFi/weather/sensors. */
 
 void action_event_text_area_password(lv_event_t * e)
 {

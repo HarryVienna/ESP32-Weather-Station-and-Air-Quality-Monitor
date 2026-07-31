@@ -131,7 +131,7 @@ float cubicInterpolation(lv_temp_t points[], int numPoints, float x) {
 
 lv_color_t map_dewpoint_to_color(float value) {
 
-    // Definiere die Farbwerte
+    // Define the color values
     lv_color_t colors[] = {
         lv_color_hex(COLOR_BLUE),    // <= 12
         lv_color_hex(COLOR_ORANGE),  // ~ 14
@@ -147,7 +147,7 @@ lv_color_t map_dewpoint_to_color(float value) {
     } else if (value >= max_dew) {
         return colors[num_colors - 1];
     } else {
-        // Berechne den Index des Arrays für Werte zwischen `min` und `max`
+        // Calculate the array index for values between `min` and `max`
         float scale = (value - min_dew) / (max_dew - min_dew);
         int index = (int)(scale * (num_colors - 1));
 

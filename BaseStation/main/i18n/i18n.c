@@ -1,22 +1,23 @@
 #include "i18n.h"
 
-/* Erste Sprache in der Liste ist der Fallback, falls ein Tag in der aktuell
- * gewaehlten Sprache fehlt (siehe lv_translation_get() in lv_translation.c).
+/* The first language in the list is the fallback if a tag is missing in
+ * the currently selected language (see lv_translation_get() in
+ * lv_translation.c).
  *
- * Layout von s_translations: pro Tag ein Block mit je einem Eintrag pro
- * Sprache, in derselben Reihenfolge wie s_languages (siehe
- * lv_translation_get(): "tr_row = translation_p + language_cnt * tag_index",
- * dann "tr_row[lang_index]" - NICHT sprachweise gruppiert, wie es der
- * Docstring von lv_translation_add_static() im LVGL-Header nahelegt, das
- * Beispiel dort passt nicht zur tatsaechlichen Indizierung im .c). */
+ * Layout of s_translations: one block per tag with one entry per
+ * language, in the same order as s_languages (see lv_translation_get():
+ * "tr_row = translation_p + language_cnt * tag_index", then
+ * "tr_row[lang_index]" - NOT grouped by language, as the docstring of
+ * lv_translation_add_static() in the LVGL header suggests; the example
+ * there doesn't match the actual indexing in the .c file). */
 static const char * const s_languages[] = {"de", "en", NULL};
 
 static const char * const s_tags[] = {
-    /* --- UI-Labels (Setup-/Weatherstation-Screen) ---
-     * Tags sind hier Englisch, nicht Deutsch wie sonst in dieser Tabelle:
-     * EEZ Studio ist auf englische Quelltexte fuer "Translated Literal"
-     * umgestellt, die generierten _()-Aufrufe in screens.c nutzen also
-     * jetzt Englisch als Schluessel. */
+    /* --- UI labels (setup/Weatherstation screen) ---
+     * Tags are English here, not German like elsewhere in this table:
+     * EEZ Studio is set to English source text for "Translated Literal",
+     * so the generated _() calls in screens.c now use English as the
+     * key. */
     "Altitude:",
     "API:",
     "AppId:",
@@ -39,12 +40,12 @@ static const char * const s_tags[] = {
     "Time zone:",
     "Update available:",
 
-    /* --- Name+Icon-Katalog (gui_icon_catalog.c: sensor_icon_options[].label) ---
-     * Dort steht bewusst weiter der deutsche Klartext als Tag/Schluessel
-     * (NVS speichert nur den Index, keine Strings), uebersetzt wird erst an
-     * den drei Stellen, wo das Label tatsaechlich auf den Screen kommt:
-     * populate_sensor_icon_dropdown(), apply_sen66_config() und
-     * apply_sensor_slot_configs().*/
+    /* --- Name+icon catalog (gui_icon_catalog.c: sensor_icon_options[].label) ---
+     * The German plain text is deliberately kept as the tag/key there
+     * (NVS only stores the index, no strings); translation only happens
+     * at the three places where the label actually ends up on screen:
+     * populate_sensor_icon_dropdown(), apply_sen66_config() and
+     * apply_sensor_slot_configs(). */
     "Bad",
     "Balkon",
     "Büro",
@@ -55,11 +56,12 @@ static const char * const s_tags[] = {
     "Werkstatt",
     "Wohnzimmer",
 
-    /* --- Wochentags-Kurzform (lv_daily_chart.c: Wochenchart, 7 schmale
-     * Spalten - deshalb bewusst bei der Kurzform belassen, siehe
-     * "Wochentag ausgeschrieben" weiter unten fuer clock_task.c) ---
-     * Tags sind hier bewusst Englisch statt Deutsch wie sonst ueberall in
-     * dieser Tabelle: sie kommen von strftime() "%a", nicht aus Quelltext. */
+    /* --- Weekday short form (lv_daily_chart.c: weekly chart, 7 narrow
+     * columns - deliberately kept short for that reason, see "weekday
+     * spelled out" further below for clock_task.c) ---
+     * Tags are deliberately English here instead of German like
+     * elsewhere in this table: they come from strftime() "%a", not from
+     * source text. */
     "Sun",
     "Mon",
     "Tue",
@@ -68,8 +70,8 @@ static const char * const s_tags[] = {
     "Fri",
     "Sat",
 
-    /* --- Wochentag ausgeschrieben (clock_task.c: Datumsanzeige, genug Platz
-     * fuer den vollen Namen) --- Tags kommen von strftime() "%A". */
+    /* --- Weekday spelled out (clock_task.c: date display, enough room
+     * for the full name) --- Tags come from strftime() "%A". */
     "Sunday",
     "Monday",
     "Tuesday",
@@ -78,18 +80,18 @@ static const char * const s_tags[] = {
     "Friday",
     "Saturday",
 
-    /* --- Datumsformat (clock_task.c) ---
-     * Nicht nur der Wochentagsname ist locale-abhaengig, auch die
-     * Reihenfolge von Tag/Monat/Jahr - im Englischen ueblicherweise
-     * Monat zuerst. Der strftime()-Formatstring selbst ist hier der Tag,
-     * genau wie sonst auch der (deutsche) Anzeigetext der Tag ist. */
+    /* --- Date format (clock_task.c) ---
+     * Not just the weekday name is locale-dependent, so is the order of
+     * day/month/year - in English usually month first. The strftime()
+     * format string itself is the tag here, just as the (German) display
+     * text is normally the tag elsewhere. */
     "%d.%m.%Y  %H:%M:%S",
     NULL,
 };
 
-/* Reihenfolge muss exakt zu s_tags passen: je Tag ein {de, en}-Paar. */
+/* Order must match s_tags exactly: one {de, en} pair per tag. */
 static const char * const s_translations[] = {
-    /* --- UI-Labels --- */
+    /* --- UI labels --- */
     "Höhe:",             "Altitude:",
     "API:",              "API:",
     "AppId:",            "AppId:",
@@ -112,7 +114,7 @@ static const char * const s_translations[] = {
     "Zeitzone:",         "Time zone:",
     "Update verfügbar:", "Update available:",
 
-    /* --- Name+Icon-Katalog --- */
+    /* --- Name+icon catalog --- */
     "Bad",               "Bathroom",
     "Balkon",            "Balcony",
     "Büro",              "Office",
@@ -123,7 +125,7 @@ static const char * const s_translations[] = {
     "Werkstatt",         "Workshop",
     "Wohnzimmer",        "Living room",
 
-    /* --- Wochentags-Kurzform (Reihenfolge muss zu s_tags oben passen: Sun,
+    /* --- Weekday short form (order must match s_tags above: Sun,
      * Mon, Tue, Wed, Thu, Fri, Sat) --- */
     "So",                "Su",
     "Mo",                "Mo",
@@ -133,7 +135,7 @@ static const char * const s_translations[] = {
     "Fr",                "Fr",
     "Sa",                "Sa",
 
-    /* --- Wochentag ausgeschrieben (Reihenfolge muss zu s_tags oben passen:
+    /* --- Weekday spelled out (order must match s_tags above:
      * Sunday, Monday, Tuesday, Wednesday, Thursday, Friday, Saturday) --- */
     "Sonntag",           "Sunday",
     "Montag",            "Monday",

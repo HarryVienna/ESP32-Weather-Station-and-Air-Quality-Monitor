@@ -29,8 +29,8 @@ void clock_task(void *pvParameter)
   time_t now;
 
   char str_ftime[24];
-  char wday_tag[16];   // "%A" z.B. "Wednesday" (9+\0) - Marge fuer laengere Namen
-  char date_time[48];  // laengster Wochentag ("Donnerstag", 10) + " " + str_ftime + Marge
+  char wday_tag[16];   // "%A" e.g. "Wednesday" (9+\0) - margin for longer names
+  char date_time[48];  // longest weekday name ("Donnerstag", 10) + " " + str_ftime + margin
 
   for (;;) {
 

@@ -32,10 +32,10 @@ extern "C" {
 
 #define LV_HOURLY_CHART_LABEL_MAX_TEXT_LENGTH 16
 
-/* Anzahl Forecast-Stunden, die der Chart darstellt - fest verdrahtet, weil
- * lv_hourly_chart_t.data_array[] eine feste Groesse braucht (kein
- * dynamisches Array). weather_task.c fragt beim Provider exakt NUM_HOURS
- * Stunden ab, damit Fetch-Puffer und Chart-Kapazitaet 1:1 zusammenpassen. */
+/* Number of forecast hours the chart displays - hardwired because
+ * lv_hourly_chart_t.data_array[] needs a fixed size (no dynamic array).
+ * weather_task.c requests exactly NUM_HOURS hours from the provider, so
+ * the fetch buffer and chart capacity match 1:1. */
 #define NUM_HOURS 48
 #define MAX_HOURLY_PRECIPITATION 5
 

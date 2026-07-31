@@ -23,7 +23,7 @@ static const char *TAG = "RECEIVER";
 #define I2C_SLAVE_ADDR  0x38
 #define I2C_SLAVE_FREQ  50000
 
-/* Register Map (muss zur i2c_slave.h auf S3-Seite passen) */
+/* Register map (must match i2c_slave.h on the S3 side) */
 #define I2C_REG_COUNT        0x00
 #define I2C_REG_PACKET_READ  0x01
 #define I2C_REG_SET_TIME     0x10
@@ -32,10 +32,10 @@ static const char *TAG = "RECEIVER";
 #define I2C_REG_STATS_RECV   0x24
 #define I2C_REG_STATS_OVERWR 0x28
 
-/* Zeitzone die an den S3-Slave übertragen wird */
+/* Timezone that gets sent to the S3 slave */
 #define SLAVE_TIMEZONE  "CET-1CEST,M3.5.0,M10.5.0/3"
 
-/* Delay zwischen WRITE (register) und READ (data) in ms */
+/* Delay between WRITE (register) and READ (data) in ms */
 #define I2C_SLAVE_PREPARE_MS  50
 
 static i2c_master_dev_handle_t s_dev = NULL;
@@ -44,7 +44,7 @@ static const i2c_device_config_t s_dev_cfg = {
     .dev_addr_length = I2C_ADDR_BIT_LEN_7,
     .device_address  = I2C_SLAVE_ADDR,
     .scl_speed_hz    = I2C_SLAVE_FREQ,
-    .scl_wait_us     = 1000000,  /* 1s hardware-SCL-timeout — S3 darf stretchen */
+    .scl_wait_us     = 1000000,  /* 1s hardware SCL timeout — S3 is allowed to stretch */
 };
 
 /* -------------------------------------------------------------------------- */
@@ -179,43 +179,46 @@ static void print_packet(const uint8_t *buf, size_t buf_len)
     }
 }
 
-/* Tick-Rate des Sensor-Receivers (S3, siehe Sensor-Receiver/sdkconfig:
- * CONFIG_FREERTOS_HZ=100), NICHT der BaseStation (P4: CONFIG_FREERTOS_HZ=1000,
- * anderer Chip, andere Tick-Rate). link.timestamp in sensor_packet_t ist ein
- * xTaskGetTickCount()-Wert vom S3 (siehe esp-now.c/lora.c dort) - portTICK_PERIOD_MS
- * hier zu verwenden waere um Faktor 10 falsch. */
+/* Tick rate of the sensor receiver (S3, see Sensor-Receiver/sdkconfig:
+ * CONFIG_FREERTOS_HZ=100), NOT of the BaseStation (P4: CONFIG_FREERTOS_HZ=1000,
+ * different chip, different tick rate). link.timestamp in sensor_packet_t is
+ * an xTaskGetTickCount() value from the S3 (see esp-now.c/lora.c there) -
+ * using portTICK_PERIOD_MS here would be off by a factor of 10. */
 #define SENSOR_RECEIVER_TICK_MS 10
 
-/* Watchdog: erkennt Sensoren, von denen laenger nichts mehr kam als erwartet.
- * Der Receiver kennt keine festen Sende-Intervalle der Sender (die schlafen
- * unterschiedlich lange, je nach Typ/Konfiguration) - deshalb wird das
- * Intervall pro Sensor aus der Zeit zwischen den letzten zwei empfangenen
- * Paketen selbst ermittelt. Erst ab dem zweiten Paket eines Sensors gibt es
- * einen Referenzwert; vorher (und wenn noch nie ein Paket kam) wird nicht auf
- * "offline" geprueft. Als Timeout gilt das 3-fache des zuletzt gemessenen
- * Intervalls - passt sich damit automatisch an jeden Sensor an.
+/* Watchdog: detects sensors that haven't sent anything for longer than
+ * expected. The receiver doesn't know fixed send intervals for the
+ * transmitters (they sleep for different durations depending on
+ * type/configuration) - so the interval per sensor is derived from the
+ * time between the last two received packets. Only from a sensor's second
+ * packet onward is there a reference value; before that (and if no packet
+ * has ever arrived) no "offline" check is done. The timeout is 3x the
+ * most recently measured interval - this way it automatically adapts to
+ * each sensor.
  *
- * Das Intervall wird aus link.timestamp (S3-Empfangszeit) berechnet, NICHT aus
- * der BaseStation-Verarbeitungszeit: der S3 puffert Pakete in einer Queue, die
- * die BaseStation erst beim naechsten I2C-Poll ausliest (alle 2s, siehe
- * receiver_task) - liegen dabei mehrere Pakete im Backlog (z.B. weil der S3
- * schon laenger lief, bevor die BaseStation zu pollen begann), werden die
- * innerhalb weniger Millisekunden hintereinander verarbeitet, obwohl sie per
- * Funk Minuten auseinander ankamen. Das hat vorher die gelernte Referenz auf
- * einen viel zu kurzen Wert verfaelscht -> false "offline"-Meldungen. */
+ * The interval is calculated from link.timestamp (S3 receive time), NOT
+ * from BaseStation processing time: the S3 buffers packets in a queue
+ * that the BaseStation only drains on the next I2C poll (every 2s, see
+ * receiver_task) - if several packets are backlogged there (e.g. because
+ * the S3 had already been running for a while before the BaseStation
+ * started polling), they get processed within a few milliseconds of each
+ * other even though they arrived over the air minutes apart. Using
+ * BaseStation processing time for the interval would corrupt the learned
+ * reference down to a much-too-short value and produce false "offline"
+ * reports. */
 typedef struct {
-    int64_t  last_seen_us;      /* 0 = noch nie empfangen (BaseStation-Zeit, fuer den "wie lange her"-Check in watchdog_check_all) */
-    uint32_t last_pkt_tick;     /* xTaskGetTickCount() des Sensor-Receivers beim letzten Paket */
-    int64_t  last_interval_us;  /* 0 = noch kein zweites Paket, kein Referenzwert */
+    int64_t  last_seen_us;      /* 0 = never received yet (BaseStation time, for the "how long ago" check in watchdog_check_all) */
+    uint32_t last_pkt_tick;     /* xTaskGetTickCount() of the sensor receiver at the last packet */
+    int64_t  last_interval_us;  /* 0 = no second packet yet, no reference value */
     bool     offline;
 } sensor_watchdog_t;
 
 static sensor_watchdog_t s_watchdog[SENSOR_SLOT_COUNT];
 
-/* Bei jedem gueltigen Paket aus update_sensor_display() aufgerufen.
- * Aktualisiert Zeitstempel/Intervall und meldet zurueck, ob die Karte gerade
- * als "offline" markiert war (damit der Aufrufer sie unter dem bestehenden
- * lvgl-Lock wieder normalfarbig machen kann). */
+/* Called for every valid packet from update_sensor_display(). Updates the
+ * timestamp/interval and reports back whether the card was currently
+ * marked "offline" (so the caller can restore its normal color while
+ * still holding the existing lvgl lock). */
 static bool watchdog_note_packet(uint8_t sensor_nr, uint32_t pkt_tick)
 {
     if (sensor_nr >= SENSOR_SLOT_COUNT) {
@@ -225,8 +228,8 @@ static bool watchdog_note_packet(uint8_t sensor_nr, uint32_t pkt_tick)
     int64_t now = esp_timer_get_time();
 
     if (wd->last_seen_us != 0) {
-        // Unsigned-Subtraktion behandelt einen Tick-Ueberlauf (alle ~497 Tage
-        // bei 10ms/Tick) automatisch korrekt.
+        // Unsigned subtraction automatically handles a tick overflow
+        // (every ~497 days at 10ms/tick) correctly.
         uint32_t delta_ticks = pkt_tick - wd->last_pkt_tick;
         wd->last_interval_us = (int64_t)delta_ticks * SENSOR_RECEIVER_TICK_MS * 1000;
     }
@@ -238,9 +241,9 @@ static bool watchdog_note_packet(uint8_t sensor_nr, uint32_t pkt_tick)
     return was_offline;
 }
 
-/* Einmal pro receiver_task-Zyklus aufgerufen: prueft alle Slots gegen ihr
- * individuelles Timeout (3x letztes gemessenes Intervall) und faerbt die
- * Kopfzeile rot, sobald es ueberschritten wird. */
+/* Called once per receiver_task cycle: checks all slots against their
+ * individual timeout (3x the last measured interval) and colors the
+ * header row red as soon as it's exceeded. */
 static void watchdog_check_all(void)
 {
     int64_t now = esp_timer_get_time();
@@ -249,7 +252,7 @@ static void watchdog_check_all(void)
         sensor_watchdog_t *wd = &s_watchdog[i];
 
         if (wd->offline || wd->last_seen_us == 0 || wd->last_interval_us == 0) {
-            continue;  /* noch nie gesehen bzw. noch kein Referenzintervall bekannt */
+            continue;  /* never seen yet, or no reference interval known yet */
         }
 
         int64_t timeout_us = 3 * wd->last_interval_us;
@@ -265,13 +268,12 @@ static void watchdog_check_all(void)
 
 /* -------------------------------------------------------------------------- */
 
-/* Aktualisiert Messwerte sowie Batterie-/Signal-Icon der Sensor-Karte. Jeder
- * Sensor-Typ wird komplett in seinem eigenen case behandelt (Payload-Laenge
- * pruefen, typspezifisch casten, "voltage" aus dem passenden Feld lesen) -
- * bewusst kein gemeinsamer generischer memcpy ueber alle Typen hinweg, damit
- * ein zukuenftiger Payload-Typ mit "voltage" an anderer Stelle (oder ganz
- * ohne Spannung) problemlos ergaenzt werden kann, ohne die anderen Typen
- * anzufassen. */
+/* Updates readings as well as the battery/signal icon of the sensor card.
+ * Each sensor type is handled entirely in its own case (checking payload
+ * length, type-specific cast, reading "voltage" from the matching field) -
+ * deliberately no shared generic memcpy across all types, so a future
+ * payload type with "voltage" at a different offset (or none at all) can
+ * be added without touching the other types. */
 static void update_sensor_display(const sensor_packet_t *pkt)
 {
     uint32_t voltage_mv;
@@ -344,11 +346,11 @@ esp_err_t receiver_init(void)
     ESP_RETURN_ON_ERROR(i2c_master_bus_add_device(i2c_manager_get_bus(), &s_dev_cfg, &s_dev),
                         TAG, "Failed to add slave device");
 
-    // Rueckgabewerte bewusst ignoriert: schlaegt die I2C-Kommunikation mit
-    // dem S3 fehl (z.B. weil der beim Boot noch nicht bereit ist), soll das
-    // nur geloggt werden, nicht receiver_init() fehlschlagen lassen - sonst
-    // wuerde ESP_ERROR_CHECK(receiver_init()) in main.c das ganze Geraet bei
-    // jedem langsam bootenden S3 neu starten.
+    // Return values deliberately ignored: if I2C communication with the S3
+    // fails (e.g. because it's not ready yet at boot), this should only be
+    // logged, not make receiver_init() fail - otherwise
+    // ESP_ERROR_CHECK(receiver_init()) in main.c would restart the whole
+    // device every time the S3 boots slowly.
     i2c_set_timezone(SLAVE_TIMEZONE);
 
     time_t now = time(NULL);

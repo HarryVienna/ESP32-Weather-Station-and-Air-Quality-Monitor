@@ -11,38 +11,37 @@ extern "C" {
 #define DISPLAY_WIDTH   1280
 #define DISPLAY_HEIGHT  800
 
-/* Helligkeit, auf die display_init() die Hintergrundbeleuchtung beim Boot
- * setzt (siehe display.c) - brightness_task.c startet seine lokale
- * current_brightness-Schattenvariable hiermit, statt bei 0, damit sie beim
- * (verzoegerten) Task-Start nicht erst sichtbar runter- und wieder
- * hochrampt. */
+/* Brightness that display_init() sets the backlight to at boot (see
+ * display.c) - brightness_task.c seeds its local current_brightness
+ * shadow variable with this instead of 0, so it doesn't visibly ramp
+ * down and back up once its (delayed) task start kicks in. */
 #define DISPLAY_INIT_BRIGHTNESS 64
 
 /**
- * @brief Display-Subsystem initialisieren.
+ * @brief Initialize the display subsystem.
  *
- * Reihenfolge:
- *   1. I2C-Bus von i2c_manager holen
+ * Order:
+ *   1. Get I2C bus from i2c_manager
  *   2. Backlight (I2C 0x45)
- *   3. MIPI DSI Display (JD9365)
- *   4. GT911 Touch-Controller
- *   5. LVGL Port, Display- und Touch-Registrierung
+ *   3. MIPI DSI display (JD9365)
+ *   4. GT911 touch controller
+ *   5. LVGL port, display and touch registration
  *
- * Muss nach i2c_manager_init() aufgerufen werden.
+ * Must be called after i2c_manager_init().
  *
  * @return ESP_OK on success
  */
 esp_err_t display_init(void);
 
 /**
- * @brief LVGL Display-Handle zurückgeben.
- *        Nur gültig nach display_init().
+ * @brief Return the LVGL display handle.
+ *        Only valid after display_init().
  */
 lv_disp_t *display_get(void);
 
 /**
- * @brief Helligkeit der Hintergrundbeleuchtung setzen.
- * @param val 0–255 (0=aus, 255=volle Helligkeit)
+ * @brief Set the backlight brightness.
+ * @param val 0-255 (0=off, 255=full brightness)
  */
 esp_err_t display_set_brightness(uint8_t val);
 

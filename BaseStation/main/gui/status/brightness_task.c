@@ -24,17 +24,16 @@
 
 static const char* TAG = "brightness_task";
 
-#define LUX_CALIBRATION_OFFSET   5     // Eigenlicht der Gehaeuse-LEDs (wetterstationsspezifisch
-#define BRIGHTNESS_NO_PRESENCE   5     // Display-Helligkeit, wenn keine Anwesenheit erkannt wird
+#define LUX_CALIBRATION_OFFSET   5     // Self-emitted light from the enclosure LEDs (specific to this weather station)
+#define BRIGHTNESS_NO_PRESENCE   5     // Display brightness when no presence is detected
 
-/* Der C4001-Radar liefert direkt nach dem Konfigurieren (RECOVER_SEN/
- * PRESENCE_MODE/START_SEN/Range/Sensitivity/Delay) noch eine Weile
- * "presence=false", auch wenn jemand davorsteht (vermutlich interne
- * Kalibrierung/Einschwingzeit) - deshalb wird nach der Konfiguration erst
- * gewartet, bevor ueberhaupt ein Presence-Wert abgefragt wird. Wert ist
- * eine erste Schaetzung, ggf. anhand der Lux/Brightness-Logs nachjustieren
- * (faengt der erste Wert schon bei einem sinnvollen Ziel statt bei
- * BRIGHTNESS_NO_PRESENCE an?). */
+/* Right after being configured (RECOVER_SEN/PRESENCE_MODE/START_SEN/
+ * Range/Sensitivity/Delay), the C4001 radar still reports "presence=false"
+ * for a while even if someone is standing in front of it (likely internal
+ * calibration/settling time) - so this waits before querying a presence
+ * value at all. The value is a first estimate; adjust based on the
+ * Lux/Brightness logs if needed (does the first value already start at a
+ * sensible target instead of at BRIGHTNESS_NO_PRESENCE?). */
 #define PRESENCE_WARMUP_MS 5000
 
 static uint16_t map_brightness_power(uint16_t lux, bool presence)
@@ -99,29 +98,29 @@ void brightness_task(void *pvParameter)
     ESP_LOGI(TAG, "set keep sensitivity successfully");
   }
 
-  // set delay  - keep ist in Einheiten von 0.5 Sekunden, trig ist in 10ms-Einheiten
+  // set delay  - keep is in units of 0.5 seconds, trig is in 10ms units
   if(c4001_set_delay(&presence_sensor, /*trig*/ 10, /*keep*/ 60) == ESP_OK){
     ESP_LOGI(TAG, "set delay successfully");
   }
 
-  // Radar-Einschwingzeit abwarten (siehe PRESENCE_WARMUP_MS oben), bevor
-  // ueberhaupt ein Presence-Wert abgefragt wird - die Beleuchtung steht bis
-  // dahin unveraendert auf DISPLAY_INIT_BRIGHTNESS (siehe unten).
+  // Wait out the radar's settling time (see PRESENCE_WARMUP_MS above)
+  // before querying a presence value at all - until then the backlight
+  // stays unchanged at DISPLAY_INIT_BRIGHTNESS (see below).
   vTaskDelay(pdMS_TO_TICKS(PRESENCE_WARMUP_MS));
 
   presence_data_t presence_data = {0};
 
   uint16_t lux = 0;
-  // Beide auf die tatsaechliche Boot-Helligkeit vorbelegt (nicht 0) - sonst
-  // rampt current_brightness beim Task-Start sichtbar von schwarz hoch,
-  // obwohl die Beleuchtung real schon auf DISPLAY_INIT_BRIGHTNESS steht.
+  // Both preset to the actual boot brightness (not 0) - otherwise
+  // current_brightness would visibly ramp up from black when the task
+  // starts, even though the backlight is already at DISPLAY_INIT_BRIGHTNESS.
   uint16_t target_brightness = DISPLAY_INIT_BRIGHTNESS;
   uint16_t current_brightness = DISPLAY_INIT_BRIGHTNESS;
   uint8_t sensor_tick = 0;
 
   for (;;) {
 
-    // Sensor alle 250ms lesen (10 * 25ms)
+    // Read the sensor every 250ms (10 * 25ms)
     if (sensor_tick++ >= 10) {
       sensor_tick = 0;
 

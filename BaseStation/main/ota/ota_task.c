@@ -15,34 +15,34 @@
 
 static const char *TAG = "ota_task";
 
-/* Zwischen dem Fund eines Updates (check_for_update(), OTA-Task) und dem
- * tatsaechlichen Installieren (Button-Klick auf dem LVGL-Task, siehe
- * ota_task_install_available_update()) liegt eine Nutzerbestaetigung -
- * download_url muss also bis dahin irgendwo warten. Nur ein Update kann
- * gleichzeitig anstehen. */
+/* Between finding an update (check_for_update(), OTA task) and actually
+ * installing it (button click on the LVGL task, see
+ * ota_task_install_available_update()) there's a user confirmation -
+ * download_url has to wait somewhere until then. Only one update can be
+ * pending at a time. */
 static char s_pending_download_url[512];
 
-/* Haelt den OTA-Task an, statt periodisch ins Leere zu pollen, waehrend auf
- * die Nutzerbestaetigung gewartet wird (siehe check_for_update()) - wird von
- * install_task() im Fehlerfall wieder aufgeweckt (bei Erfolg rebootet das
- * Geraet eh, siehe apply_update()). */
+/* Suspends the OTA task instead of periodically polling for nothing while
+ * waiting for user confirmation (see check_for_update()) - woken back up
+ * by install_task() on failure (on success the device reboots anyway, see
+ * apply_update()). */
 static TaskHandle_t s_ota_task_handle = NULL;
 
-/* Repo, an das der Release-Workflow (.github/workflows/release.yml) das
- * Firmware-Binary als Release-Asset anhaengt. */
+/* Repo that the release workflow (.github/workflows/release.yml) attaches
+ * the firmware binary to as a release asset. */
 #define GITHUB_OWNER          "HarryVienna"
 #define GITHUB_REPO           "ESP32-Weather-Station-and-Air-Quality-Monitor"
 #define GITHUB_RELEASE_URL    "https://api.github.com/repos/" GITHUB_OWNER "/" GITHUB_REPO "/releases/latest"
 #define OTA_ASSET_NAME        "Basestation.bin"
 
-/* Erster Check kurz nach Task-Start, danach alle 24h - GitHub-Releases sind
- * kein Vorgang, der haeufigeres Pollen rechtfertigt. */
+/* First check shortly after task start, then every 24h - GitHub releases
+ * aren't frequent enough to justify more frequent polling. */
 #define OTA_FIRST_CHECK_DELAY_MS   (1000 * 30)
 #define OTA_CHECK_INTERVAL_MS      (1000 * 60 * 60 * 1)
 
-/* Sucht im "assets"-Array der GitHub-Release-JSON den Eintrag mit
- * name == OTA_ASSET_NAME und liefert dessen browser_download_url (Eigentum
- * bleibt beim uebergebenen cJSON-Baum, nicht selbst freigeben). */
+/* Searches the "assets" array of the GitHub release JSON for the entry
+ * with name == OTA_ASSET_NAME and returns its browser_download_url
+ * (ownership stays with the passed cJSON tree, don't free it yourself). */
 static const char *find_asset_download_url(cJSON *release_json)
 {
     cJSON *assets = cJSON_GetObjectItem(release_json, "assets");
@@ -64,15 +64,15 @@ static const char *find_asset_download_url(cJSON *release_json)
     return NULL;
 }
 
-/* Laedt das Firmware-Binary von download_url in die inaktive OTA-Partition
- * und startet bei Erfolg neu. Kehrt nur bei Fehler zurueck (und wechselt dann
- * zurueck auf den Weatherstation-Screen, statt auf "Upgrading..." haengen zu
- * bleiben).
+/* Downloads the firmware binary from download_url into the inactive OTA
+ * partition and reboots on success. Only returns on failure (and then
+ * switches back to the Weatherstation screen instead of getting stuck on
+ * "Upgrading...").
  *
- * Nutzt bewusst die granulare esp_https_ota_begin()/_perform()/_finish()-API
- * statt der einfachen esp_https_ota() - nur so kommt man zwischendurch an
- * esp_https_ota_get_image_len_read()/_get_image_size() fuer den Fortschritts-
- * balken (siehe gui/ota/gui_ota.c, kein direkter LVGL-Zugriff hier). */
+ * Deliberately uses the granular esp_https_ota_begin()/_perform()/_finish()
+ * API instead of the simple esp_https_ota() - only this way can you get
+ * esp_https_ota_get_image_len_read()/_get_image_size() along the way for
+ * the progress bar (see gui/ota/gui_ota.c, no direct LVGL access here). */
 static void apply_update(const char *download_url)
 {
     ESP_LOGI(TAG, "Updating firmware from %s", download_url);
@@ -82,16 +82,16 @@ static void apply_update(const char *download_url)
     esp_http_client_config_t http_config = {
         .url             = download_url,
         .crt_bundle_attach = esp_crt_bundle_attach,
-        /* Auto-Redirect bewusst NICHT deaktiviert: GitHub-Asset-Downloads
-         * leiten auf objects.githubusercontent.com um, mit einer langen
-         * signierten Query-String (AWS-artige Signatur-Parameter). Der
-         * 512-Byte-Default-Puffer (DEFAULT_HTTP_BUF_SIZE) reicht dafuer nicht
-         * - weder zum Lesen der Redirect-Header (buffer_size) noch zum
-         * Aufbauen der ausgehenden Request-Zeile fuer die umgeleitete
-         * Anfrage, die genau diese lange Query-String enthaelt
-         * (buffer_size_tx, siehe http_client_prepare_first_line() in
-         * esp_http_client.c - das war die eigentliche Quelle von
-         * "HTTP_CLIENT: Out of buffer"). Beide daher vergroessert. */
+        /* Auto-redirect deliberately NOT disabled: GitHub asset downloads
+         * redirect to objects.githubusercontent.com with a long signed
+         * query string (AWS-style signature parameters). The 512-byte
+         * default buffer (DEFAULT_HTTP_BUF_SIZE) isn't enough for that -
+         * neither for reading the redirect headers (buffer_size) nor for
+         * building the outgoing request line for the redirected request,
+         * which contains that same long query string (buffer_size_tx, see
+         * http_client_prepare_first_line() in esp_http_client.c - this was
+         * the actual source of "HTTP_CLIENT: Out of buffer"). Both are
+         * therefore increased. */
         .buffer_size     = 4096,
         .buffer_size_tx  = 4096,
     };
@@ -144,15 +144,15 @@ fail:
     gui_ota_update_failed();
 }
 
-/* Eigener Task fuer apply_update(): der Aufrufer (ota_task_install_available_
- * update()) laeuft auf dem LVGL-Task (Button-Klick), apply_update() ist aber
- * ein minutenlanger blockierender Download - direkt aufgerufen wuerde das
- * die gesamte UI (Rendering, Touch) fuer die Dauer des Downloads einfrieren. */
+/* Own task for apply_update(): the caller (ota_task_install_available_
+ * update()) runs on the LVGL task (button click), but apply_update() is a
+ * minutes-long blocking download - calling it directly would freeze the
+ * entire UI (rendering, touch) for the duration of the download. */
 static void install_task(void *pvParameter)
 {
     apply_update(s_pending_download_url);
-    /* apply_update() kehrt nur im Fehlerfall zurueck (Erfolg -> esp_restart()) -
-     * OTA-Task wieder aufwecken, damit er die periodische Pruefung fortsetzt. */
+    /* apply_update() only returns on failure (success -> esp_restart()) -
+     * wake the OTA task back up so it resumes its periodic checking. */
     vTaskResume(s_ota_task_handle);
     vTaskDelete(NULL);
 }
@@ -171,15 +171,14 @@ void ota_task_install_available_update(void)
 
 typedef struct {
     int  major, minor, patch;
-    bool has_suffix; /* "-dirty" und/oder "-<N>-g<hash>" hinter X.Y.Z */
+    bool has_suffix; /* "-dirty" and/or "-<N>-g<hash>" after X.Y.Z */
 } app_version_t;
 
-/* Parst "[v]X.Y.Z[-beliebiger Rest]" (das Format, das "git describe --always
- * --tags --dirty" erzeugt, siehe project.cmake - "-dirty" bei uncommitteten
- * Aenderungen, "-<N>-g<hash>" bei Commits nach dem letzten Tag). Liefert
- * false, wenn schon X.Y.Z nicht gefunden wird (z.B. Fallback auf einen
- * nackten Commit-Hash ohne erreichbaren Tag) - dann ist kein sinnvoller
- * Vergleich moeglich. */
+/* Parses "[v]X.Y.Z[-arbitrary rest]" (the format produced by "git describe
+ * --always --tags --dirty", see project.cmake - "-dirty" for uncommitted
+ * changes, "-<N>-g<hash>" for commits after the last tag). Returns false
+ * if even X.Y.Z can't be found (e.g. falling back to a bare commit hash
+ * with no reachable tag) - no meaningful comparison is possible then. */
 static bool parse_version(const char *version, app_version_t *out)
 {
     if (*version == 'v' || *version == 'V') {
@@ -194,12 +193,12 @@ static bool parse_version(const char *version, app_version_t *out)
     return true;
 }
 
-/* Vergleicht wie Semver (Major/Minor/Patch entscheiden zuerst), mit einer
- * Ausnahme bei sonst gleicher Version: eine Version MIT Suffix ("-dirty"
- * bzw. "-<N>-g<hash>") zaehlt als NEUER als die nackte X.Y.Z, auf der sie
- * basiert - git-historisch liegt sie ja tatsaechlich danach (mehr Commits
- * und/oder lokale Aenderungen obendrauf). Also z.B. 0.1.0 < 0.1.0-dirty <
- * 0.2.0. Gibt <0 zurueck wenn a<b, 0 wenn gleich, >0 wenn a>b. */
+/* Compares like semver (major/minor/patch decide first), with one
+ * exception when the version is otherwise equal: a version WITH a suffix
+ * ("-dirty" or "-<N>-g<hash>") counts as NEWER than the bare X.Y.Z it's
+ * based on - in git history it actually comes after (more commits and/or
+ * local changes on top). So e.g. 0.1.0 < 0.1.0-dirty < 0.2.0. Returns <0
+ * if a<b, 0 if equal, >0 if a>b. */
 static int compare_versions(const app_version_t *a, const app_version_t *b)
 {
     //return 1; // DEBUG
@@ -209,8 +208,8 @@ static int compare_versions(const app_version_t *a, const app_version_t *b)
     return (int)a->has_suffix - (int)b->has_suffix;
 }
 
-/* Ein Check-Zyklus: neuestes GitHub-Release abfragen, Version vergleichen,
- * bei Unterschied aktualisieren. */
+/* One check cycle: query the latest GitHub release, compare versions,
+ * update if different. */
 static void check_for_update(esp_http_client_handle_t client, weather_http_response_t *response)
 {
     const char *running_version = esp_app_get_description()->version;
@@ -251,19 +250,19 @@ static void check_for_update(esp_http_client_handle_t client, weather_http_respo
         return;
     }
 
-    /* download_url und tag->valuestring zeigen in json hinein, also erst
-     * nach dem letzten Zugriff auf json freigeben - gui_ota_update_available()
-     * kopiert sich die Versionsnummer selbst (lv_label_set_text()), muss also
-     * ebenfalls noch davor aufgerufen werden. */
+    /* download_url and tag->valuestring point into json, so only free it
+     * after the last access - gui_ota_update_available() copies the
+     * version number itself (lv_label_set_text()), so it also still needs
+     * to be called before that. */
     strncpy(s_pending_download_url, download_url, sizeof(s_pending_download_url) - 1);
     s_pending_download_url[sizeof(s_pending_download_url) - 1] = '\0';
     ESP_LOGI(TAG, "Update available (%s) - waiting for user confirmation", tag->valuestring);
     gui_ota_update_available(tag->valuestring);
     cJSON_Delete(json);
 
-    /* Haengt hier, bis install_task() (Fehlerfall) oder ein Reboot (Erfolg)
-     * uns wieder aufweckt - kein Grund, in der Zwischenzeit periodisch
-     * aufzuwachen und erneut zu pruefen. */
+    /* Hangs here until install_task() (failure case) or a reboot (success)
+     * wakes us back up - no reason to wake up periodically and re-check
+     * in the meantime. */
     vTaskSuspend(NULL);
 }
 

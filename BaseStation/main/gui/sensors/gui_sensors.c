@@ -14,18 +14,18 @@
 #include "gui_icon_catalog.h"
 
 /* ============================================================================
- * Sensoren - 6 Fernsensoren (LoRa/ESP-NOW)
+ * Sensors - 6 remote sensors (LoRa/ESP-NOW)
  *
- * Siehe Kommentar am Kopf von gui_sensors.h fuer die Kurzfassung. Reihenfolge hier:
- *   - calc_sea_level_pressure()      Hilfsrechnung fuer BME280-Luftdruck
- *   - sensor_dropdown_widgets[]      Setup-Screen-Dropdowns, ein Eintrag/Slot
- *   - load/save_sensor_slots_*_nvs() Dropdown-Auswahl <-> Flash
- *   - render_xxx()                   Ein render() pro Widget-Typ (Temp_Hum/-Press/Radiation)
- *   - sensor_slots[]                 b) Hardware-Zuordnung: Typ + generierte
- *                                       Feldnamen je Slot im Weatherstation-Screen
- *   - apply_sensor_slot_configs()    Setup-Auswahl -> Weatherstation-Screen
- *   - disp_sensor_link_quality()     Batterie/Signal-Icon einfaerben
- *   - disp_sensor_values()           Messwerte eines Pakets anzeigen
+ * See the comment at the top of gui_sensors.h for the short version. Order here:
+ *   - calc_sea_level_pressure()      Helper calculation for BME280 air pressure
+ *   - sensor_dropdown_widgets[]      Setup screen dropdowns, one entry/slot
+ *   - load/save_sensor_slots_*_nvs() Dropdown selection <-> flash
+ *   - render_xxx()                   One render() per widget type (Temp_Hum/-Press/Radiation)
+ *   - sensor_slots[]                 b) Hardware mapping: type + generated
+ *                                       field names per slot in the Weatherstation screen
+ *   - apply_sensor_slot_configs()    Setup selection -> Weatherstation screen
+ *   - disp_sensor_link_quality()     Colors the battery/signal icon
+ *   - disp_sensor_values()           Displays a packet's readings
  * ============================================================================ */
 
 /**
@@ -42,16 +42,16 @@
  */
 static float calc_sea_level_pressure(float pressure, float temperature, uint16_t altitude)
 {
-  // https://de.wikipedia.org/wiki/Barometrische_H%C3%B6henformel
+  // https://en.wikipedia.org/wiki/Barometric_formula
 
-  // Konstanten
-  float g = 9.80665;  // Schwerebeschleunigung in m / s^2
-  float R = 287.05;   // Gaskonstante trockener Luft (= R/M)  in m^2/(s²K)
-  float a = 0.0065;   // vertikaler Temperaturgradient
-  float C_h = 0.12;   // Beiwert zur Berücksichtigung der mittleren Dampfdruckänderung K/hPa
+  // Constants
+  float g = 9.80665;  // gravitational acceleration in m/s^2
+  float R = 287.05;   // specific gas constant of dry air (= R/M) in m^2/(s^2*K)
+  float a = 0.0065;   // vertical temperature gradient
+  float C_h = 0.12;   // coefficient accounting for the mean vapor pressure change, K/hPa
   float T_0 = 273.15; // Celsius to Kelvin
 
-  float E; // Dampfdruck des Wasserdampfanteils (in hPa)
+  float E; // vapor pressure of the water vapor fraction (in hPa)
 
   if (temperature < 9.1)
   {
@@ -62,17 +62,17 @@ static float calc_sea_level_pressure(float pressure, float temperature, uint16_t
     E = 18.2194 * (1.0463 + exp(-0.0666 * temperature));
   }
 
-  // Luftdruck auf Meereshöhe berechnen
+  // calculate the sea level pressure
   float p = pressure * exp(altitude * g / (R * (temperature + T_0 + C_h * E + a * (altitude / 2))));
 
   return p;
 }
 
-/* Ein Dropdown pro Slot legt Name UND Icon gemeinsam fest - der gewaehlte
- * Index zeigt direkt in den Katalog aus gui_icon_catalog.h (Label =
- * Anzeigename, Icon = Bild). Separate Namensfelder gibt es im Setup Screen
- * nicht mehr. Index 0-5 hier = Sensor 1-6 im UI = packet_header_t.sensor_nr
- * im Funkpaket. */
+/* One dropdown per slot sets name AND icon together - the selected index
+ * points directly into the catalog from gui_icon_catalog.h (label =
+ * display name, icon = image). There are no separate name fields in the
+ * setup screen. Index 0-5 here = Sensor 1-6 in the UI =
+ * packet_header_t.sensor_nr in the radio packet. */
 static lv_obj_t **const sensor_dropdown_widgets[SENSOR_SLOT_COUNT] = {
     &objects.sensor_0_name, &objects.sensor_1_name, &objects.sensor_2_name,
     &objects.sensor_3_name, &objects.sensor_4_name, &objects.sensor_5_name,
@@ -101,58 +101,55 @@ void save_sensor_slots_to_nvs(nvs_handle_t nvs_handle)
   }
 }
 
-/* b) Hardware-Zuordnung: jedes der 6 Sensor_X-Widgets (X=0..5, in EEZ Studio
- * direkt so benannt) hat dauerhaft einen fest verbauten Widget-Typ (aktuell:
- * Sensor_0/1/2/3=Sensor_Temp_Hum, Sensor_4=Sensor_Temp_Hum_Press,
- * Sensor_5=Sensor_Radiation; siehe screens.c fuer die tatsaechlich pro Slot
- * instanziierten create_user_widget_*()-Aufrufe). Diese Tabelle ist die
- * EINZIGE Stelle, die angepasst werden muss, wenn sich in EEZ Studio aendert,
- * welcher Widget-Typ in welchem Slot verbaut ist - Feldnamen einfach durch
- * die neuen ersetzen (siehe screens.h fuer die tatsaechlich generierten
- * objects.sensor_N__xxx-Namen). Solange die 6 Widgets in EEZ Studio ihren
- * Instanznamen (Sensor_0..Sensor_5) behalten, bleiben diese Feldnamen stabil
- * - unabhaengig davon, was sich sonst im Layout aendert.
+/* b) Hardware mapping: each of the 6 Sensor_X widgets (X=0..5, named that
+ * way directly in EEZ Studio) permanently has a fixed widget type
+ * (currently: Sensor_0/1/2/3=Sensor_Temp_Hum, Sensor_4=Sensor_Temp_Hum_Press,
+ * Sensor_5=Sensor_Radiation; see screens.c for the create_user_widget_*()
+ * calls actually instantiated per slot). This table is the ONLY place that
+ * needs adjusting when the widget type installed in a slot changes in EEZ
+ * Studio - just swap in the new field names (see screens.h for the actual
+ * generated objects.sensor_N__xxx names). As long as the 6 widgets keep
+ * their instance names (Sensor_0..Sensor_5) in EEZ Studio, these field
+ * names stay stable regardless of what else changes in the layout.
  *
- * Die EEZ-Studio-Widget-Typen (Sensor_Temp_Hum, Sensor_Temp_Hum_Press, ...)
- * sind reine Layouts und bewusst NICHT nach Sensor-Hardware benannt - Temp+
- * Humidity sehen unabhaengig vom Sensor (SHT45, BME280, ...) gleich aus.
- * Jeder Widget-Typ hat eine eigene render()-Funktion, die den mitgegebenen
- * sensor_type_t selbst per switch auswertet, um das richtige Payload-Struct
- * zu casten - so kann z.B. dieselbe render_temp_hum() sowohl an einem
- * SHT45- als auch an einem BME280-Slot haengen, OHNE dass am Aufrufer
- * irgendwo Sensor-Hardware und Cast von Hand zusammenpassen muessen (genau
- * das ging vorher schief: Sensor 3 wurde auf SENSOR_TYPE_BME280 umgestellt,
- * die Render-Funktion castete aber weiter fix auf sht45_payload_t - falsche
- * Feldreihenfolge, Druck und Temperatur landeten vertauscht in den Labels).
- * sensor_type ist zusaetzlich weiterhin der Paket-Typ-Check auf Slot-Ebene
- * (kommt ein Paket rein, das nicht zum an diesem Slot verbauten Sensor
- * passt, wird es schon vor render() ignoriert). */
+ * The EEZ Studio widget types (Sensor_Temp_Hum, Sensor_Temp_Hum_Press, ...)
+ * are pure layouts and deliberately NOT named after sensor hardware - temp+
+ * humidity look the same regardless of the sensor (SHT45, BME280, ...).
+ * Each widget type has its own render() function that evaluates the passed
+ * sensor_type_t itself via a switch to cast to the right payload struct -
+ * that way the same render_temp_hum() can be attached to either an SHT45
+ * or a BME280 slot, without the caller having to keep sensor hardware and
+ * cast in sync by hand anywhere (a mismatch there would cast to the wrong
+ * payload struct and swap fields, e.g. showing pressure where temperature
+ * belongs). sensor_type also still serves as the slot-level packet type
+ * check (a packet that doesn't match the sensor installed at this slot is
+ * ignored before render() is even called). */
 typedef struct {
-  lv_obj_t **value1;   /* Temp (bme280/sht45) bzw. µSv/h (geiger) */
-  lv_obj_t **value2;   /* Humidity (bme280/sht45), sonst NULL */
-  lv_obj_t **value3;   /* Pressure (nur Temp_Hum_Press/-Compact), sonst NULL */
-  lv_obj_t **chart;    /* 24h-Verlaufschart (nur geiger), sonst NULL */
-  lv_obj_t **quality;  /* Farbpanel (nur geiger), sonst NULL */
+  lv_obj_t **value1;   /* Temp (bme280/sht45) or uSv/h (geiger) */
+  lv_obj_t **value2;   /* Humidity (bme280/sht45), else NULL */
+  lv_obj_t **value3;   /* Pressure (Temp_Hum_Press/-Compact only), else NULL */
+  lv_obj_t **chart;    /* 24h history chart (geiger only), else NULL */
+  lv_obj_t **quality;  /* Color panel (geiger only), else NULL */
 } sensor_values_t;
 
 typedef void (*sensor_render_fn_t)(sensor_type_t type, const sensor_values_t *values, const void *payload);
 
 typedef struct {
-  sensor_type_t type;          /* erwarteter Pakettyp - fuer den Typ-Check */
-  sensor_render_fn_t render;   /* Widget-Typ: weiss, welche Values befuellt werden */
+  sensor_type_t type;          /* expected packet type - for the type check */
+  sensor_render_fn_t render;   /* widget type: knows which values get filled in */
   lv_obj_t **name;
   lv_obj_t **icon;
   lv_obj_t **battery;
   lv_obj_t **wifi;
-  lv_obj_t **header;           /* Kopfzeile der Karte - wird bei "offline" rot eingefaerbt */
+  lv_obj_t **header;           /* card header row - colored red when "offline" */
   sensor_values_t values;
 } sensor_slot_t;
 
-/* lv_label_set_text_fmt()/lv_snprintf() unterstuetzen hier keine
- * Float-Format-Specifier (CONFIG_LV_USE_FLOAT ist aus, nur
- * LV_USE_BUILTIN_SPRINTF) - "%.1f" etc. wuerden nur Muell/"f" anzeigen.
- * Deshalb wie im Rest von gui_sensors.c mit libc-sprintf in einen Puffer
- * formatieren und als fertigen String setzen. */
+/* lv_label_set_text_fmt()/lv_snprintf() don't support float format
+ * specifiers here (CONFIG_LV_USE_FLOAT is off, only LV_USE_BUILTIN_SPRINTF) -
+ * "%.1f" etc. would just print garbage/"f". So, as elsewhere in
+ * gui_sensors.c, format with libc sprintf into a buffer and set the
+ * finished string. */
 
 static void render_temp_hum(sensor_type_t type, const sensor_values_t *v, const void *payload)
 {
@@ -171,7 +168,7 @@ static void render_temp_hum(sensor_type_t type, const sensor_values_t *v, const 
       break;
     }
     default:
-      return;   /* Sensor liefert keine Temp/Humidity-Werte */
+      return;   /* sensor doesn't provide temp/humidity values */
   }
 
   char buf[16];
@@ -193,7 +190,7 @@ static void render_temp_hum_press(sensor_type_t type, const sensor_values_t *v, 
       break;
     }
     default:
-      return;   /* Sensor liefert keinen Druckwert */
+      return;   /* sensor doesn't provide a pressure value */
   }
 
   nvs_handle_t nvs_handle;
@@ -211,9 +208,9 @@ static void render_temp_hum_press(sensor_type_t type, const sensor_values_t *v, 
   lv_label_set_text(*v->value3, buf);
 }
 
-/* Wie render_temp_hum_press(), nur Humidity ohne Nachkommastelle - im
- * Sensor_Temp_Hum_Press_Compact-Widget ist dafuer weniger Platz. Noch
- * keinem Slot zugewiesen (siehe sensor_slots[] unten). */
+/* Like render_temp_hum_press(), but humidity without a decimal place -
+ * the Sensor_Temp_Hum_Press_Compact widget has less room for it. Not
+ * assigned to any slot yet (see sensor_slots[] below). */
 static void render_temp_hum_press_compact(sensor_type_t type, const sensor_values_t *v, const void *payload)
 {
   float temperature, humidity, pressure;
@@ -247,12 +244,12 @@ static void render_temp_hum_press_compact(sensor_type_t type, const sensor_value
 /* ============================================================================
  * Geigerzaehler - 24h-Verlaufschart (Slot 5, "Strahlung")
  *
- * Nutzt history_chart_t (siehe gui_history_chart.h) fuer das Peak-Bucketing: der
- * Sensor sendet 1x/Minute (siehe geiger_payload_t), das Chart-Widget ist
- * aber nur ca. 130px breit - history_chart_init() bestimmt daraus, wie viele
- * Minuten-Messwerte in einen Balken zusammengefasst werden (aufgerundet),
- * sodass die volle Chart-Breite immer >= 24h (RADIATION_HISTORY_SAMPLES_PER_DAY,
- * siehe gui_sensors.h) abdeckt statt nach point_count Minuten durchzuscrollen.
+ * Uses history_chart_t (see gui_history_chart.h) for the peak bucketing:
+ * the sensor sends 1x/minute (see geiger_payload_t), but the chart widget
+ * is only about 130px wide - history_chart_init() derives from that how
+ * many per-minute readings get combined into one bar (rounded up), so the
+ * full chart width always covers >= 24h (RADIATION_HISTORY_SAMPLES_PER_DAY,
+ * see gui_sensors.h) instead of scrolling through after point_count minutes.
  * ============================================================================ */
 static const color_thresh_t *radiation_thresh_arr[] = { &THRESH_RADIATION };
 static history_chart_t radiation_chart;
@@ -274,61 +271,61 @@ static void render_radiation(sensor_type_t type, const sensor_values_t *v, const
   sprintf(buf, "%.2f", usvh);
   lv_label_set_text(*v->value1, buf);
 
-  /* THRESH_RADIATION ist in Centi-µSv/h definiert (siehe gui_color_scale.h), deshalb *100 */
+  /* THRESH_RADIATION is defined in centi-uSv/h (see gui_color_scale.h), hence *100 */
   lv_obj_set_style_bg_color(*v->quality, level_color_asc(usvh * 100.0f, &THRESH_RADIATION), LV_PART_MAIN | LV_STATE_DEFAULT);
 
   history_chart_push(&radiation_chart, usvh);
 }
 
 /**
- * @brief  Initialisiert das 24h-Verlaufschart des Geigerzaehlers (Slot 5).
+ * @brief  Initializes the Geiger counter's 24h history chart (slot 5).
  *
- * @details Wie gui_sen66_init_charts() (siehe gui_sen66.h): einmalig beim
- *          Start aufrufen, bevor Pakete ueber disp_sensor_values()
- *          reinkommen.
+ * @details Like gui_sen66_init_charts() (see gui_sen66.h): call once at
+ *          startup, before packets start coming in via
+ *          disp_sensor_values().
  */
 void gui_radiation_init_chart(void)
 {
   lv_obj_update_layout(objects.weatherstation_screen);
 
-  // 0-100 = 0.00-1.00 µSv/h, siehe THRESH_RADIATION
+  // 0-100 = 0.00-1.00 uSv/h, see THRESH_RADIATION
   history_chart_init(&radiation_chart, objects.sensor_5__chart_m_sv, 100,
                       lv_color_hex(0x616161), radiation_thresh_arr, RADIATION_HISTORY_SAMPLES_PER_DAY, 100.0f);
 }
 
 static const sensor_slot_t sensor_slots[SENSOR_SLOT_COUNT] = {
-    // Schlafzimmer
+    // Bedroom
     { SENSOR_TYPE_SHT45,  render_temp_hum,       &objects.sensor_0__name, &objects.sensor_0__icon, &objects.sensor_0__battery, &objects.sensor_0__wifi,
       &objects.sensor_0__header, { &objects.sensor_0__temp, &objects.sensor_0__humidity, NULL, NULL, NULL } },
-    // Bad
+    // Bathroom
     { SENSOR_TYPE_SHT45,  render_temp_hum,       &objects.sensor_1__name, &objects.sensor_1__icon, &objects.sensor_1__battery, &objects.sensor_1__wifi,
       &objects.sensor_1__header, { &objects.sensor_1__temp, &objects.sensor_1__humidity, NULL, NULL, NULL } },
-    //Buero
+    // Office
     { SENSOR_TYPE_SHT45,  render_temp_hum,       &objects.sensor_2__name, &objects.sensor_2__icon, &objects.sensor_2__battery, &objects.sensor_2__wifi,
       &objects.sensor_2__header, { &objects.sensor_2__temp, &objects.sensor_2__humidity, NULL, NULL, NULL } },
-    // Werkstatt
+    // Workshop
     { SENSOR_TYPE_SHT45,  render_temp_hum,       &objects.sensor_3__name, &objects.sensor_3__icon, &objects.sensor_3__battery, &objects.sensor_3__wifi,
       &objects.sensor_3__header, { &objects.sensor_3__temp, &objects.sensor_3__humidity, NULL, NULL, NULL } },
-    // Balkon
+    // Balcony
     { SENSOR_TYPE_BME280, render_temp_hum_press, &objects.sensor_4__name, &objects.sensor_4__icon, &objects.sensor_4__battery, &objects.sensor_4__wifi,
       &objects.sensor_4__header, { &objects.sensor_4__temp, &objects.sensor_4__humidity, &objects.sensor_4__pressure, NULL, NULL } },
-    // Geigerzaehler
+    // Geiger counter
     { SENSOR_TYPE_GEIGER, render_radiation,      &objects.sensor_5__name, &objects.sensor_5__icon, &objects.sensor_5__battery, &objects.sensor_5__wifi,
       &objects.sensor_5__header, { &objects.sensor_5__micro_sievert, NULL, NULL, &objects.sensor_5__chart_m_sv, &objects.sensor_5__m_sv } },
 };
 
-/* Neuer Widget-Typ oder Slot wechselt auf einen bestehenden Typ (z.B. einen
- * Slot auf Sensor_Temp_Hum_Press_Compact umstellen): passende
- * render_xxx()-Funktion oben eintragen und die objects.sensor_N__xxx-Felder
- * unten anhand von screens.h aktualisieren (Achtung: EEZ Studio haengt bei
- * mehreren Widget-Instanzen mit gleichem Label pro Screen ggf. Suffixe wie
- * _1/_2 an die Feldnamen an - siehe sensor_4 oben). */
+/* New widget type, or a slot switching to an existing type (e.g. switching
+ * a slot to Sensor_Temp_Hum_Press_Compact): enter the matching
+ * render_xxx() function above and update the objects.sensor_N__xxx fields
+ * below based on screens.h (note: EEZ Studio may append suffixes like
+ * _1/_2 to field names when a screen has multiple widget instances with
+ * the same label - see sensor_4 above). */
 
 /**
- * @brief  Uebertraegt Name/Icon aus dem Setup Screen in die 6 fest
- *         verdrahteten Sensor-Karten. Wird beim Klick auf "Starten" direkt
- *         neben apply_sen66_config() (siehe gui_sen66.h) aufgerufen, bevor
- *         auf den Weatherstation-Screen gewechselt wird.
+ * @brief  Applies name/icon from the setup screen to the 6 hardwired
+ *         sensor cards. Called on clicking "Start" right next to
+ *         apply_sen66_config() (see gui_sen66.h), before switching to the
+ *         Weatherstation screen.
  */
 void apply_sensor_slot_configs(void)
 {
@@ -341,12 +338,12 @@ void apply_sensor_slot_configs(void)
 }
 
 /**
- * @brief  Faerbt Batterie- und Signal-Icon einer Sensor-Karte nach Spannung/RSSI.
+ * @brief  Colors a sensor card's battery and signal icon based on voltage/RSSI.
  *
- * @param  sensor_nr   0-5, wie im Packet-Header (packet_header_t.sensor_nr) -
- *                     identisch zum 0-basierten UI-Slot (Sensor 0-5)
- * @param  voltage_mv  Akkuspannung in mV, aus dem jeweiligen Payload
- * @param  rssi_dbm    Empfangsfeldstaerke in dBm, aus link_metadata_t.rssi
+ * @param  sensor_nr   0-5, as in the packet header (packet_header_t.sensor_nr) -
+ *                     identical to the 0-based UI slot (Sensor 0-5)
+ * @param  voltage_mv  battery voltage in mV, from the respective payload
+ * @param  rssi_dbm    receive signal strength in dBm, from link_metadata_t.rssi
  */
 void disp_sensor_link_quality(uint8_t sensor_nr, uint32_t voltage_mv, int16_t rssi_dbm)
 {
@@ -367,16 +364,16 @@ void disp_sensor_link_quality(uint8_t sensor_nr, uint32_t voltage_mv, int16_t rs
 }
 
 /**
- * @brief  Schreibt die Messwerte eines empfangenen Pakets in die Sensor-Karte.
+ * @brief  Writes a received packet's readings to the sensor card.
  *
- * @param  sensor_nr  0-5, siehe disp_sensor_link_quality()
- * @param  type       sensor_type_t des empfangenen Pakets
- * @param  payload    Rohes Payload (bme280_payload_t/sht45_payload_t/geiger_payload_t,
- *                     je nach type)
+ * @param  sensor_nr  0-5, see disp_sensor_link_quality()
+ * @param  type       sensor_type_t of the received packet
+ * @param  payload    raw payload (bme280_payload_t/sht45_payload_t/geiger_payload_t,
+ *                     depending on type)
  *
- * @details Wenn der gemeldete Typ nicht zum in dieser Karte fest verbauten
- *          Typ passt (z.B. Sensor falsch konfiguriert/verdrahtet), wird das
- *          Paket ignoriert statt eine falsch beschriftete Karte zu befuellen.
+ * @details If the reported type doesn't match the type hardwired to this
+ *          card (e.g. sensor misconfigured/miswired), the packet is
+ *          ignored instead of filling in a mislabeled card.
  */
 void disp_sensor_values(uint8_t sensor_nr, sensor_type_t type, const void *payload)
 {
@@ -394,12 +391,12 @@ void disp_sensor_values(uint8_t sensor_nr, sensor_type_t type, const void *paylo
 }
 
 /**
- * @brief  Faerbt die Kopfzeile einer Sensor-Karte rot ein (Watchdog im
- *         Receiver hat lange kein Paket mehr von diesem Sensor bekommen)
- *         bzw. macht das wieder rueckgaengig, sobald der Sensor wieder sendet.
+ * @brief  Colors a sensor card's header row red (the receiver's watchdog
+ *         hasn't gotten a packet from this sensor in a while), or
+ *         reverses that once the sensor sends again.
  *
- * @param  sensor_nr  0-5, siehe disp_sensor_link_quality()
- * @param  offline    true = rot einfaerben, false = Normalzustand wiederherstellen
+ * @param  sensor_nr  0-5, see disp_sensor_link_quality()
+ * @param  offline    true = color red, false = restore normal state
  */
 void disp_sensor_offline(uint8_t sensor_nr, bool offline)
 {

@@ -16,11 +16,12 @@
 
 static const char* TAG = "gui_setup_screen_actions";
 
-/* Ein Textfeld (TextAreaAppId) fuer zwei API-Keys (OpenWeatherMap/
- * VisualCrossing) - je nach DropdownApi-Auswahl wird der passende, in NVS
- * hinterlegte Key eingeblendet. Open-Meteo braucht keinen Key, das Feld wird
- * dafuer geleert und deaktiviert. Wird von action_event_setup_screen_loaded()
- * und action_event_api_value_changed() (Dropdown-Wechsel) genutzt. */
+/* One text field (TextAreaAppId) for two API keys (OpenWeatherMap/
+ * VisualCrossing) - depending on the DropdownApi selection, the matching
+ * key stored in NVS is shown. Open-Meteo doesn't need a key, so the field
+ * is cleared and disabled for it. Used by
+ * action_event_setup_screen_loaded() and action_event_api_value_changed()
+ * (dropdown change). */
 static void apply_appid_for_provider(uint8_t provider, const char *appid_owm, const char *appid_vc)
 {
   switch (provider) {
@@ -107,11 +108,10 @@ void action_event_timezone_value_changed(lv_event_t *e)
   lv_dropdown_set_selected(objects.dropdown_city, 0);
 }
 
-/* Dropdown-Wechsel im Setup: blendet den zum neu gewaehlten Provider
- * passenden, in NVS gespeicherten API-Key ins TextAreaAppId ein (siehe
- * apply_appid_for_provider()). Ungespeicherte Eingaben fuer den zuvor
- * gewaehlten Provider gehen dabei verloren, wenn vorher nicht "Starten"
- * gedrueckt wurde. */
+/* Dropdown change in setup: shows the API key stored in NVS for the
+ * newly selected provider in TextAreaAppId (see
+ * apply_appid_for_provider()). Unsaved input for the previously selected
+ * provider is lost if "Start" wasn't pressed before switching. */
 void action_event_api_value_changed(lv_event_t *e)
 {
   uint8_t provider = lv_dropdown_get_selected(objects.dropdown_api);
@@ -141,8 +141,8 @@ void action_event_weatherstation_start(lv_event_t *e)
   uint8_t weather_provider = lv_dropdown_get_selected(objects.dropdown_api);
   put_uint8_to_nvs(nvs_handle, "weather_api", weather_provider);
 
-  // Nur der zum gewaehlten Provider passende Key wird geschrieben - der
-  // jeweils andere bleibt unangetastet in NVS stehen (siehe apply_appid_for_provider()).
+  // Only the key matching the selected provider is written - the other
+  // one stays untouched in NVS (see apply_appid_for_provider()).
   const char* appid = lv_textarea_get_text(objects.text_area_app_id);
   switch (weather_provider) {
     case WEATHER_PROVIDER_OPENWEATHERMAP:
@@ -153,7 +153,7 @@ void action_event_weatherstation_start(lv_event_t *e)
       break;
     case WEATHER_PROVIDER_OPEN_METEO:
     default:
-      break; // kein Key noetig
+      break; // no key needed
   }
 
   const char* latitude = lv_textarea_get_text(objects.text_area_latitude);
@@ -188,10 +188,10 @@ void action_event_weatherstation_start(lv_event_t *e)
 
   nvs_close(nvs_handle);
 
-  // WLAN steht bereits (der Button ist bis zu einem erfolgreichen "Verbinden"
-  // deaktiviert, siehe on_wificonnect_done() in gui_setup_network_actions.c) -
-  // hier bleibt nur noch die Zeitzone anzuwenden und auf den Weatherstation-
-  // Screen zu wechseln.
+  // WiFi is already up (the button stays disabled until a successful
+  // "Connect", see on_wificonnect_done() in gui_setup_network_actions.c) -
+  // all that's left here is applying the timezone and switching to the
+  // Weatherstation screen.
   setenv("TZ", tz, 1);
   tzset();
 

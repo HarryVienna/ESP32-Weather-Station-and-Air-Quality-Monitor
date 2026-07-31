@@ -9,17 +9,17 @@
 static const char *TAG = "visualcrossing_provider";
 
 /* Timeline Weather API (https://www.visualcrossing.com/resources/documentation/weather-api/timeline-weather-api/).
- * Anders als Open-Meteo/OWM liefert ein einziger Call mit
- * include=days,hours,current alles auf einmal - deshalb hier nur eine URL
- * und ein Parse-Durchlauf statt drei getrennter Requests. Ein Forecast-Call
- * kostet laut Doku ausserdem pauschal 1 Record, egal wie viele Tage/Stunden
- * angefragt werden ("A full 15-day forecast ... counts as a single record.
- * This is true even for an hourly forecast.") - anders als bei historischen
- * Daten, wo pro Zeile abgerechnet wird. */
-/* Kein Datumsbereich im Pfad noetig - ohne Angabe liefert VC den Standard-
- * 15-Tage-Forecast, davon werden per NUM_DAYS/NUM_HOURS (lv_daily_chart.h/
- * lv_hourly_chart.h) einfach nur die ersten `daily_count`/`hourly_count`
- * Eintraege benutzt, der Rest wird ignoriert. */
+ * Unlike Open-Meteo/OWM, a single call with include=days,hours,current
+ * delivers everything at once - hence just one URL and one parse pass
+ * here instead of three separate requests. Per the docs, a forecast call
+ * also costs a flat 1 record regardless of how many days/hours are
+ * requested ("A full 15-day forecast ... counts as a single record. This
+ * is true even for an hourly forecast.") - unlike historical data, which
+ * is billed per row. */
+/* No date range needed in the path - without one, VC returns the default
+ * 15-day forecast, of which only the first `daily_count`/`hourly_count`
+ * entries are used via NUM_DAYS/NUM_HOURS (lv_daily_chart.h/
+ * lv_hourly_chart.h), the rest is ignored. */
 static const char *VC_URL_TIMELINE =
         "https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/%s,%s?"
         "unitGroup=metric&key=%s&contentType=json&include=days,hours,current&iconSet=icons2";
@@ -38,11 +38,11 @@ static double opt_num(cJSON *obj, const char *key, double def) {
     return (item && cJSON_IsNumber(item)) ? item->valuedouble : def;
 }
 
-/* is_day steht in keinem Feld direkt. Primaer wird der Zeitpunkt gegen
- * sunriseEpoch/sunsetEpoch geprueft (exakt); wenn die fehlen, wird der
- * Tag/Nacht-Suffix des Icons genutzt (z.B. "clear-day"/"clear-night" - nicht
- * alle Icons wie "rain"/"cloudy" haben einen Suffix); als letzter Fallback
- * gilt Tag. */
+/* is_day isn't in any field directly. Primarily, the timestamp is checked
+ * against sunriseEpoch/sunsetEpoch (exact); if those are missing, the
+ * icon's day/night suffix is used (e.g. "clear-day"/"clear-night" - not
+ * all icons like "rain"/"cloudy" have a suffix); day is the last-resort
+ * fallback. */
 static bool vc_is_day(double dt, double sunrise, double sunset, cJSON *item) {
     if (sunrise > 0 && sunset > 0) {
         return dt >= sunrise && dt < sunset;
@@ -62,11 +62,11 @@ static bool vc_is_day(double dt, double sunrise, double sunset, cJSON *item) {
     return true;
 }
 
-/* Grobe Abbildung des VC-Icon-Sets "icons2" (siehe iconSet=icons2 oben, Doku:
- * defining-icon-set-in-the-weather-api) auf die 28 vorhandenen WMO-Icons
- * (siehe icon_mapping_day/night in gui_weather.c). icons2 hat genau 16
- * Werte, kein eigenstaendiges "thunder"/"hail" wie im Standard-Icon-Set.
- * Verlustbehaftet, aber analog zur OWM-Anbindung als ausreichend bestaetigt. */
+/* Rough mapping of the VC icon set "icons2" (see iconSet=icons2 above,
+ * docs: defining-icon-set-in-the-weather-api) onto the 28 existing WMO
+ * icons (see icon_mapping_day/night in gui_weather.c). icons2 has exactly
+ * 16 values, no distinct "thunder"/"hail" like the standard icon set.
+ * Lossy, but confirmed sufficient, similar to the OWM integration. */
 static int vc_icon_to_wmo(const char *icon) {
     static const struct { const char *icon; int wmo; } map[] = {
         {"clear-day", 0}, {"clear-night", 0},
@@ -89,7 +89,7 @@ static int vc_icon_to_wmo(const char *icon) {
         }
     }
 
-    return 3; // Fallback: bedeckt
+    return 3; // fallback: overcast
 }
 
 static bool parse_current(cJSON *current, current_weather_data_t *out) {
@@ -118,10 +118,10 @@ static bool parse_current(cJSON *current, current_weather_data_t *out) {
     out->is_day = vc_is_day(dt, sunrise, sunset, current) ? 1 : 0;
     out->weather_code = vc_icon_to_wmo(cJSON_IsString(icon) ? icon->valuestring : NULL);
     out->cloud_cover = (int)cloudcover;
-    out->wind_speed_10m = windspeed; // unitGroup=metric liefert bereits km/h
+    out->wind_speed_10m = windspeed; // unitGroup=metric already delivers km/h
     out->wind_direction_10m = (int)winddir;
-    // Boen fehlen bei VC manchmal (z.B. Windstille) - dann Windgeschwindigkeit
-    // als Boe uebernehmen statt das Feld leer zu lassen
+    // Gusts are sometimes missing from VC (e.g. calm winds) - in that
+    // case use wind speed as the gust value instead of leaving it empty
     out->wind_gusts_10m = opt_num(current, "windgust", windspeed);
     out->uv_index = opt_num(current, "uvindex", 0.0);
 
@@ -145,17 +145,17 @@ static bool parse_hourly_item(cJSON *item, double day_sunrise, double day_sunset
 
     out->temperature_2m = temp;
     out->dew_point_2m = opt_num(item, "dew", temp);
-    out->precipitation_probability = opt_num(item, "precipprob", 0.0); // bereits 0-100
+    out->precipitation_probability = opt_num(item, "precipprob", 0.0); // already 0-100
     out->rain = opt_num(item, "precip", 0.0);
-    out->showers = 0.0; // VC unterscheidet keine Schauer von normalem Regen
-    out->snowfall = opt_num(item, "snow", 0.0); // unitGroup=metric liefert bereits cm
+    out->showers = 0.0; // VC doesn't distinguish showers from regular rain
+    out->snowfall = opt_num(item, "snow", 0.0); // unitGroup=metric already delivers cm
     out->wind_speed_10m = windspeed;
-    // Boen fehlen bei VC manchmal (z.B. Windstille) - dann Windgeschwindigkeit
-    // als Boe uebernehmen statt das Feld leer zu lassen
+    // Gusts are sometimes missing from VC (e.g. calm winds) - in that
+    // case use wind speed as the gust value instead of leaving it empty
     out->wind_gusts_10m = opt_num(item, "windgust", windspeed);
     out->cloud_cover = cloudcover;
     out->is_day = is_day;
-    // VC liefert keine Sonnenscheindauer - Naeherung ueber Bewoelkung
+    // VC doesn't provide sunshine duration - approximated via cloud cover
     out->sunshine_duration = is_day ? (100.0 - cloudcover) / 100.0 * 3600.0 : 0.0;
 
     return true;
@@ -187,15 +187,15 @@ static bool parse_daily_item(cJSON *item, daily_weather_data_t *out) {
     out->temperature_2m_max = temp_max;
     out->temperature_2m_min = temp_min;
     out->daylight_duration = daylight_duration;
-    // VC liefert keine Sonnenscheindauer - Naeherung ueber Bewoelkung
+    // VC doesn't provide sunshine duration - approximated via cloud cover
     out->sunshine_duration = (100.0 - cloudcover) / 100.0 * daylight_duration;
     out->rain_sum = opt_num(item, "precip", 0.0);
     out->showers_sum = 0.0;
-    out->snowfall_sum = opt_num(item, "snow", 0.0); // unitGroup=metric liefert bereits cm
-    out->precipitation_probability_max = opt_num(item, "precipprob", 0.0); // bereits 0-100
-    out->wind_speed_10m_max = windspeed; // laut Doku bereits Tagesmaximum
-    // Boen fehlen bei VC manchmal (z.B. Windstille) - dann Windgeschwindigkeit
-    // als Boe uebernehmen statt das Feld leer zu lassen
+    out->snowfall_sum = opt_num(item, "snow", 0.0); // unitGroup=metric already delivers cm
+    out->precipitation_probability_max = opt_num(item, "precipprob", 0.0); // already 0-100
+    out->wind_speed_10m_max = windspeed; // already the daily max per the docs
+    // Gusts are sometimes missing from VC (e.g. calm winds) - in that
+    // case use wind speed as the gust value instead of leaving it empty
     out->wind_gusts_10m_max = opt_num(item, "windgust", windspeed);
 
     return true;

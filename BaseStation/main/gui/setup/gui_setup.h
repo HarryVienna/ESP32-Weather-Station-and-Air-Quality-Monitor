@@ -3,11 +3,12 @@
 
 #include <stdbool.h>
 
-/* Setup-Screen-Kern: Kernfunktionen fuer WLAN-Auswahl/Verbindungsstatus und
- * Zeitzonen-Dropdowns. Rein intern - wird von gui_setup_network_actions.c
- * (WLAN-Scan/Connect) und gui_setup_screen_actions.c (Zeitzone, Formular
- * laden) aufgerufen (die WLAN-Tasks selbst nutzen Callback-Funktionspointer
- * statt direktem Aufruf dieser Funktionen). */
+/* Setup screen core: core functions for WiFi selection/connection status
+ * and timezone dropdowns. Purely internal - called by
+ * gui_setup_network_actions.c (WiFi scan/connect) and
+ * gui_setup_screen_actions.c (timezone, loading the form) (the WiFi tasks
+ * themselves use callback function pointers instead of calling these
+ * functions directly). */
 
 void set_cities(const char *region);
 void disp_wifi_networks(char *allNetworks);

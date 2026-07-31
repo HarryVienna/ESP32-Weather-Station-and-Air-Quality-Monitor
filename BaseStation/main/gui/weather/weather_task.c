@@ -54,15 +54,16 @@ static bool validate_coordinates(const char* lat, const char* lon) {
 }
 
 /**
- * @brief     Task for retrieving and displaying weather data from der konfigurierten API
+ * @brief     Task for retrieving and displaying weather data from the configured API
  *
  * @param     pvParameter   Pointer to task parameters (not used in this function)
  *
- * @details   Liest den in NVS hinterlegten Provider ("weather_api": 0=Open-Meteo,
- *            1=OpenWeatherMap, 2=VisualCrossing) und holt current/hourly/daily
- *            ueber weather_provider_fetch_all(). Der eigentliche HTTP-/JSON-Kram
- *            steckt providerspezifisch in weather/open_meteo_provider.c,
- *            weather/openweathermap_provider.c bzw. weather/visualcrossing_provider.c.
+ * @details   Reads the provider stored in NVS ("weather_api": 0=Open-Meteo,
+ *            1=OpenWeatherMap, 2=VisualCrossing) and fetches current/hourly/daily
+ *            via weather_provider_fetch_all(). The actual HTTP/JSON handling
+ *            lives provider-specifically in weather/open_meteo_provider.c,
+ *            weather/openweathermap_provider.c, and weather/visualcrossing_provider.c
+ *            respectively.
  */
 void weather_task(void *pvParameter) {
 
@@ -75,8 +76,8 @@ void weather_task(void *pvParameter) {
     char* longitude = get_string_from_nvs(nvs_handle, "longitude", "");
     weather_provider_t provider = (weather_provider_t)get_uint8_from_nvs(nvs_handle, "weather_api", WEATHER_PROVIDER_OPEN_METEO);
 
-    // Jeder Provider mit eigenem API-Key hat seinen eigenen NVS-Key (siehe
-    // apply_appid_for_provider() in gui_setup_screen_actions.c) - Open-Meteo braucht keinen.
+    // Each provider with its own API key has its own NVS key (see
+    // apply_appid_for_provider() in gui_setup_screen_actions.c) - Open-Meteo doesn't need one.
     char* api_key;
     switch (provider) {
         case WEATHER_PROVIDER_OPENWEATHERMAP:

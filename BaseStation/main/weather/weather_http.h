@@ -13,17 +13,15 @@ typedef struct {
     int buffer_len;
 } weather_http_response_t;
 
-/* Legt einen esp_http_client an, dessen Event-Handler die Antwort in
- * `response` sammelt (SPIRAM-Buffer, wird bei jedem Call in
- * weather_http_get_json() neu befuellt). `response` muss so lange leben wie
- * der Client. */
+/* Creates an esp_http_client whose event handler collects the response
+ * into `response` (SPIRAM buffer, refilled on every call in
+ * weather_http_get_json()). `response` must live as long as the client. */
 esp_http_client_handle_t weather_http_client_create(weather_http_response_t *response);
 
-/* Fuehrt ein GET auf `url` aus und parst den Body als JSON. Gibt bei
- * Transport- oder Parse-Fehler NULL zurueck. Der interne Response-Buffer
- * wird in jedem Fall (Erfolg wie Fehler) freigegeben, bevor die Funktion
- * zurueckkehrt - der Aufrufer muss das zurueckgegebene cJSON* mit
- * cJSON_Delete() freigeben. */
+/* Performs a GET on `url` and parses the body as JSON. Returns NULL on a
+ * transport or parse error. The internal response buffer is freed in
+ * every case (success as well as failure) before the function returns -
+ * the caller must free the returned cJSON* with cJSON_Delete(). */
 cJSON *weather_http_get_json(esp_http_client_handle_t client, weather_http_response_t *response, const char *url);
 
 #ifdef __cplusplus

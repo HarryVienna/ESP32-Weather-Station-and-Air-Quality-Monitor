@@ -1,9 +1,9 @@
 #ifndef TIMEZONE_DATA_H
 #define TIMEZONE_DATA_H
 
-// Timezone-Tabelle fuer den Setup Screen (Region-Dropdown + Stadt/TZ je Region).
-// Nur von gui_setup.c (Dropdown befuellen) und gui_setup_screen_actions.c
-// (Formular laden/speichern) gebraucht.
+// Timezone table for the setup screen (region dropdown + city/TZ per region).
+// Only used by gui_setup.c (populating the dropdown) and
+// gui_setup_screen_actions.c (loading/saving the form).
 static const char *regionNames[] = {
     "Africa", "America", "Antarctica", "Arctic", "Asia", "Atlantic", "Australia", "Europe", "Indian", "Pacific"};
 

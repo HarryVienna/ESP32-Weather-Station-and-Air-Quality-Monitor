@@ -84,8 +84,9 @@ bool open_meteo_fetch_current(esp_http_client_handle_t client, weather_http_resp
             out->cloud_cover = cloud_cover_item->valueint;
             out->wind_speed_10m = wind_speed->valuedouble;
             out->wind_direction_10m = wind_dir->valueint;
-            // Boen fehlen bei Windstille manchmal in der API - dann Windgeschwindigkeit
-            // als Boe uebernehmen statt das Feld leer zu lassen
+            // Gusts are sometimes missing from the API during calm winds -
+            // in that case use wind speed as the gust value instead of
+            // leaving it empty
             out->wind_gusts_10m = (wind_gusts && cJSON_IsNumber(wind_gusts)) ? wind_gusts->valuedouble : wind_speed->valuedouble;
             out->uv_index = uv->valuedouble;
 
@@ -199,8 +200,9 @@ bool open_meteo_fetch_hourly(esp_http_client_handle_t client, weather_http_respo
                     out[i].showers = shower_item->valuedouble;
                     out[i].snowfall = snow_item->valuedouble;
                     out[i].wind_speed_10m = wind_speed_item->valuedouble;
-                    // Boen fehlen bei Windstille manchmal in der API - dann Windgeschwindigkeit
-                    // als Boe uebernehmen statt das Feld leer zu lassen
+                    // Gusts are sometimes missing from the API during calm
+                    // winds - in that case use wind speed as the gust
+                    // value instead of leaving it empty
                     out[i].wind_gusts_10m = (wind_gust_item && cJSON_IsNumber(wind_gust_item)) ? wind_gust_item->valuedouble : wind_speed_item->valuedouble;
                     out[i].sunshine_duration = sun_item->valuedouble;
                     out[i].cloud_cover = cloud_item->valuedouble;
@@ -318,8 +320,9 @@ bool open_meteo_fetch_daily(esp_http_client_handle_t client, weather_http_respon
                     out[i].snowfall_sum = snow_item->valuedouble;
                     out[i].precipitation_probability_max = precip_item->valuedouble;
                     out[i].wind_speed_10m_max = wind_speed_item->valuedouble;
-                    // Boen fehlen bei Windstille manchmal in der API - dann Windgeschwindigkeit
-                    // als Boe uebernehmen statt das Feld leer zu lassen
+                    // Gusts are sometimes missing from the API during calm
+                    // winds - in that case use wind speed as the gust
+                    // value instead of leaving it empty
                     out[i].wind_gusts_10m_max = (wind_gust_item && cJSON_IsNumber(wind_gust_item)) ? wind_gust_item->valuedouble : wind_speed_item->valuedouble;
 
                     time_t sunriseTimestamp = (time_t)sunrise_item->valueint;

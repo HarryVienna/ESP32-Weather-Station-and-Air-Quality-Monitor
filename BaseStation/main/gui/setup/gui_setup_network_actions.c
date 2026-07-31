@@ -7,10 +7,10 @@
 #include "ui/ui.h"
 #include "ui/actions.h"
 
-/* WLAN-Scan/Connect-Actions des Setup Screens. Die beiden statischen
- * Callbacks existieren nur, um das Ergebnis der asynchronen WLAN-Tasks
- * (siehe wifi/network.h) auf den jeweils aufrufenden Button zurueckzuspielen
- * - je ein einziger Aufrufer, keine geteilte Business-Logik. */
+/* WiFi scan/connect actions for the setup screen. The two static
+ * callbacks exist only to relay the result of the asynchronous WiFi tasks
+ * (see wifi/network.h) back to the button that called them - each has a
+ * single caller, no shared business logic. */
 
 static void on_wifiscan_done(char *networks)
 {
@@ -29,10 +29,10 @@ void action_event_wifi_scan(lv_event_t *e)
 static void on_wificonnect_done(bool connected)
 {
   if (connected) {
-    // Ab hier ist das die echte, dauerhafte Verbindung (nicht nur ein Test) -
-    // "Starten" muss WLAN danach nicht mehr aufbauen, nur noch den Screen
-    // wechseln. wifi_sync_time() blockiert bounded (siehe network.c), laeuft
-    // aber hier auf dem wificonnect_task, nicht auf dem UI-Task.
+    // From here on this is the real, permanent connection (not just a
+    // test) - "Start" no longer needs to bring up WiFi afterwards, just
+    // switch the screen. wifi_sync_time() blocks with a bound (see
+    // network.c), but runs here on the wificonnect_task, not the UI task.
     wifi_stay_connected_forever();
     wifi_sync_time();
   }

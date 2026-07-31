@@ -454,7 +454,7 @@ static void draw_hourly_temp(lv_obj_t * obj, lv_layer_t * layer)
         return;
     }
 
-    // Dynamische Speicherallokation für die Arrays
+    // Dynamic memory allocation for the arrays
     int32_t    *hourly_temp_values = (int32_t *)heap_caps_malloc(w * sizeof(int32_t), MALLOC_CAP_32BIT | MALLOC_CAP_SPIRAM);
     lv_color_t *hourly_dew_values  = (lv_color_t *)heap_caps_malloc(w * sizeof(lv_color_t), MALLOC_CAP_32BIT | MALLOC_CAP_SPIRAM);
 
@@ -487,7 +487,7 @@ static void draw_hourly_temp(lv_obj_t * obj, lv_layer_t * layer)
         lv_draw_line(layer, &line_dsc);
     }
 
-    // Speicher freigeben
+    // Free the memory
     heap_caps_free(hourly_temp_values);
     heap_caps_free(hourly_dew_values);
 }

@@ -8,10 +8,10 @@ extern "C" {
 #include <time.h>
 #include <stdbool.h>
 
-/* Providerneutrales Zielformat der Wetterdaten. Jeder Provider (Open-Meteo,
- * OpenWeatherMap, ...) in den weather_*_provider.c-Dateien bildet seine
- * eigenen Felder auf diese Structs ab - GUI (gui_weather.c) und
- * weather_task.c kennen nur dieses Format, nie Provider-Details. */
+/* Provider-neutral target format for weather data. Each provider
+ * (Open-Meteo, OpenWeatherMap, ...) in the weather_*_provider.c files
+ * maps its own fields onto these structs - the GUI (gui_weather.c) and
+ * weather_task.c only know this format, never provider details. */
 
 typedef struct {
     double temperature_2m;          // Air temperature at 2 meters above ground

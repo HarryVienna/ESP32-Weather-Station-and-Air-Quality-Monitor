@@ -5,8 +5,8 @@
 #include "ota/ota_task.h"
 #include "ui/ui.h"
 
-/* Die MessageBox mit Fortschrittsbalken lebt direkt auf dem Weatherstation-
- * Screen, es wird also nirgends mehr loadScreen() gebraucht. */
+/* The progress message box lives directly on the Weatherstation screen, so
+ * no loadScreen() call is needed here. */
 
 void gui_ota_update_available(const char *version)
 {
@@ -16,11 +16,11 @@ void gui_ota_update_available(const char *version)
     lvgl_port_unlock();
 }
 
-/* "Installieren"-Button in message_box_update (siehe screens.c), von EEZ auf
- * LV_EVENT_PRESSED verdrahtet. Laeuft auf dem LVGL-Task - deaktiviert nur den
- * Button (verhindert Doppelklick/zweiten Install-Task, bleibt aber sichtbar,
- * die MessageBox mit dem Fortschrittsbalken bleibt offen) und stoesst den
- * Download auf einem eigenen Task an, blockiert also selbst nicht. */
+/* "Install" button in message_box_update (see screens.c), wired by EEZ to
+ * LV_EVENT_PRESSED. Runs on the LVGL task - only disables the button
+ * (prevents a double click / second install task, but keeps it visible,
+ * the progress message box stays open) and kicks off the download on its
+ * own task, so this itself does not block. */
 void action_event_message_box_update(lv_event_t *e)
 {
     (void)e;
@@ -46,6 +46,6 @@ void gui_ota_update_failed(void)
 {
     lvgl_port_lock(0);
     lv_obj_add_flag(objects.message_box_update, LV_OBJ_FLAG_HIDDEN);
-    lv_obj_remove_state(objects.button_update, LV_STATE_DISABLED); /* fuer den naechsten Versuch wieder aktivieren */
+    lv_obj_remove_state(objects.button_update, LV_STATE_DISABLED); /* re-enable for the next attempt */
     lvgl_port_unlock();
 }

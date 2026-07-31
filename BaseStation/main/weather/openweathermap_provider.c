@@ -8,10 +8,10 @@
 
 static const char *TAG = "openweathermap_provider";
 
-/* One Call API 4.0 (https://openweathermap.org/api/one-call-4) - anders als
- * 3.0 sind current/hourly/daily eigene Endpunkte, kein kombinierter Call.
- * Antworten sind {"data": [...], "next": "...", "prev": "..."} - hourly
- * liefert max. 20 Eintraege pro Antwort, daher Pagination ueber "next". */
+/* One Call API 4.0 (https://openweathermap.org/api/one-call-4) - unlike
+ * 3.0, current/hourly/daily are separate endpoints, no combined call.
+ * Responses are {"data": [...], "next": "...", "prev": "..."} - hourly
+ * returns at most 20 entries per response, hence pagination via "next". */
 static const char *OWM_URL_CURRENT =
         "https://api.openweathermap.org/data/4.0/onecall/current?"
         "lat=%s&lon=%s&appid=%s&units=metric";
@@ -54,8 +54,8 @@ static double opt_nested_num(cJSON *obj, const char *outer, const char *inner, d
     return opt_num(o, inner, def);
 }
 
-/* is_day steht in keinem Feld direkt - OWM haengt an den Icon-Code ein 'd'
- * oder 'n' an (z.B. "01d"/"01n"). Fehlt das Icon, wird Tag angenommen. */
+/* is_day isn't in any field directly - OWM appends a 'd' or 'n' to the
+ * icon code (e.g. "01d"/"01n"). If the icon is missing, day is assumed. */
 static bool owm_is_day(cJSON *item) {
     cJSON *weather = cJSON_GetObjectItem(item, "weather");
     if (weather && cJSON_IsArray(weather) && cJSON_GetArraySize(weather) > 0) {
@@ -83,39 +83,39 @@ static bool owm_weather_id(cJSON *item, int *out_id) {
     return true;
 }
 
-/* Grobe Abbildung der OWM-Conditioncodes auf die 28 vorhandenen WMO-Icons
- * (siehe icon_mapping_day/night in gui_weather.c). */
+/* Rough mapping of OWM condition codes onto the 28 existing WMO icons
+ * (see icon_mapping_day/night in gui_weather.c). */
 static int owm_weather_id_to_wmo(int owm_id) {
-    if (owm_id == 800) return 0;   // klarer Himmel
-    if (owm_id == 801) return 1;   // wenige Wolken
-    if (owm_id == 802) return 2;   // vereinzelte Wolken
-    if (owm_id == 803 || owm_id == 804) return 3; // bewoelkt/bedeckt
+    if (owm_id == 800) return 0;   // clear sky
+    if (owm_id == 801) return 1;   // few clouds
+    if (owm_id == 802) return 2;   // scattered clouds
+    if (owm_id == 803 || owm_id == 804) return 3; // cloudy/overcast
 
-    if (owm_id >= 701 && owm_id <= 771) return 45; // Nebel/Dunst/Sand/Rauch
+    if (owm_id >= 701 && owm_id <= 771) return 45; // fog/haze/sand/smoke
 
-    if (owm_id == 300 || owm_id == 310) return 51; // leichter Sprühregen
+    if (owm_id == 300 || owm_id == 310) return 51; // light drizzle
     if (owm_id == 301 || owm_id == 311 || owm_id == 321) return 53;
     if (owm_id == 302 || owm_id == 312 || owm_id == 313 || owm_id == 314) return 55;
 
-    if (owm_id == 500) return 61;  // leichter Regen
-    if (owm_id == 501) return 63;  // maessiger Regen
-    if (owm_id == 502 || owm_id == 503 || owm_id == 504) return 65; // starker Regen
-    if (owm_id == 511) return 66;  // gefrierender Regen
+    if (owm_id == 500) return 61;  // light rain
+    if (owm_id == 501) return 63;  // moderate rain
+    if (owm_id == 502 || owm_id == 503 || owm_id == 504) return 65; // heavy rain
+    if (owm_id == 511) return 66;  // freezing rain
 
-    if (owm_id == 520) return 80;  // leichter Regenschauer
+    if (owm_id == 520) return 80;  // light rain shower
     if (owm_id == 521) return 81;
     if (owm_id == 522 || owm_id == 531) return 82;
 
-    if (owm_id == 600 || owm_id == 612 || owm_id == 615 || owm_id == 620) return 71; // leichter Schnee
+    if (owm_id == 600 || owm_id == 612 || owm_id == 615 || owm_id == 620) return 71; // light snow
     if (owm_id == 601) return 73;
     if (owm_id == 602 || owm_id == 622) return 75;
-    if (owm_id == 611 || owm_id == 613 || owm_id == 616 || owm_id == 621) return 85; // Schneeschauer
+    if (owm_id == 611 || owm_id == 613 || owm_id == 616 || owm_id == 621) return 85; // snow shower
 
-    if (owm_id >= 200 && owm_id <= 202) return 95;  // Gewitter
+    if (owm_id >= 200 && owm_id <= 202) return 95;  // thunderstorm
     if (owm_id >= 210 && owm_id <= 221) return 96;
-    if (owm_id >= 230 && owm_id <= 232) return 99;  // Gewitter mit Hagel
+    if (owm_id >= 230 && owm_id <= 232) return 99;  // thunderstorm with hail
 
-    return 3; // Fallback: bedeckt
+    return 3; // fallback: overcast
 }
 
 static bool parse_current_item(cJSON *item, current_weather_data_t *out) {
@@ -143,8 +143,8 @@ static bool parse_current_item(cJSON *item, current_weather_data_t *out) {
     out->cloud_cover = (int)clouds;
     out->wind_speed_10m = wind_speed * 3.6;
     out->wind_direction_10m = (int)wind_deg;
-    // Boen fehlen bei OWM manchmal (z.B. Windstille) - dann Windgeschwindigkeit
-    // als Boe uebernehmen statt das Feld leer zu lassen
+    // Gusts are sometimes missing from OWM (e.g. calm winds) - in that
+    // case use wind speed as the gust value instead of leaving it empty
     out->wind_gusts_10m = opt_num(item, "wind_gust", wind_speed) * 3.6;
     out->uv_index = opt_num(item, "uvi", 0.0);
 
@@ -170,15 +170,15 @@ static bool parse_hourly_item(cJSON *item, hourly_weather_data_t *out) {
     out->dew_point_2m = opt_num(item, "dew_point", temp);
     out->precipitation_probability = opt_num(item, "pop", 0.0) * 100.0;
     out->rain = opt_nested_num(item, "rain", "1h", 0.0);
-    out->showers = 0.0; // OWM unterscheidet keine Schauer von normalem Regen
+    out->showers = 0.0; // OWM doesn't distinguish showers from regular rain
     out->snowfall = opt_nested_num(item, "snow", "1h", 0.0) / 10.0; // mm -> cm
     out->wind_speed_10m = wind_speed * 3.6;
-    // Boen fehlen bei OWM manchmal (z.B. Windstille) - dann Windgeschwindigkeit
-    // als Boe uebernehmen statt das Feld leer zu lassen
+    // Gusts are sometimes missing from OWM (e.g. calm winds) - in that
+    // case use wind speed as the gust value instead of leaving it empty
     out->wind_gusts_10m = opt_num(item, "wind_gust", wind_speed) * 3.6;
     out->cloud_cover = clouds;
     out->is_day = is_day;
-    // OWM liefert keine Sonnenscheindauer - Naeherung ueber Bewoelkung
+    // OWM doesn't provide sunshine duration - approximated via cloud cover
     out->sunshine_duration = is_day ? (100.0 - clouds) / 100.0 * 3600.0 : 0.0;
 
     return true;
@@ -210,17 +210,17 @@ static bool parse_daily_item(cJSON *item, daily_weather_data_t *out) {
     out->temperature_2m_max = temp_max;
     out->temperature_2m_min = temp_min;
     out->daylight_duration = daylight_duration;
-    // OWM liefert keine Sonnenscheindauer - Naeherung ueber Bewoelkung
+    // OWM doesn't provide sunshine duration - approximated via cloud cover
     out->sunshine_duration = (100.0 - clouds) / 100.0 * daylight_duration;
-    // Anders als bei current/hourly ist "rain"/"snow" beim Daily-Endpunkt ein
-    // einfacher Zahlenwert (Tagessumme), kein verschachteltes {"1h": ...}.
+    // Unlike current/hourly, "rain"/"snow" on the daily endpoint is a
+    // plain number (daily total), not a nested {"1h": ...}.
     out->rain_sum = opt_num(item, "rain", 0.0);
     out->showers_sum = 0.0;
     out->snowfall_sum = opt_num(item, "snow", 0.0) / 10.0; // mm -> cm
     out->precipitation_probability_max = opt_num(item, "pop", 0.0) * 100.0;
     out->wind_speed_10m_max = wind_speed * 3.6;
-    // Boen fehlen bei OWM manchmal (z.B. Windstille) - dann Windgeschwindigkeit
-    // als Boe uebernehmen statt das Feld leer zu lassen
+    // Gusts are sometimes missing from OWM (e.g. calm winds) - in that
+    // case use wind speed as the gust value instead of leaving it empty
     out->wind_gusts_10m_max = opt_num(item, "wind_gust", wind_speed) * 3.6;
 
     return true;

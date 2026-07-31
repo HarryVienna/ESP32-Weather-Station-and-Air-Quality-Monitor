@@ -41,16 +41,16 @@ void app_main(void)
     ESP_ERROR_CHECK(receiver_init());
 
     lvgl_port_lock(0);
-    i18n_init(); // vor ui_init(): Screens rufen beim Aufbau schon _() auf
+    i18n_init(); // before ui_init(): screens already call _() while building up
     ui_init();
     gui_weather_init_charts();
     gui_sen66_init_charts();
     gui_radiation_init_chart();
     lvgl_port_unlock();
 
-    // Bestaetigt eine per OTA eingespielte App als funktionsfaehig, sonst
-    // rollt der Bootloader beim naechsten Boot auf die vorherige ota_0/
-    // ota_1-Partition zurueck (siehe CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE).
+    // Confirms an app installed via OTA as working, otherwise the
+    // bootloader rolls back to the previous ota_0/ota_1 partition on the
+    // next boot (see CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE).
     esp_ota_mark_app_valid_cancel_rollback();
 
     // Only for Screenshot Task

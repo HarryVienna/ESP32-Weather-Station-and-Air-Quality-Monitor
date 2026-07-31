@@ -1,8 +1,8 @@
 #include "gui_history_chart.h"
 
-/* BAR-Chart-Draw-Callback fuer history_chart_init() - faerbt jeden 1px-Balken
- * per level_color_asc() nach Schwellwert ein. user_data ist ein
- * `const color_thresh_t *arr[]` mit genau einem Eintrag. */
+/* Bar chart draw callback for history_chart_init() - colors each 1px bar
+ * via level_color_asc() according to its threshold. user_data is a
+ * `const color_thresh_t *arr[]` with exactly one entry. */
 static void chart_bar_fill_cb(lv_event_t *e)
 {
     lv_draw_task_t *draw_task = lv_event_get_draw_task(e);
@@ -37,11 +37,11 @@ void history_chart_init(history_chart_t *hc, lv_obj_t *chart, int32_t y_max,
   if (point_count < 1) point_count = 1;
   lv_chart_set_point_count(chart, point_count);
 
-  /* lv_chart's Plot-Bereich wird nur durch Padding eingerueckt, nicht durch
-   * die Border-Breite - ohne dieses Padding zeichnen die Balken bis an den
-   * Rand der Box und damit genau ueber die Border (am staerksten sichtbar
-   * unten/rechts, wo Wert=Max bzw. die juengsten Balken liegen). Padding =
-   * Border-Breite laesst dafuer genug Platz. */
+  /* lv_chart's plot area is only inset by padding, not by the border
+   * width - without this padding the bars draw all the way to the edge
+   * of the box and thus right over the border (most visible at the
+   * bottom/right, where value=max or the most recent bars sit). Padding =
+   * border width leaves enough room to avoid that. */
   int32_t border_width = lv_obj_get_style_border_width(chart, LV_PART_MAIN);
   lv_obj_set_style_pad_all(chart, border_width, LV_PART_MAIN | LV_STATE_DEFAULT);
   lv_obj_set_style_pad_column(chart, 0, LV_PART_MAIN | LV_STATE_DEFAULT);

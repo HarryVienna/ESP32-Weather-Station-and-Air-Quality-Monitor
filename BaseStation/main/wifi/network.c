@@ -105,16 +105,16 @@ static EventGroupHandle_t s_wifi_event_group;
 
 static int s_retry_num = 0;
 
-/* Persistente Hintergrund-Policy, unabhaengig vom aktuellen Verbindungs-
- * versuch - siehe wifi_stay_connected_forever() in network.h. Wird von
- * wifi_connect() NICHT zurueckgesetzt, bleibt also ueber mehrere Aufrufe
- * hinweg bestehen, sobald sie einmal gesetzt wurde. */
+/* Persistent background policy, independent of the current connection
+ * attempt - see wifi_stay_connected_forever() in network.h. NOT reset by
+ * wifi_connect(), so it stays in effect across multiple calls once it's
+ * been set. */
 static bool s_stay_connected_forever = false;
 
-/* Menschenlesbare Kurzbeschreibung der gaengigsten WIFI_REASON_*-Codes (siehe
- * esp_wifi_types_generic.h) - hilft beim Einordnen, ob ein langsamer/
- * fehlschlagender Connect am Passwort, am Router oder an schlechtem Empfang
- * liegt, statt nur die nackte Zahl zu sehen. */
+/* Human-readable short description of the most common WIFI_REASON_* codes
+ * (see esp_wifi_types_generic.h) - helps judge whether a slow/failing
+ * connect is due to the password, the router, or poor reception, instead
+ * of just seeing the bare number. */
 static const char* wifi_disconnect_reason_str(uint8_t reason) {
     switch (reason) {
         case WIFI_REASON_UNSPECIFIED: return "unspecified";
@@ -150,11 +150,11 @@ static void event_handler(void* arg, esp_event_base_t event_base,
         disp_wifi_status(false, 0);
 
         if (s_stay_connected_forever || s_retry_num < WIFI_CONNECT_MAX_RETRIES) {
-            // Kurze Pause vor dem Retry: manche Router/APs (Band-Steering, Mesh)
-            // haben den alten Assoziations-Eintrag fuer diese Station noch nicht
-            // abgeraeumt, wenn sofort erneut connect() aufgerufen wird - das
-            // aeussert sich als auth-expired/4-way-handshake-timeout trotz gutem
-            // RSSI (siehe wifi_disconnect_reason_str() oben).
+            // Brief pause before retrying: some routers/APs (band steering,
+            // mesh) haven't cleared the old association entry for this
+            // station yet if connect() is called again immediately - this
+            // shows up as auth-expired/4-way-handshake-timeout despite good
+            // RSSI (see wifi_disconnect_reason_str() above).
             vTaskDelay(pdMS_TO_TICKS(1000));
             esp_wifi_connect();
             s_retry_num++;
@@ -214,10 +214,10 @@ bool wifi_connect(const char* ssid, const char* password) {
     ESP_ERROR_CHECK(esp_wifi_start());
 
     /* Waiting until either the connection is established (WIFI_CONNECTED_BIT) or connection failed for the maximum
-     * number of re-tries (WIFI_FAIL_BIT). The bits are set by event_handler() (see above). Immer bounded durch
-     * WIFI_CONNECT_MAX_RETRIES (s_stay_connected_forever betrifft nur spaetere, hier nicht abgewartete Events -
-     * siehe event_handler()), deshalb ist portMAX_DELAY hier sicher: WIFI_FAIL_BIT wird garantiert irgendwann
-     * gesetzt, falls nicht vorher WIFI_CONNECTED_BIT kommt. */
+     * number of re-tries (WIFI_FAIL_BIT). The bits are set by event_handler() (see above). Always bounded by
+     * WIFI_CONNECT_MAX_RETRIES (s_stay_connected_forever only affects later events not awaited here - see
+     * event_handler()), so portMAX_DELAY is safe here: WIFI_FAIL_BIT is guaranteed to be set eventually if
+     * WIFI_CONNECTED_BIT doesn't come first. */
     ESP_LOGI(TAG, "Waiting for xEventGroupWaitBits");
     EventBits_t bits = xEventGroupWaitBits(s_wifi_event_group,
             WIFI_CONNECTED_BIT | WIFI_FAIL_BIT,
@@ -238,7 +238,7 @@ void wifi_stay_connected_forever(void)
 
 
 /* ============================================================================
- * NTP-Zeitsynchronisation (nach erfolgreichem WLAN-Connect)
+ * NTP time synchronization (after a successful WiFi connect)
  * ============================================================================ */
 
 static SemaphoreHandle_t sync_semaphore;
@@ -255,9 +255,10 @@ static void sync_callback(struct timeval *tv) {
 void wifi_sync_time(void)
 {
     if (sntp_started) {
-        // esp_sntp_init() darf nur einmal aufgerufen werden - bei mehrfachem
-        // Klick auf "Verbinden" (z.B. erst falsches, dann richtiges Passwort)
-        // ist die Zeit vom ersten erfolgreichen Aufruf bereits synchronisiert.
+        // esp_sntp_init() may only be called once - if "Connect" is
+        // clicked multiple times (e.g. wrong password first, then the
+        // right one), the time is already synchronized from the first
+        // successful call.
         return;
     }
     sntp_started = true;
@@ -280,7 +281,7 @@ void wifi_sync_time(void)
 
 
 /* ============================================================================
- * WLAN-Scan (Setup-Screen-Dropdown)
+ * WiFi scan (setup screen dropdown)
  * ============================================================================ */
 
 /**
@@ -365,7 +366,7 @@ void wifiscan_start(wifiscan_done_cb_t on_done) {
 
 
 /* ============================================================================
- * WLAN-Verbindungstest (Setup-Screen-"Verbinden"-Button)
+ * WiFi connection test (setup screen "Connect" button)
  * ============================================================================ */
 
 typedef struct {
