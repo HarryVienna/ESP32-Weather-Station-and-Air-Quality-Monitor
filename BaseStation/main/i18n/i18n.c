@@ -12,17 +12,22 @@
 static const char * const s_languages[] = {"de", "en", NULL};
 
 static const char * const s_tags[] = {
-    /* --- UI-Labels (Setup-/Weatherstation-Screen) --- */
+    /* --- UI-Labels (Setup-/Weatherstation-Screen) ---
+     * Tags sind hier Englisch, nicht Deutsch wie sonst in dieser Tabelle:
+     * EEZ Studio ist auf englische Quelltexte fuer "Translated Literal"
+     * umgestellt, die generierten _()-Aufrufe in screens.c nutzen also
+     * jetzt Englisch als Schluessel. */
+    "Altitude:",
     "API:",
     "AppId:",
-    "Basis:",
+    "Base:",
+    "Connect",
     "Downloading:",
-    "Höhe:",
-    "Installieren",
+    "Install",
     "Latitude:",
     "Longitude:",
-    "Netzwerk:",
-    "Passwort:",
+    "Network:",
+    "Password:",
     "Scan",
     "Sensor 0:",
     "Sensor 1:",
@@ -30,10 +35,9 @@ static const char * const s_tags[] = {
     "Sensor 3:",
     "Sensor 4:",
     "Sensor 5:",
-    "Starten",
-    "Update verfügbar:",
-    "Verbinden",
-    "Zeitzone:",
+    "Start",
+    "Time zone:",
+    "Update available:",
 
     /* --- Name+Icon-Katalog (gui_icon_catalog.c: sensor_icon_options[].label) ---
      * Dort steht bewusst weiter der deutsche Klartext als Tag/Schluessel
@@ -86,11 +90,12 @@ static const char * const s_tags[] = {
 /* Reihenfolge muss exakt zu s_tags passen: je Tag ein {de, en}-Paar. */
 static const char * const s_translations[] = {
     /* --- UI-Labels --- */
-    "API:",               "API:",
+    "Höhe:",             "Altitude:",
+    "API:",              "API:",
     "AppId:",            "AppId:",
     "Basis:",            "Base:",
+    "Verbinden",         "Connect",
     "Downloading:",      "Downloading:",
-    "Höhe:",             "Altitude:",
     "Installieren",      "Install",
     "Latitude:",         "Latitude:",
     "Longitude:",        "Longitude:",
@@ -104,9 +109,8 @@ static const char * const s_translations[] = {
     "Sensor 4:",         "Sensor 4:",
     "Sensor 5:",         "Sensor 5:",
     "Starten",           "Start",
-    "Update verfügbar:", "Update available:",
-    "Verbinden",         "Connect",
     "Zeitzone:",         "Time zone:",
+    "Update verfügbar:", "Update available:",
 
     /* --- Name+Icon-Katalog --- */
     "Bad",               "Bathroom",

@@ -372,7 +372,7 @@
                         "objID": "e3e802cc-9450-49b7-87eb-a02db0bd9b67"
                       },
                       "groupIndex": 0,
-                      "text": "Netzwerk:",
+                      "text": "Network:",
                       "textType": "translated-literal",
                       "longMode": "WRAP",
                       "recolor": false
@@ -665,7 +665,7 @@
                         "objID": "57269777-4853-4fca-a949-1b03516a8fdb"
                       },
                       "groupIndex": 0,
-                      "text": "Passwort:",
+                      "text": "Password:",
                       "textType": "translated-literal",
                       "longMode": "WRAP",
                       "recolor": false
@@ -771,7 +771,7 @@
                           "type": "LVGLLabelWidget",
                           "left": 0,
                           "top": 0,
-                          "width": 134,
+                          "width": 110,
                           "height": 36,
                           "customInputs": [],
                           "customOutputs": [],
@@ -804,7 +804,7 @@
                             "objID": "c3f00fda-e626-4354-c75a-bd9bb4858b70"
                           },
                           "groupIndex": 0,
-                          "text": "Verbinden",
+                          "text": "Connect",
                           "textType": "translated-literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -1460,7 +1460,7 @@
                         }
                       },
                       "groupIndex": 0,
-                      "text": "Höhe:",
+                      "text": "Altitude:",
                       "textType": "translated-literal",
                       "longMode": "WRAP",
                       "recolor": false
@@ -1627,7 +1627,7 @@
                         }
                       },
                       "groupIndex": 0,
-                      "text": "Zeitzone:",
+                      "text": "Time zone:",
                       "textType": "translated-literal",
                       "longMode": "WRAP",
                       "recolor": false
@@ -1920,7 +1920,7 @@
                         "objID": "5c8840df-e60e-4051-c817-8c3abf1bfe2d"
                       },
                       "groupIndex": 0,
-                      "text": "Basis:",
+                      "text": "Base:",
                       "textType": "translated-literal",
                       "longMode": "WRAP",
                       "recolor": false
@@ -3026,7 +3026,7 @@
                           "type": "LVGLLabelWidget",
                           "left": 0,
                           "top": 0,
-                          "width": 95,
+                          "width": 62,
                           "height": 36,
                           "customInputs": [],
                           "customOutputs": [],
@@ -3059,7 +3059,7 @@
                             "objID": "b64fb391-33bc-4679-fdba-d948f15aaad0"
                           },
                           "groupIndex": 0,
-                          "text": "Starten",
+                          "text": "Start",
                           "textType": "translated-literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -4189,7 +4189,7 @@
                           "type": "LVGLLabelWidget",
                           "left": 0,
                           "top": 0,
-                          "width": 287,
+                          "width": 276,
                           "height": 44,
                           "customInputs": [],
                           "customOutputs": [],
@@ -4229,7 +4229,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "Update verfügbar:",
+                          "text": "Update available:",
                           "textType": "translated-literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -4371,7 +4371,7 @@
                               "type": "LVGLLabelWidget",
                               "left": 0,
                               "top": 0,
-                              "width": 141,
+                              "width": 76,
                               "height": 36,
                               "customInputs": [],
                               "customOutputs": [],
@@ -4404,7 +4404,7 @@
                                 "objID": "0deea63b-1a5d-4682-82ad-5d1332c447d4"
                               },
                               "groupIndex": 0,
-                              "text": "Installieren",
+                              "text": "Install",
                               "textType": "translated-literal",
                               "longMode": "WRAP",
                               "recolor": false
@@ -4741,7 +4741,7 @@
                   "type": "LVGLLabelWidget",
                   "left": 0,
                   "top": 0,
-                  "width": 261,
+                  "width": 306,
                   "height": 25,
                   "customInputs": [],
                   "customOutputs": [],
@@ -4784,7 +4784,7 @@
                   },
                   "group": "",
                   "groupIndex": 0,
-                  "text": "Freitag, 27.01.2023  08:22:10",
+                  "text": "Wednesday, 27.01.2023  08:22:10",
                   "textType": "literal",
                   "longMode": "WRAP",
                   "recolor": false
@@ -7254,7 +7254,7 @@
                   },
                   "group": "",
                   "groupIndex": 0,
-                  "text": "Wohnzimmer",
+                  "text": "Living room",
                   "textType": "translated-literal",
                   "longMode": "WRAP",
                   "recolor": false
