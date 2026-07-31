@@ -202,6 +202,7 @@ static bool parse_version(const char *version, app_version_t *out)
  * 0.2.0. Gibt <0 zurueck wenn a<b, 0 wenn gleich, >0 wenn a>b. */
 static int compare_versions(const app_version_t *a, const app_version_t *b)
 {
+    //return 1; // DEBUG
     if (a->major != b->major) return a->major - b->major;
     if (a->minor != b->minor) return a->minor - b->minor;
     if (a->patch != b->patch) return a->patch - b->patch;
@@ -251,13 +252,14 @@ static void check_for_update(esp_http_client_handle_t client, weather_http_respo
     }
 
     /* download_url und tag->valuestring zeigen in json hinein, also erst
-     * nach dem letzten Zugriff auf json freigeben. */
+     * nach dem letzten Zugriff auf json freigeben - gui_ota_update_available()
+     * kopiert sich die Versionsnummer selbst (lv_label_set_text()), muss also
+     * ebenfalls noch davor aufgerufen werden. */
     strncpy(s_pending_download_url, download_url, sizeof(s_pending_download_url) - 1);
     s_pending_download_url[sizeof(s_pending_download_url) - 1] = '\0';
     ESP_LOGI(TAG, "Update available (%s) - waiting for user confirmation", tag->valuestring);
+    gui_ota_update_available(tag->valuestring);
     cJSON_Delete(json);
-
-    gui_ota_update_available();
 
     /* Haengt hier, bis install_task() (Fehlerfall) oder ein Reboot (Erfolg)
      * uns wieder aufweckt - kein Grund, in der Zwischenzeit periodisch

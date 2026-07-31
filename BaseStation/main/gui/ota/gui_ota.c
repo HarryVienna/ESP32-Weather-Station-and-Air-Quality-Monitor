@@ -8,9 +8,10 @@
 /* Die MessageBox mit Fortschrittsbalken lebt direkt auf dem Weatherstation-
  * Screen, es wird also nirgends mehr loadScreen() gebraucht. */
 
-void gui_ota_update_available(void)
+void gui_ota_update_available(const char *version)
 {
     lvgl_port_lock(0);
+    lv_label_set_text(objects.update_version, version);
     lv_obj_remove_flag(objects.message_box_update, LV_OBJ_FLAG_HIDDEN);
     lvgl_port_unlock();
 }

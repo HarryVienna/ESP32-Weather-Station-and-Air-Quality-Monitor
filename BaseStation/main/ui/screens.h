@@ -164,6 +164,7 @@ typedef struct _objects_t {
     lv_obj_t *daily;
     lv_obj_t *daily_chart;
     lv_obj_t *message_box_update;
+    lv_obj_t *update_version;
     lv_obj_t *button_update;
     lv_obj_t *progress_bar_update;
 } objects_t;

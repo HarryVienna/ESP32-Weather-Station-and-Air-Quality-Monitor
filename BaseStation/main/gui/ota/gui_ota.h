@@ -8,12 +8,16 @@ extern "C" {
 
 /**
  * @brief  Zeigt die "Update verfuegbar"-MessageBox (message_box_update) auf
- *         dem Weatherstation-Screen an. Von ota_task.c aufgerufen, sobald
- *         ein neueres Release gefunden wurde - der eigentliche Download
- *         startet erst, wenn der Nutzer im Dialog auf "Installieren"
- *         klickt (siehe action_event_message_box_update() in gui_ota.c).
+ *         dem Weatherstation-Screen an und traegt die Versionsnummer ins
+ *         Label update_version ein. Von ota_task.c aufgerufen, sobald ein
+ *         neueres Release gefunden wurde - der eigentliche Download startet
+ *         erst, wenn der Nutzer im Dialog auf "Installieren" klickt (siehe
+ *         action_event_message_box_update() in gui_ota.c).
+ *
+ * @param  version  Versionsnummer des Updates (z.B. "v0.2.0"), wird kopiert -
+ *                   muss nur fuer die Dauer des Aufrufs gueltig sein.
  */
-void gui_ota_update_available(void);
+void gui_ota_update_available(const char *version);
 
 /**
  * @brief  Setzt den Fortschrittsbalken (message_box_update/progress_bar_update)

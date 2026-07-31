@@ -1756,7 +1756,7 @@
                           "type": "LVGLContainerWidget",
                           "left": 0,
                           "top": 0,
-                          "width": 130,
+                          "width": 650,
                           "height": 130,
                           "customInputs": [],
                           "customOutputs": [],
@@ -1786,7 +1786,14 @@
                           "states": "",
                           "useStyle": "Dropdown List",
                           "localStyles": {
-                            "objID": "a0851021-0577-4e0b-8dda-f8d57be0f889"
+                            "objID": "a0851021-0577-4e0b-8dda-f8d57be0f889",
+                            "definition": {
+                              "MAIN": {
+                                "DEFAULT": {
+                                  "width": 650
+                                }
+                              }
+                            }
                           },
                           "group": "",
                           "groupIndex": 0
@@ -4182,7 +4189,7 @@
                           "type": "LVGLLabelWidget",
                           "left": 0,
                           "top": 0,
-                          "width": 100,
+                          "width": 287,
                           "height": 44,
                           "customInputs": [],
                           "customOutputs": [],
@@ -4196,7 +4203,7 @@
                           "eventHandlers": [],
                           "leftUnit": "px",
                           "topUnit": "px",
-                          "widthUnit": "%",
+                          "widthUnit": "content",
                           "heightUnit": "content",
                           "children": [],
                           "widgetFlags": "CLICK_FOCUSABLE|GESTURE_BUBBLE|PRESS_LOCK|SCROLLABLE|SCROLL_CHAIN_HOR|SCROLL_CHAIN_VER|SCROLL_ELASTIC|SCROLL_MOMENTUM|SCROLL_WITH_ARROW|SNAPPABLE",
@@ -4222,7 +4229,57 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "Update verfügbar!",
+                          "text": "Update verfügbar:",
+                          "textType": "literal",
+                          "longMode": "WRAP",
+                          "recolor": false
+                        },
+                        {
+                          "objID": "1112be31-f78b-423a-cf87-0132ef8b0f8a",
+                          "type": "LVGLLabelWidget",
+                          "left": 0,
+                          "top": 0,
+                          "width": 74,
+                          "height": 44,
+                          "customInputs": [],
+                          "customOutputs": [],
+                          "style": {
+                            "objID": "3bb25810-1c59-496a-defa-74e84ec352e2",
+                            "useStyle": "default",
+                            "conditionalStyles": [],
+                            "childStyles": []
+                          },
+                          "timeline": [],
+                          "eventHandlers": [],
+                          "identifier": "UpdateVersion",
+                          "leftUnit": "px",
+                          "topUnit": "px",
+                          "widthUnit": "content",
+                          "heightUnit": "content",
+                          "children": [],
+                          "widgetFlags": "CLICK_FOCUSABLE|GESTURE_BUBBLE|PRESS_LOCK|SCROLLABLE|SCROLL_CHAIN_HOR|SCROLL_CHAIN_VER|SCROLL_ELASTIC|SCROLL_MOMENTUM|SCROLL_WITH_ARROW|SNAPPABLE",
+                          "hiddenFlagType": "literal",
+                          "clickableFlagType": "literal",
+                          "flagScrollbarMode": "",
+                          "flagScrollDirection": "",
+                          "scrollSnapX": "",
+                          "scrollSnapY": "",
+                          "checkedStateType": "literal",
+                          "disabledStateType": "literal",
+                          "states": "",
+                          "localStyles": {
+                            "objID": "12184b5b-d5af-4867-db99-8424b7970bee",
+                            "definition": {
+                              "MAIN": {
+                                "DEFAULT": {
+                                  "text_font": "FreeSans36"
+                                }
+                              }
+                            }
+                          },
+                          "group": "",
+                          "groupIndex": 0,
+                          "text": "x.y.z",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -4240,7 +4297,16 @@
                       "disabledStateType": "literal",
                       "states": "",
                       "localStyles": {
-                        "objID": "b5401f2f-fda6-42ee-a5e3-e430fbda0b9f"
+                        "objID": "b5401f2f-fda6-42ee-a5e3-e430fbda0b9f",
+                        "definition": {
+                          "MAIN": {
+                            "DEFAULT": {
+                              "layout": "FLEX",
+                              "flex_flow": "ROW",
+                              "flex_main_place": "CENTER"
+                            }
+                          }
+                        }
                       },
                       "group": "",
                       "groupIndex": 0

@@ -1,6 +1,6 @@
 {
   "navigation": {
-    "selectedUserPageObject": "[Wetterstation.eez-project]:/userPages/0",
+    "selectedUserPageObject": "[Wetterstation.eez-project]:/userPages/1",
     "selectedUserWidgetObject": "[Wetterstation.eez-project]:/userWidgets/1",
     "selectedActionObject": "[Wetterstation.eez-project]:/actions/14",
     "selectedStyleObject": "[Wetterstation.eez-project]:/lvglStyles/styles/2",
@@ -28,7 +28,6 @@
           },
           {
             "type": "border",
-            "selected": 0,
             "size": 311.67777252197266,
             "location": "right",
             "children": [
@@ -195,6 +194,7 @@
               "type": "tabset",
               "id": "EDITORS",
               "weight": 48.02288724227379,
+              "selected": 2,
               "enableDeleteWhenEmpty": false,
               "enableClose": false,
               "children": [
@@ -1122,10 +1122,10 @@
       },
       "transform": {
         "translate": {
-          "x": -977.1755735433446,
-          "y": -495.5249156279999
+          "x": -294.9212915563901,
+          "y": -222.59654288967795
         },
-        "scale": 1.1
+        "scale": 0.5
       },
       "timeline": {
         "isEditorActive": false,
@@ -1138,6 +1138,7 @@
         "0": {
           "0": {
             "0": {
+              "1": {},
               "2": {}
             },
             "2": {
@@ -1182,10 +1183,10 @@
       },
       "transform": {
         "translate": {
-          "x": -431.8793285717169,
-          "y": -304.3197311612655
+          "x": -326.5706864231854,
+          "y": -113.44174672916465
         },
-        "scale": 0.67
+        "scale": 0.5
       },
       "timeline": {
         "isEditorActive": false,
@@ -1208,15 +1209,18 @@
           },
           "1": {
             "0": {
-              "0": {},
+              "0": {
+                "1": {
+                  "$selected": true
+                }
+              },
               "1": {
                 "0": {}
               },
               "2": {
                 "0": {}
               }
-            },
-            "$selected": true
+            }
           }
         }
       }
@@ -1773,13 +1777,12 @@
     "MARGIN",
     "LAYOUT",
     "PADDING",
-    "POSITION AND SIZE",
     "MISCELLANEOUS",
     "OUTLINE"
   ],
   "showInactiveFlowsInDebugger": true,
   "globalFlowZoom": false,
-  "flowZoom": 1,
+  "flowZoom": 0.5,
   "implementationLanguage": "C",
   "openDialogDefaultPath": "C:\\Users\\Harald\\Documents\\Projekte\\Wetterstation-ESP32-3.0\\Code\\EEZ-Studio-1280x800\\images\\uv.png"
 }
