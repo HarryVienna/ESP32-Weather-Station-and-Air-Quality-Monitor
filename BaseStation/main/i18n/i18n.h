@@ -27,6 +27,16 @@
  */
 void i18n_init(void);
 
+/**
+ * @brief  Setzt die deutsche Tastenbelegung (QWERTZ inkl. Umlaute/ß) auf
+ *         die Bildschirmtastatur, falls Deutsch aktiv ist - sonst bleibt
+ *         LVGLs Standardbelegung (QWERTY, englisch) unveraendert. Muss nach
+ *         ui_init() aufgerufen werden (main.c), weil objects.keyboard_text
+ *         erst dort entsteht. Wie die Sprache selbst wirkt das nur bis zum
+ *         naechsten Neustart neu (kein Live-Umschalten).
+ */
+void i18n_apply_keyboard_layout(void);
+
 /* Wochentags-Kurzform: strftime(buf, sizeof(buf), "%a", &tm) liefert auf
  * diesem Build (picolibc, nur "C"-Locale verfuegbar) verlaesslich immer die
  * englische Kurzform ("Sun".."Sat", siehe die "Wochentags-Kurzform"-

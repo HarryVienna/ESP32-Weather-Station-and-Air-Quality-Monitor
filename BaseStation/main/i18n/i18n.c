@@ -2,6 +2,11 @@
 
 #include "nvs_flash.h"
 #include "nvs/preferences.h"
+#include "ui/ui.h"
+
+/* Set by i18n_init(), read by i18n_apply_keyboard_layout() - avoids a
+ * second NVS round-trip for the same value. */
+static uint8_t s_language;
 
 /* The first language in the list is the fallback if a tag is missing in
  * the currently selected language (see lv_translation_get() in
@@ -111,7 +116,7 @@ static const char * const s_translations[] = {
     "Netzwerk:",         "Network:",
     "Passwort:",         "Password:",
     "Neustart",          "Restart",
-    "Neustart erforderlich, um die Sprache zu ändern", "Restart required to change language",
+    "Neustart erforderlich", "Restart required to change language",
     "Scan",              "Scan",
     "Sensor 0:",         "Sensor 0:",
     "Sensor 1:",         "Sensor 1:",
@@ -162,10 +167,90 @@ void i18n_init(void)
 {
     nvs_handle_t nvs_handle;
     nvs_open("weatherstation", NVS_READONLY, &nvs_handle);
-    uint8_t language = get_uint8_from_nvs(nvs_handle, "language", 0);
+    s_language = get_uint8_from_nvs(nvs_handle, "language", 0);
     nvs_close(nvs_handle);
 
     lv_translation_init();
     lv_translation_add_static(s_languages, s_tags, s_translations);
-    lv_translation_set_language(language == 1 ? "en" : "de");
+    lv_translation_set_language(s_language == 1 ? "en" : "de");
+}
+
+/* ============================================================================
+ * German on-screen keyboard layout (QWERTZ + umlauts/eszett)
+ *
+ * LVGL's built-in default map (left in place when this isn't applied) is
+ * QWERTY/English. Only the two text modes get a German map -
+ * LV_KEYBOARD_MODE_SPECIAL (digits/symbols via "1#") stays LVGL's default,
+ * it's already language-independent. lv_keyboard's default event handler
+ * recognizes the "ABC"/"abc"/"1#" buttons by their fixed strings/control
+ * flags and switches modes on its own - no custom callback needed.
+ *
+ * The keyboard's default font (lv_font_montserrat_24, see screens.c) only
+ * has ASCII + LVGL's symbol icons compiled in (checked its cmaps[] - no
+ * Latin-1 supplement), so umlauts/eszett wouldn't render with it. Reusing
+ * ui_font_free_sans24 (already used for German UI labels elsewhere, and
+ * confirmed via its cmaps[] to cover the full Latin-1 range 160-255) avoids
+ * having to generate a new font just for this.
+ * ============================================================================ */
+/* Row 2's last key is "_" instead of LV_SYMBOL_NEW_LINE/Enter - on a
+ * one-line textarea (password/SSID) Enter does the same thing as the
+ * LV_SYMBOL_OK button in row 4 anyway (see lv_keyboard.c: inserts '\n',
+ * then immediately fires LV_EVENT_READY because lv_textarea_get_one_line()
+ * is true), so it's redundant there - closing still works via
+ * LV_SYMBOL_KEYBOARD (cancel) or LV_SYMBOL_OK (ready) in row 4. Underscore
+ * has no key of its own on this layout otherwise, but is common in WiFi
+ * passwords/SSIDs. */
+static const char * const kb_map_de_lower[] = {
+    "1#", "q", "w", "e", "r", "t", "z", "u", "i", "o", "p", "ü", LV_SYMBOL_BACKSPACE, "\n",
+    "ABC", "a", "s", "d", "f", "g", "h", "j", "k", "l", "ö", "ä", "_", "\n",
+    "-", "y", "x", "c", "v", "b", "n", "m", "ß", ".", ",", "\n",
+    LV_SYMBOL_KEYBOARD, LV_SYMBOL_LEFT, " ", LV_SYMBOL_RIGHT, LV_SYMBOL_OK, ""
+};
+
+static const char * const kb_map_de_upper[] = {
+    "1#", "Q", "W", "E", "R", "T", "Z", "U", "I", "O", "P", "Ü", LV_SYMBOL_BACKSPACE, "\n",
+    "abc", "A", "S", "D", "F", "G", "H", "J", "K", "L", "Ö", "Ä", "_", "\n",
+    "-", "Y", "X", "C", "V", "B", "N", "M", "ß", ".", ",", "\n",
+    LV_SYMBOL_KEYBOARD, LV_SYMBOL_LEFT, " ", LV_SYMBOL_RIGHT, LV_SYMBOL_OK, ""
+};
+
+/* One entry per button (no "\n"), rows: 13 / 13 / 11 / 5 - must match
+ * kb_map_de_lower/upper exactly. Row 2's last entry dropped
+ * LV_KEYBOARD_CTRL_BUTTON_FLAGS (no longer a control key, just "_" - the
+ * "checked" flag in there gave it the special-key highlight style). */
+static const lv_buttonmatrix_ctrl_t kb_ctrl_de[] = {
+    LV_KEYBOARD_CTRL_BUTTON_FLAGS | 5, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, LV_KEYBOARD_CTRL_BUTTON_FLAGS | 6,
+    LV_KEYBOARD_CTRL_BUTTON_FLAGS | 5, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 6,
+    4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+    LV_KEYBOARD_CTRL_BUTTON_FLAGS | 2, LV_KEYBOARD_CTRL_BUTTON_FLAGS | 2, 6,
+    LV_KEYBOARD_CTRL_BUTTON_FLAGS | 2, LV_KEYBOARD_CTRL_BUTTON_FLAGS | 2
+};
+
+/* ui_font_free_sans24 alone isn't enough: it has the umlauts/eszett but,
+ * unlike lv_font_montserrat_24, none of the LV_SYMBOL_* icon glyphs used
+ * for backspace/enter/keyboard-collapse/arrows/ok (those come from a
+ * FontAwesome-derived icon set baked into LVGL's built-in fonts at fixed
+ * Unicode Private-Use-Area code points, e.g. LV_SYMBOL_OK = U+F00C - EEZ
+ * Studio's "Symbols" field can only pull extra glyphs from the one TTF
+ * already embedded for this font, which doesn't contain those icons).
+ * Solution: a non-const runtime copy of ui_font_free_sans24 with its
+ * "fallback" pointer (see lv_font.h) set to lv_font_montserrat_24 - LVGL
+ * then transparently uses the fallback for any glyph missing in the
+ * primary font, i.e. exactly the icons. Copying is safe (lv_font_t is a
+ * plain POD struct); mutating ui_font_free_sans24/lv_font_montserrat_24
+ * themselves is not, since both are `extern const` and live in flash. */
+static lv_font_t kb_font_de;
+
+void i18n_apply_keyboard_layout(void)
+{
+    if (s_language == 1) {
+        return; // English: LVGL's built-in QWERTY map/font is already correct
+    }
+
+    lv_keyboard_set_map(objects.keyboard_text, LV_KEYBOARD_MODE_TEXT_LOWER, kb_map_de_lower, kb_ctrl_de);
+    lv_keyboard_set_map(objects.keyboard_text, LV_KEYBOARD_MODE_TEXT_UPPER, kb_map_de_upper, kb_ctrl_de);
+
+    kb_font_de = ui_font_free_sans24;
+    kb_font_de.fallback = &lv_font_montserrat_24;
+    lv_obj_set_style_text_font(objects.keyboard_text, &kb_font_de, LV_PART_MAIN | LV_STATE_DEFAULT);
 }

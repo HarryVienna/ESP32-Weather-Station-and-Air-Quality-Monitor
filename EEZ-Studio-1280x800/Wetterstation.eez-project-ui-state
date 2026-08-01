@@ -4,7 +4,7 @@
     "selectedUserWidgetObject": "[Wetterstation.eez-project]:/userWidgets/1",
     "selectedActionObject": "[Wetterstation.eez-project]:/actions/4",
     "selectedStyleObject": "[Wetterstation.eez-project]:/lvglStyles/styles/2",
-    "selectedFontObject": "[Wetterstation.eez-project]:/fonts/9",
+    "selectedFontObject": "[Wetterstation.eez-project]:/fonts/5",
     "selectedBitmapObject": "[Wetterstation.eez-project]:/bitmaps/14",
     "subnavigationSelectedItems": {
       "variables-tab/sub-navigation/selected-item": "Global"
@@ -28,6 +28,7 @@
           },
           {
             "type": "border",
+            "selected": 1,
             "size": 311.67777252197266,
             "location": "right",
             "children": [
@@ -1129,7 +1130,12 @@
             "4": {
               "2": {}
             },
-            "5": {},
+            "5": {
+              "2": {
+                "$selected": true
+              },
+              "3": {}
+            },
             "6": {
               "1": {}
             },
@@ -1143,9 +1149,8 @@
               "0": {}
             }
           },
-          "2": {
-            "$selected": true
-          }
+          "1": {},
+          "2": {}
         }
       }
     },
@@ -1762,5 +1767,5 @@
   "globalFlowZoom": false,
   "flowZoom": 0.5,
   "implementationLanguage": "C",
-  "openDialogDefaultPath": "C:\\Users\\Harald\\Documents\\Projekte\\Wetterstation-ESP32-3.0\\Code\\EEZ-Studio-1280x800\\images\\uv.png"
+  "openDialogDefaultPath": "C:\\Users\\Harald\\Documents\\Projekte\\Wetterstation-ESP32-3.0\\Code\\EEZ-Studio-1280x800\\fonts\\FreeSans.ttf"
 }

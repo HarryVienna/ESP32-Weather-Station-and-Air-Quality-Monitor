@@ -32,6 +32,7 @@ void app_main(void)
     ESP_LOGI(TAG, "      ESP32 Wetterstation & Raumluft-Monitor       ");
     ESP_LOGI(TAG, "===================================================");
 
+    // Hardware Init
     ESP_ERROR_CHECK(display_init());
 
     ESP_ERROR_CHECK(wifi_init());
@@ -40,9 +41,11 @@ void app_main(void)
 
     ESP_ERROR_CHECK(receiver_init());
 
+    // GUI Init
     lvgl_port_lock(0);
     i18n_init(); // before ui_init(): screens already call _() while building up
     ui_init();
+    i18n_apply_keyboard_layout(); // after ui_init(): needs objects.keyboard_text
     gui_weather_init_charts();
     gui_sen66_init_charts();
     gui_radiation_init_chart();

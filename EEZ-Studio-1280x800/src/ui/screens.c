@@ -478,6 +478,7 @@ void create_screen_setup_screen() {
                             lv_obj_add_flag(obj, LV_OBJ_FLAG_HIDDEN);
                             add_style_button_label(obj);
                             lv_obj_set_style_text_align(obj, LV_TEXT_ALIGN_RIGHT, LV_PART_MAIN | LV_STATE_DEFAULT);
+                            lv_obj_set_style_margin_left(obj, 20, LV_PART_MAIN | LV_STATE_DEFAULT);
                             lv_label_set_text(obj, _("Restart required to change language"));
                         }
                         {
