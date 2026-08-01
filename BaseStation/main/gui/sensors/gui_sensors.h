@@ -51,10 +51,11 @@ void disp_sensor_offline(uint8_t sensor_nr, bool offline);
 
 /* Core functions used by gui_setup_screen_actions.c (setup screen <->
  * NVS/Weatherstation screen). The counterpart for SEN66 ("base") is
- * load/save_basis_to_nvs() and apply_sen66_config() in gui_sen66.h. */
+ * load_basis_from_nvs() (saving happens instantly via
+ * action_event_base_value_changed(), see gui_sen66.c) and
+ * apply_sen66_config() in gui_sen66.h. */
 void apply_sensor_slot_configs(void);
 void load_sensor_slots_from_nvs(nvs_handle_t nvs_handle);
-void save_sensor_slots_to_nvs(nvs_handle_t nvs_handle);
 
 /* Geiger counter - send interval (hardwired on the sensor side, not
  * controllable from the base station - unlike SEN66_SAMPLE_INTERVAL_SEC in

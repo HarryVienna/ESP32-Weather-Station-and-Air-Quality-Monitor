@@ -19,7 +19,8 @@
  * See the comment at the top of gui_sensors.h for the short version. Order here:
  *   - calc_sea_level_pressure()      Helper calculation for BME280 air pressure
  *   - sensor_dropdown_widgets[]      Setup screen dropdowns, one entry/slot
- *   - load/save_sensor_slots_*_nvs() Dropdown selection <-> flash
+ *   - load_sensor_slots_from_nvs()/  Dropdown selection <-> flash (saving is
+ *     action_event_sensorN_value_changed()  instant, one handler per slot)
  *   - render_xxx()                   One render() per widget type (Temp_Hum/-Press/Radiation)
  *   - sensor_slots[]                 b) Hardware mapping: type + generated
  *                                       field names per slot in the Weatherstation screen
@@ -90,16 +91,25 @@ void load_sensor_slots_from_nvs(nvs_handle_t nvs_handle)
   }
 }
 
-void save_sensor_slots_to_nvs(nvs_handle_t nvs_handle)
+/* Instant-save (see gui_setup_screen_actions.c for the general rationale):
+ * each of the 6 dropdowns persists its own icon choice as soon as it
+ * changes, wired up in EEZ Studio to action_event_sensorN_value_changed(). */
+static void save_sensor_icon_to_nvs(int slot)
 {
-  for (int i = 0; i < SENSOR_SLOT_COUNT; i++) {
-    char key[20];
-
-    uint8_t icon_idx = lv_dropdown_get_selected(*sensor_dropdown_widgets[i]);
-    snprintf(key, sizeof(key), "sensor%d_icon", i);
-    put_uint8_to_nvs(nvs_handle, key, icon_idx);
-  }
+  nvs_handle_t nvs_handle;
+  nvs_open("weatherstation", NVS_READWRITE, &nvs_handle);
+  char key[20];
+  snprintf(key, sizeof(key), "sensor%d_icon", slot);
+  put_uint8_to_nvs(nvs_handle, key, lv_dropdown_get_selected(*sensor_dropdown_widgets[slot]));
+  nvs_close(nvs_handle);
 }
+
+void action_event_sensor0_value_changed(lv_event_t *e) { save_sensor_icon_to_nvs(0); }
+void action_event_sensor1_value_changed(lv_event_t *e) { save_sensor_icon_to_nvs(1); }
+void action_event_sensor2_value_changed(lv_event_t *e) { save_sensor_icon_to_nvs(2); }
+void action_event_sensor3_value_changed(lv_event_t *e) { save_sensor_icon_to_nvs(3); }
+void action_event_sensor4_value_changed(lv_event_t *e) { save_sensor_icon_to_nvs(4); }
+void action_event_sensor5_value_changed(lv_event_t *e) { save_sensor_icon_to_nvs(5); }
 
 /* b) Hardware mapping: each of the 6 Sensor_X widgets (X=0..5, named that
  * way directly in EEZ Studio) permanently has a fixed widget type

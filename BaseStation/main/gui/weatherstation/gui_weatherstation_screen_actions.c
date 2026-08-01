@@ -7,16 +7,16 @@
 #include "receiver/receiver.h"
 #include "ota/ota_task.h"
 
-/* Von EEZ Studio verdrahtet auf LV_EVENT_SCREEN_LOADED des Weatherstation-
- * Screens (siehe screens.c) - WLAN steht zu diesem Zeitpunkt garantiert
- * (siehe action_event_weatherstation_start() in gui_setup_screen_actions.c),
- * deshalb koennen die Tasks hier bedenkenlos starten. receiver_start() steht
- * bewusst mit dabei statt in main.c: der vermeintliche Vorlauf durch einen
- * frueheren Start bringt gegen die bis zu 10 Minuten Tiefschlaf der
- * Funksensoren praktisch nichts (siehe Diskussion), also starten alle
- * Hintergrund-Tasks einheitlich hier. receiver_init() (I2C-Geraet anlegen,
- * Zeit/TZ an den Slave senden) bleibt in main.c - das ist Setup des
- * I2C-Bus, kein Task-Start. */
+/* Wired by EEZ Studio to LV_EVENT_SCREEN_LOADED of the Weatherstation
+ * screen (see screens.c) - WiFi is guaranteed to be up by this point (see
+ * action_event_setup_start_pressed() in gui_setup_screen_actions.c), so
+ * the tasks here can start without worry. receiver_start() is deliberately
+ * here instead of in main.c: the theoretical head start from an earlier
+ * start gains practically nothing against the radio sensors' up to 10
+ * minutes of deep sleep (see discussion), so all background tasks start
+ * uniformly here. receiver_init() (creating the I2C device, sending
+ * time/TZ to the slave) stays in main.c - that's I2C bus setup, not
+ * starting a task. */
 void action_event_weatherstation_screen_loaded(lv_event_t *e)
 {
   gui_status_start_brightness_task();

@@ -130,16 +130,7 @@
       "localVariables": [],
       "componentGroups": [],
       "userProperties": [],
-      "name": "event_weatherstation_start"
-    },
-    {
-      "objID": "16e2212c-ba05-47bb-9f03-5567aa508e2b",
-      "components": [],
-      "connectionLines": [],
-      "localVariables": [],
-      "componentGroups": [],
-      "userProperties": [],
-      "name": "event_weatherstation_screen_loaded"
+      "name": "event_setup_start_pressed"
     },
     {
       "objID": "955d4f89-42b6-4607-d534-af5c4cf152e6",
@@ -148,7 +139,7 @@
       "localVariables": [],
       "componentGroups": [],
       "userProperties": [],
-      "name": "event_wifi_scan"
+      "name": "event_wifi_scan_pressed"
     },
     {
       "objID": "85257857-2e41-4adb-e5a4-0f55dcca32d4",
@@ -157,7 +148,16 @@
       "localVariables": [],
       "componentGroups": [],
       "userProperties": [],
-      "name": "event_wifi_connect"
+      "name": "event_wifi_connect_pressed"
+    },
+    {
+      "objID": "41e9f0a7-ebe2-408b-e146-9ff4ae3ab96b",
+      "components": [],
+      "connectionLines": [],
+      "localVariables": [],
+      "componentGroups": [],
+      "userProperties": [],
+      "name": "event_restart_pressed"
     },
     {
       "objID": "d44ee23b-49d9-431e-d937-df2891e15526",
@@ -166,7 +166,7 @@
       "localVariables": [],
       "componentGroups": [],
       "userProperties": [],
-      "name": "event_TextAreaAppId"
+      "name": "event_TextAreaAppId_focus"
     },
     {
       "objID": "93936cc3-aa16-4964-9251-8370391ea558",
@@ -175,7 +175,7 @@
       "localVariables": [],
       "componentGroups": [],
       "userProperties": [],
-      "name": "event_TextAreaPassword"
+      "name": "event_TextAreaPassword_focus"
     },
     {
       "objID": "b532065b-f83e-4a49-b897-80703ac14008",
@@ -184,7 +184,7 @@
       "localVariables": [],
       "componentGroups": [],
       "userProperties": [],
-      "name": "event_TextAreaLatitude"
+      "name": "event_TextAreaLatitude_focus"
     },
     {
       "objID": "413ea7ae-a532-4317-c7a5-1760f9cd552c",
@@ -193,7 +193,7 @@
       "localVariables": [],
       "componentGroups": [],
       "userProperties": [],
-      "name": "event_TextAreaLongitude"
+      "name": "event_TextAreaLongitude_focus"
     },
     {
       "objID": "a61cb1bb-3fd9-4a73-b844-f2d42f0a88cd",
@@ -202,7 +202,160 @@
       "localVariables": [],
       "componentGroups": [],
       "userProperties": [],
-      "name": "event_TextAreaHoehe"
+      "name": "event_TextAreaHoehe_focus"
+    },
+    {
+      "objID": "633b6743-b525-44a1-8eef-c56ac47f4997",
+      "components": [],
+      "connectionLines": [],
+      "localVariables": [],
+      "componentGroups": [],
+      "userProperties": [],
+      "name": "event_network_value_changed"
+    },
+    {
+      "objID": "b871c2e7-501d-4d9b-80a8-128eb33cf178",
+      "components": [],
+      "connectionLines": [],
+      "localVariables": [],
+      "componentGroups": [],
+      "userProperties": [],
+      "name": "event_password_value_changed"
+    },
+    {
+      "objID": "d61b8494-1814-4fc0-e0b7-d9181a35b4b8",
+      "components": [],
+      "connectionLines": [],
+      "localVariables": [],
+      "componentGroups": [],
+      "userProperties": [],
+      "name": "event_api_value_changed"
+    },
+    {
+      "objID": "fe48ed8d-a42e-4ac1-a95e-3d0d55cf32c6",
+      "components": [],
+      "connectionLines": [],
+      "localVariables": [],
+      "componentGroups": [],
+      "userProperties": [],
+      "name": "event_apikey_value_changed"
+    },
+    {
+      "objID": "4f1a3afc-e8b2-4cd1-8624-6f76176b0ad2",
+      "components": [],
+      "connectionLines": [],
+      "localVariables": [],
+      "componentGroups": [],
+      "userProperties": [],
+      "name": "event_lat_value_changed"
+    },
+    {
+      "objID": "8b51b991-f78d-4205-d71f-0b12f7538816",
+      "components": [],
+      "connectionLines": [],
+      "localVariables": [],
+      "componentGroups": [],
+      "userProperties": [],
+      "name": "event_long_value_changed"
+    },
+    {
+      "objID": "872f769c-d248-4826-929e-71451c9f665b",
+      "components": [],
+      "connectionLines": [],
+      "localVariables": [],
+      "componentGroups": [],
+      "userProperties": [],
+      "name": "event_alt_value_changed"
+    },
+    {
+      "objID": "3b6f4789-9740-4584-886d-70bffa5183b6",
+      "components": [],
+      "connectionLines": [],
+      "localVariables": [],
+      "componentGroups": [],
+      "userProperties": [],
+      "name": "event_timezone_value_changed"
+    },
+    {
+      "objID": "6806778b-3559-4229-d15e-27fd199e6eee",
+      "components": [],
+      "connectionLines": [],
+      "localVariables": [],
+      "componentGroups": [],
+      "userProperties": [],
+      "name": "event_timezonecity_value_changed"
+    },
+    {
+      "objID": "c64eb2fd-5940-44be-aa45-af1ba87725c2",
+      "components": [],
+      "connectionLines": [],
+      "localVariables": [],
+      "componentGroups": [],
+      "userProperties": [],
+      "name": "event_language_value_changed"
+    },
+    {
+      "objID": "0aaba0f3-0858-44d5-aed9-5f4dd494779a",
+      "components": [],
+      "connectionLines": [],
+      "localVariables": [],
+      "componentGroups": [],
+      "userProperties": [],
+      "name": "event_base_value_changed"
+    },
+    {
+      "objID": "f632713f-c6c4-4bfe-aab5-ece00badb756",
+      "components": [],
+      "connectionLines": [],
+      "localVariables": [],
+      "componentGroups": [],
+      "userProperties": [],
+      "name": "event_sensor0_value_changed"
+    },
+    {
+      "objID": "f0977a92-86e3-4b4c-dc56-020777d9fa78",
+      "components": [],
+      "connectionLines": [],
+      "localVariables": [],
+      "componentGroups": [],
+      "userProperties": [],
+      "name": "event_sensor1_value_changed"
+    },
+    {
+      "objID": "33e28801-03e5-471e-e40d-4179e8aeb235",
+      "components": [],
+      "connectionLines": [],
+      "localVariables": [],
+      "componentGroups": [],
+      "userProperties": [],
+      "name": "event_sensor2_value_changed"
+    },
+    {
+      "objID": "bcae8260-e42f-4f21-ca1a-1ced6a04f661",
+      "components": [],
+      "connectionLines": [],
+      "localVariables": [],
+      "componentGroups": [],
+      "userProperties": [],
+      "name": "event_sensor3_value_changed"
+    },
+    {
+      "objID": "dbce919b-9ad7-40e5-dd9c-c45152b35027",
+      "components": [],
+      "connectionLines": [],
+      "localVariables": [],
+      "componentGroups": [],
+      "userProperties": [],
+      "name": "event_sensor4_value_changed"
+    },
+    {
+      "objID": "7d725dfa-c0e2-4051-80b4-ef3e1ff288b1",
+      "components": [],
+      "connectionLines": [],
+      "localVariables": [],
+      "componentGroups": [],
+      "userProperties": [],
+      "name": "event_sensor5_value_changed"
     },
     {
       "objID": "92b4c9e7-0043-4073-8c89-f118a780540a",
@@ -223,22 +376,13 @@
       "name": "event_Keyboard_Numeric"
     },
     {
-      "objID": "3b6f4789-9740-4584-886d-70bffa5183b6",
+      "objID": "16e2212c-ba05-47bb-9f03-5567aa508e2b",
       "components": [],
       "connectionLines": [],
       "localVariables": [],
       "componentGroups": [],
       "userProperties": [],
-      "name": "event_timezone_value_changed"
-    },
-    {
-      "objID": "d61b8494-1814-4fc0-e0b7-d9181a35b4b8",
-      "components": [],
-      "connectionLines": [],
-      "localVariables": [],
-      "componentGroups": [],
-      "userProperties": [],
-      "name": "event_api_value_changed"
+      "name": "event_weatherstation_screen_loaded"
     },
     {
       "objID": "b2954dbb-b27b-4548-e10f-775e38614274",
@@ -247,7 +391,7 @@
       "localVariables": [],
       "componentGroups": [],
       "userProperties": [],
-      "name": "event_MessageBoxUpdate"
+      "name": "event_weatherstation_update_pressed"
     }
   ],
   "userPages": [
@@ -395,7 +539,15 @@
                       "locked": false,
                       "hiddenInEditor": false,
                       "timeline": [],
-                      "eventHandlers": [],
+                      "eventHandlers": [
+                        {
+                          "objID": "640f9810-6b3e-4b14-94ba-95994ea879c4",
+                          "eventName": "VALUE_CHANGED",
+                          "handlerType": "action",
+                          "action": "event_network_value_changed",
+                          "userData": 0
+                        }
+                      ],
                       "identifier": "DropdownNetworks",
                       "leftUnit": "px",
                       "topUnit": "px",
@@ -493,7 +645,7 @@
                           "objID": "a9b5b4dc-2bf2-45eb-e2de-0a39dcd1cc55",
                           "eventName": "PRESSED",
                           "handlerType": "action",
-                          "action": "event_wifi_scan",
+                          "action": "event_wifi_scan_pressed",
                           "userData": 0
                         }
                       ],
@@ -691,14 +843,21 @@
                           "objID": "68639e2b-9f11-490d-e5fd-bc6a21371ef8",
                           "eventName": "FOCUSED",
                           "handlerType": "action",
-                          "action": "event_TextAreaPassword",
+                          "action": "event_TextAreaPassword_focus",
+                          "userData": 0
+                        },
+                        {
+                          "objID": "999e05c2-e4f7-4dab-a842-70337a9592eb",
+                          "eventName": "VALUE_CHANGED",
+                          "handlerType": "action",
+                          "action": "event_password_value_changed",
                           "userData": 0
                         },
                         {
                           "objID": "64354a09-b36f-4cd8-a256-3463deb63945",
                           "eventName": "DEFOCUSED",
                           "handlerType": "action",
-                          "action": "event_TextAreaPassword",
+                          "action": "event_TextAreaPassword_focus",
                           "userData": 0
                         }
                       ],
@@ -756,7 +915,7 @@
                           "objID": "c09652fa-669e-4afa-9c24-66e2eb8c9a07",
                           "eventName": "PRESSED",
                           "handlerType": "action",
-                          "action": "event_wifi_connect",
+                          "action": "event_wifi_connect_pressed",
                           "userData": 0
                         }
                       ],
@@ -1101,14 +1260,21 @@
                           "objID": "e299b6f9-b48e-41fa-e785-864c38713ca4",
                           "eventName": "FOCUSED",
                           "handlerType": "action",
-                          "action": "event_TextAreaAppId",
+                          "action": "event_TextAreaAppId_focus",
                           "userData": 0
                         },
                         {
                           "objID": "1ae9e8c4-8cd4-40be-f777-c1290fd99a58",
                           "eventName": "DEFOCUSED",
                           "handlerType": "action",
-                          "action": "event_TextAreaAppId",
+                          "action": "event_TextAreaAppId_focus",
+                          "userData": 0
+                        },
+                        {
+                          "objID": "38a6b67e-8cc8-46f0-fd26-b7bf0bd290e5",
+                          "eventName": "VALUE_CHANGED",
+                          "handlerType": "action",
+                          "action": "event_apikey_value_changed",
                           "userData": 0
                         }
                       ],
@@ -1135,7 +1301,7 @@
                       },
                       "group": "",
                       "groupIndex": 0,
-                      "text": "a4ff3e92fe619cd7573850bc3cf43ca7",
+                      "text": "",
                       "textType": "literal",
                       "placeholder": "",
                       "oneLineMode": true,
@@ -1262,14 +1428,21 @@
                           "objID": "acb73db8-ae95-4884-bdbd-5b8c1fd25020",
                           "eventName": "FOCUSED",
                           "handlerType": "action",
-                          "action": "event_TextAreaLatitude",
+                          "action": "event_TextAreaLatitude_focus",
                           "userData": 0
                         },
                         {
                           "objID": "406c8cea-8117-498c-d297-54acacb64043",
                           "eventName": "DEFOCUSED",
                           "handlerType": "action",
-                          "action": "event_TextAreaLatitude",
+                          "action": "event_TextAreaLatitude_focus",
+                          "userData": 0
+                        },
+                        {
+                          "objID": "07567554-bbd8-466d-a4c0-195f020f3327",
+                          "eventName": "VALUE_CHANGED",
+                          "handlerType": "action",
+                          "action": "event_lat_value_changed",
                           "userData": 0
                         }
                       ],
@@ -1374,14 +1547,21 @@
                           "objID": "ed66c682-eb82-452a-cf51-8f805e7fc89f",
                           "eventName": "FOCUSED",
                           "handlerType": "action",
-                          "action": "event_TextAreaLongitude",
+                          "action": "event_TextAreaLongitude_focus",
                           "userData": 0
                         },
                         {
                           "objID": "b77291e8-c0f0-4943-9997-1fb177ffa08d",
                           "eventName": "DEFOCUSED",
                           "handlerType": "action",
-                          "action": "event_TextAreaLongitude",
+                          "action": "event_TextAreaLongitude_focus",
+                          "userData": 0
+                        },
+                        {
+                          "objID": "cd3a732f-fa9b-4268-ac93-1c6939cf6031",
+                          "eventName": "VALUE_CHANGED",
+                          "handlerType": "action",
+                          "action": "event_long_value_changed",
                           "userData": 0
                         }
                       ],
@@ -1486,14 +1666,21 @@
                           "objID": "190ec329-bf1a-44ab-9a3c-3a9483935ecd",
                           "eventName": "FOCUSED",
                           "handlerType": "action",
-                          "action": "event_TextAreaHoehe",
+                          "action": "event_TextAreaHoehe_focus",
                           "userData": 0
                         },
                         {
                           "objID": "7a8965b9-90f6-4b6a-9473-c95b76b7b2c2",
                           "eventName": "DEFOCUSED",
                           "handlerType": "action",
-                          "action": "event_TextAreaHoehe",
+                          "action": "event_TextAreaHoehe_focus",
+                          "userData": 0
+                        },
+                        {
+                          "objID": "34d2584c-507d-4c32-d558-a508b05d2f6b",
+                          "eventName": "VALUE_CHANGED",
+                          "handlerType": "action",
+                          "action": "event_alt_value_changed",
                           "userData": 0
                         }
                       ],
@@ -1744,7 +1931,15 @@
                       "locked": false,
                       "hiddenInEditor": false,
                       "timeline": [],
-                      "eventHandlers": [],
+                      "eventHandlers": [
+                        {
+                          "objID": "a8ecca6a-7347-433f-d123-2afa64a880b3",
+                          "eventName": "VALUE_CHANGED",
+                          "handlerType": "action",
+                          "action": "event_timezonecity_value_changed",
+                          "userData": 0
+                        }
+                      ],
                       "identifier": "DropdownCity",
                       "leftUnit": "px",
                       "topUnit": "px",
@@ -1820,7 +2015,7 @@
                         }
                       },
                       "groupIndex": 0,
-                      "options": "(GMT +01:00) Amsterdam, Berlin, Bern, Rome, Stockholm, Vienna",
+                      "options": "",
                       "optionsType": "literal",
                       "selected": 0,
                       "selectedType": "literal",
@@ -1941,7 +2136,15 @@
                         "childStyles": []
                       },
                       "timeline": [],
-                      "eventHandlers": [],
+                      "eventHandlers": [
+                        {
+                          "objID": "b260faf3-46f1-4508-ee74-b7fa1d2392fb",
+                          "eventName": "VALUE_CHANGED",
+                          "handlerType": "action",
+                          "action": "event_language_value_changed",
+                          "userData": 0
+                        }
+                      ],
                       "identifier": "DropdownLanguage",
                       "leftUnit": "px",
                       "topUnit": "px",
@@ -2017,7 +2220,7 @@
                       "type": "LVGLLabelWidget",
                       "left": 0,
                       "top": 0,
-                      "width": 69,
+                      "width": 49,
                       "height": 36,
                       "customInputs": [],
                       "customOutputs": [],
@@ -2029,13 +2232,14 @@
                       },
                       "timeline": [],
                       "eventHandlers": [],
-                      "identifier": "LanguageDescription",
+                      "identifier": "RestartDescription",
                       "leftUnit": "px",
                       "topUnit": "px",
                       "widthUnit": "%",
                       "heightUnit": "content",
                       "children": [],
                       "widgetFlags": "CLICK_FOCUSABLE|GESTURE_BUBBLE|PRESS_LOCK|SCROLLABLE|SCROLL_CHAIN_HOR|SCROLL_CHAIN_VER|SCROLL_ELASTIC|SCROLL_MOMENTUM|SCROLL_WITH_ARROW|SNAPPABLE",
+                      "hiddenFlag": true,
                       "hiddenFlagType": "literal",
                       "clickableFlagType": "literal",
                       "flagScrollbarMode": "",
@@ -2049,7 +2253,7 @@
                         "definition": {
                           "MAIN": {
                             "DEFAULT": {
-                              "margin_left": 20
+                              "text_align": "RIGHT"
                             }
                           }
                         }
@@ -2059,6 +2263,106 @@
                       "textType": "translated-literal",
                       "longMode": "WRAP",
                       "recolor": false
+                    },
+                    {
+                      "objID": "c460567a-e09f-4b50-dc75-c79bcba697b4",
+                      "type": "LVGLButtonWidget",
+                      "left": 0,
+                      "top": 0,
+                      "width": 20,
+                      "height": 50,
+                      "customInputs": [],
+                      "customOutputs": [],
+                      "style": {
+                        "objID": "b8dd86cc-2f25-4bed-dabe-706690426c7f",
+                        "useStyle": "default",
+                        "conditionalStyles": [],
+                        "childStyles": []
+                      },
+                      "locked": false,
+                      "hiddenInEditor": false,
+                      "timeline": [],
+                      "eventHandlers": [
+                        {
+                          "objID": "c50ab3e8-4f47-4ad6-b9dc-749a5dd7176a",
+                          "eventName": "PRESSED",
+                          "handlerType": "action",
+                          "action": "event_restart_pressed",
+                          "userData": 0
+                        }
+                      ],
+                      "identifier": "ButtonRestart",
+                      "leftUnit": "px",
+                      "topUnit": "px",
+                      "widthUnit": "%",
+                      "heightUnit": "px",
+                      "children": [
+                        {
+                          "objID": "0cfc3293-3232-4cbf-bb31-99a6a977b5d4",
+                          "type": "LVGLLabelWidget",
+                          "left": 0,
+                          "top": 0,
+                          "width": 93,
+                          "height": 36,
+                          "customInputs": [],
+                          "customOutputs": [],
+                          "style": {
+                            "objID": "bf77ca2a-a50c-4bbb-f43b-c5adf1d88b40",
+                            "useStyle": "default",
+                            "conditionalStyles": [],
+                            "childStyles": []
+                          },
+                          "locked": false,
+                          "hiddenInEditor": false,
+                          "timeline": [],
+                          "eventHandlers": [],
+                          "identifier": "LabelRestart",
+                          "leftUnit": "px",
+                          "topUnit": "px",
+                          "widthUnit": "content",
+                          "heightUnit": "content",
+                          "children": [],
+                          "widgetFlags": "CLICK_FOCUSABLE|GESTURE_BUBBLE|PRESS_LOCK|SCROLLABLE|SCROLL_CHAIN_HOR|SCROLL_CHAIN_VER|SCROLL_ELASTIC|SCROLL_MOMENTUM|SCROLL_WITH_ARROW|SNAPPABLE",
+                          "hiddenFlagType": "literal",
+                          "clickableFlagType": "literal",
+                          "flagScrollbarMode": "",
+                          "flagScrollDirection": "",
+                          "checkedStateType": "literal",
+                          "disabledStateType": "literal",
+                          "states": "",
+                          "useStyle": "Button Label",
+                          "localStyles": {
+                            "objID": "58706765-e780-417d-e780-3301b63ff825"
+                          },
+                          "groupIndex": 0,
+                          "text": "Restart",
+                          "textType": "translated-literal",
+                          "longMode": "WRAP",
+                          "recolor": false
+                        }
+                      ],
+                      "widgetFlags": "CLICK_FOCUSABLE|GESTURE_BUBBLE|PRESS_LOCK|SCROLL_CHAIN_HOR|SCROLL_CHAIN_VER|SCROLL_ELASTIC|SCROLL_MOMENTUM|SCROLL_ON_FOCUS|SCROLL_WITH_ARROW|SNAPPABLE",
+                      "hiddenFlag": true,
+                      "hiddenFlagType": "literal",
+                      "clickableFlag": true,
+                      "clickableFlagType": "literal",
+                      "flagScrollbarMode": "",
+                      "flagScrollDirection": "",
+                      "checkedStateType": "literal",
+                      "disabledStateType": "literal",
+                      "states": "",
+                      "useStyle": "Button",
+                      "localStyles": {
+                        "objID": "8a947fd1-e926-4873-8c78-6526f173c6e8",
+                        "definition": {
+                          "MAIN": {
+                            "DEFAULT": {
+                              "margin_left": 20
+                            }
+                          }
+                        }
+                      },
+                      "groupIndex": 0
                     }
                   ],
                   "widgetFlags": "CLICK_FOCUSABLE|GESTURE_BUBBLE|PRESS_LOCK|SCROLLABLE|SCROLL_CHAIN_HOR|SCROLL_CHAIN_VER|SCROLL_ELASTIC|SCROLL_MOMENTUM|SCROLL_WITH_ARROW|SNAPPABLE",
@@ -2175,7 +2479,15 @@
                         "childStyles": []
                       },
                       "timeline": [],
-                      "eventHandlers": [],
+                      "eventHandlers": [
+                        {
+                          "objID": "980de79c-2de4-4fda-b2c4-c125607ca194",
+                          "eventName": "VALUE_CHANGED",
+                          "handlerType": "action",
+                          "action": "event_base_value_changed",
+                          "userData": 0
+                        }
+                      ],
                       "identifier": "Basis_Icon",
                       "leftUnit": "px",
                       "topUnit": "px",
@@ -2361,7 +2673,15 @@
                         "childStyles": []
                       },
                       "timeline": [],
-                      "eventHandlers": [],
+                      "eventHandlers": [
+                        {
+                          "objID": "b8c993fa-5abb-4bdf-fa05-843c108611d4",
+                          "eventName": "VALUE_CHANGED",
+                          "handlerType": "action",
+                          "action": "event_sensor0_value_changed",
+                          "userData": 0
+                        }
+                      ],
                       "identifier": "Sensor_0_Name",
                       "leftUnit": "px",
                       "topUnit": "px",
@@ -2497,7 +2817,15 @@
                         "childStyles": []
                       },
                       "timeline": [],
-                      "eventHandlers": [],
+                      "eventHandlers": [
+                        {
+                          "objID": "5fcc5084-c9b9-493d-c6f5-60e6eeb78772",
+                          "eventName": "VALUE_CHANGED",
+                          "handlerType": "action",
+                          "action": "event_sensor2_value_changed",
+                          "userData": 0
+                        }
+                      ],
                       "identifier": "Sensor_2_Name",
                       "leftUnit": "px",
                       "topUnit": "px",
@@ -2633,7 +2961,15 @@
                         "childStyles": []
                       },
                       "timeline": [],
-                      "eventHandlers": [],
+                      "eventHandlers": [
+                        {
+                          "objID": "2379326f-fa22-41cd-b37f-ea0a10b4543a",
+                          "eventName": "VALUE_CHANGED",
+                          "handlerType": "action",
+                          "action": "event_sensor4_value_changed",
+                          "userData": 0
+                        }
+                      ],
                       "identifier": "Sensor_4_Name",
                       "leftUnit": "px",
                       "topUnit": "px",
@@ -2820,7 +3156,15 @@
                         "childStyles": []
                       },
                       "timeline": [],
-                      "eventHandlers": [],
+                      "eventHandlers": [
+                        {
+                          "objID": "b3ac1085-b013-4f11-fe30-38e51946881e",
+                          "eventName": "VALUE_CHANGED",
+                          "handlerType": "action",
+                          "action": "event_sensor1_value_changed",
+                          "userData": 0
+                        }
+                      ],
                       "identifier": "Sensor_1_Name",
                       "leftUnit": "px",
                       "topUnit": "px",
@@ -2956,7 +3300,15 @@
                         "childStyles": []
                       },
                       "timeline": [],
-                      "eventHandlers": [],
+                      "eventHandlers": [
+                        {
+                          "objID": "2e64ae09-4149-4e25-a080-4af8b2bb0c89",
+                          "eventName": "VALUE_CHANGED",
+                          "handlerType": "action",
+                          "action": "event_sensor3_value_changed",
+                          "userData": 0
+                        }
+                      ],
                       "identifier": "Sensor_3_Name",
                       "leftUnit": "px",
                       "topUnit": "px",
@@ -3092,7 +3444,15 @@
                         "childStyles": []
                       },
                       "timeline": [],
-                      "eventHandlers": [],
+                      "eventHandlers": [
+                        {
+                          "objID": "2ab8e0ff-397a-47ce-ad14-373032b1edaa",
+                          "eventName": "VALUE_CHANGED",
+                          "handlerType": "action",
+                          "action": "event_sensor5_value_changed",
+                          "userData": 0
+                        }
+                      ],
                       "identifier": "Sensor_5_Name",
                       "leftUnit": "px",
                       "topUnit": "px",
@@ -3245,7 +3605,7 @@
                           "objID": "92271361-f2c0-4e52-ceb9-3f6330717d9e",
                           "eventName": "PRESSED",
                           "handlerType": "action",
-                          "action": "event_weatherstation_start",
+                          "action": "event_setup_start_pressed",
                           "userData": 0
                         }
                       ],
@@ -4590,7 +4950,7 @@
                               "objID": "e7289159-66b7-464a-dd99-16f19ae76354",
                               "eventName": "PRESSED",
                               "handlerType": "action",
-                              "action": "event_MessageBoxUpdate",
+                              "action": "event_weatherstation_update_pressed",
                               "userData": 0
                             }
                           ],

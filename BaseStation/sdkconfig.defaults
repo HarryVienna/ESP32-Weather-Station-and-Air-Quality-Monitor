@@ -37,6 +37,10 @@ CONFIG_ESP_MAIN_TASK_STACK_SIZE=10240
 CONFIG_FREERTOS_HZ=1000
 CONFIG_FREERTOS_TIMER_TASK_STACK_DEPTH=4096
 CONFIG_ESP_TASK_WDT_EN
+# Default (5s) is occasionally too tight for the synchronous ui_init() at
+# boot (builds the whole EEZ screen tree without yielding) - WDT panic is
+# off anyway, so this only silences a harmless warning, not a real hang.
+CONFIG_ESP_TASK_WDT_TIMEOUT_S=10
 
 # --- Experimental features (required for ESP32-P4 MIPI DSI) ---
 CONFIG_IDF_EXPERIMENTAL_FEATURES=y

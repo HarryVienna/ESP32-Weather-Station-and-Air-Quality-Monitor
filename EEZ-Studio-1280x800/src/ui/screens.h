@@ -40,7 +40,9 @@ typedef struct _objects_t {
     lv_obj_t *dropdown_city;
     lv_obj_t *panel_language;
     lv_obj_t *dropdown_language;
-    lv_obj_t *language_description;
+    lv_obj_t *restart_description;
+    lv_obj_t *button_restart;
+    lv_obj_t *label_restart;
     lv_obj_t *panel_base;
     lv_obj_t *basis_icon;
     lv_obj_t *panel_sensors;

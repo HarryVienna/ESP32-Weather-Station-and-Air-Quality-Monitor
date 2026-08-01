@@ -31,9 +31,9 @@ void gui_sen66_start_task(void);
 
 /* Name+icon of the SEN66 card <-> NVS (the "base" dropdown in the setup
  * screen) - the counterpart for the 6 remote sensors is
- * load/save_sensor_slots_to_nvs() in gui_sensors.h. */
+ * load_sensor_slots_from_nvs() (saving happens instantly per slot via
+ * action_event_sensorN_value_changed(), see gui_sensors.c) in gui_sensors.h. */
 void load_basis_from_nvs(nvs_handle_t nvs_handle);
-void save_basis_to_nvs(nvs_handle_t nvs_handle);
 
 /* Applies the name+icon dropdown selected in the setup screen to the
  * SEN66 card on the Weatherstation screen. Called by

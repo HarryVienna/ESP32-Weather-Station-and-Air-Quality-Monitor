@@ -110,10 +110,15 @@ void load_basis_from_nvs(nvs_handle_t nvs_handle)
   lv_dropdown_set_selected(objects.basis_icon, icon_idx < sensor_icon_count() ? icon_idx : 0);
 }
 
-void save_basis_to_nvs(nvs_handle_t nvs_handle)
+/* Instant-save (see gui_setup_screen_actions.c for the general rationale):
+ * persists as soon as the dropdown changes, wired up in EEZ Studio to
+ * action_event_base_value_changed(). */
+void action_event_base_value_changed(lv_event_t *e)
 {
-  uint8_t icon_idx = lv_dropdown_get_selected(objects.basis_icon);
-  put_uint8_to_nvs(nvs_handle, "icon_base", icon_idx);
+  nvs_handle_t nvs_handle;
+  nvs_open("weatherstation", NVS_READWRITE, &nvs_handle);
+  put_uint8_to_nvs(nvs_handle, "icon_base", lv_dropdown_get_selected(objects.basis_icon));
+  nvs_close(nvs_handle);
 }
 
 void apply_sen66_config(void)

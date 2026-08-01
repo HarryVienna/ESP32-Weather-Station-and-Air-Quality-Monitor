@@ -21,7 +21,7 @@ void gui_ota_update_available(const char *version)
  * (prevents a double click / second install task, but keeps it visible,
  * the progress message box stays open) and kicks off the download on its
  * own task, so this itself does not block. */
-void action_event_message_box_update(lv_event_t *e)
+void action_event_weatherstation_update_pressed(lv_event_t *e)
 {
     (void)e;
     lv_obj_add_state(objects.button_update, LV_STATE_DISABLED);
