@@ -12,8 +12,15 @@ dependencies:
 
   ## ESP LVGL Port - integrates LVGL with ESP-IDF
   ## Handles LVGL task, display driver, touch input
+  ##
+  ## Pinned to an EXACT version (not "^2"): esp_lvgl_port >2.8.0~1 changed
+  ## esp_lcd_dpi_panel_event_callbacks_t usage (on_frame_buf_complete) in a
+  ## way that's incompatible with the esp_lcd DPI panel API shipped in the
+  ## pinned ESP-IDF v6.0.2 - "^2" lets the resolver pick that newer,
+  ## broken-for-us release as soon as it's published, with no code change
+  ## on our side to explain the sudden build failure.
   espressif/esp_lvgl_port:
-    version: "^2"
+    version: "2.8.0~1"
 
   ## GT911 capacitive touch controller driver
   espressif/esp_lcd_touch_gt911:
