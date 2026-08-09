@@ -19,6 +19,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # Forces a fresh component download every run, independent of
+      # whatever the runner's workspace still has lying around from a
+      # previous job (matters on non-ephemeral/self-hosted runners - a
+      # stale managed_components/ has caused both version drift on
+      # unpinned components and hash-mismatch errors on pinned ones).
+      - name: Clean stale component cache
+        run: rm -rf BaseStation/managed_components BaseStation/build
+
       - name: Build with ESP-IDF
         uses: espressif/esp-idf-ci-action@v1
         with:
@@ -47,6 +55,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      # See "Clean stale component cache" in build-basestation above - same
+      # reasoning, this is what was hitting the u8g2 hash-mismatch error.
+      - name: Clean stale component cache
+        run: rm -rf Sensor-Receiver/managed_components Sensor-Receiver/build
 
       - name: Build with ESP-IDF
         uses: espressif/esp-idf-ci-action@v1
