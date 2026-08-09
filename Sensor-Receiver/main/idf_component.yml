@@ -4,7 +4,15 @@ dependencies:
   idf:
     version: '>=6.0.2'
 
-  # Dependency for U8g2
+  # Dependency for U8g2. Pinned to an explicit commit (instead of tracking
+  # the default branch) - without a pinned ref, the component manager
+  # fetches whatever the remote's current HEAD is on every fresh resolve,
+  # but still validates it against the (now stale) hash recorded in
+  # dependencies.lock as soon as upstream gets new commits, causing a hard
+  # "corrupted component" failure on any CI runner without a warm local
+  # cache. Bump this on purpose (and regenerate dependencies.lock) when a
+  # newer u8g2 is actually wanted, rather than picking it up implicitly.
   u8g2:
     git: https://github.com/olikraus/u8g2.git
+    version: ab9e48b2228351e9476682a70b7f3ee4909cd585
     path: .
