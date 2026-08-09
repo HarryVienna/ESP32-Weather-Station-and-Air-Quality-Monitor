@@ -6,6 +6,7 @@
 #include "../sensors/gui_sen66.h"
 #include "receiver/receiver.h"
 #include "ota/ota_task.h"
+#include "diagnostics/heap_monitor_task.h"
 
 /* Wired by EEZ Studio to LV_EVENT_SCREEN_LOADED of the Weatherstation
  * screen (see screens.c) - WiFi is guaranteed to be up by this point (see
@@ -25,4 +26,5 @@ void action_event_weatherstation_screen_loaded(lv_event_t *e)
   gui_sen66_start_task();
   receiver_start();
   ota_task_start();
+  heap_monitor_start_task();
 }

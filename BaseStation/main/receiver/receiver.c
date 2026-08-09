@@ -32,6 +32,11 @@ static const char *TAG = "RECEIVER";
 #define I2C_REG_STATS_RECV   0x24
 #define I2C_REG_STATS_OVERWR 0x28
 
+/* Receiver firmware OTA (see Sensor-Receiver/main/i2c/i2c_slave.h) */
+#define I2C_REG_SET_WIFI_SSID 0x12
+#define I2C_REG_SET_WIFI_PASS 0x13
+#define I2C_REG_OTA_START     0x14
+
 /* Timezone that gets sent to the S3 slave */
 #define SLAVE_TIMEZONE  "CET-1CEST,M3.5.0,M10.5.0/3"
 
@@ -98,6 +103,26 @@ static esp_err_t i2c_set_timezone(const char *tz)
     esp_err_t ret = i2c_master_transmit(s_dev, buf, 1 + tz_len + 1, 100);
     if (ret != ESP_OK) {
         ESP_LOGE(TAG, "SET_TZ failed: %s", esp_err_to_name(ret));
+    }
+    return ret;
+}
+
+/* Generic "register byte + NUL-terminated string" write, used for the OTA
+ * WiFi credential registers (SET_WIFI_SSID/_PASS) - same wire format as
+ * i2c_set_timezone() above, just for an arbitrary register/max length. */
+static esp_err_t i2c_write_str(uint8_t reg, const char *str, size_t max_len)
+{
+    size_t len = strlen(str);
+    if (len > max_len) {
+        ESP_LOGE(TAG, "Reg 0x%02X: string too long (%zu > %zu)", reg, len, max_len);
+        return ESP_ERR_INVALID_ARG;
+    }
+    uint8_t buf[1 + 64 + 1]; /* longest payload so far: password (63) + NUL */
+    buf[0] = reg;
+    memcpy(&buf[1], str, len + 1);
+    esp_err_t ret = i2c_master_transmit(s_dev, buf, 1 + len + 1, 100);
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "WRITE reg 0x%02X failed: %s", reg, esp_err_to_name(ret));
     }
     return ret;
 }
@@ -363,6 +388,27 @@ esp_err_t receiver_init(void)
     }
 
     return ESP_OK;
+}
+
+esp_err_t receiver_start_ota(const char *ssid, const char *password)
+{
+    esp_err_t ret;
+
+    ESP_LOGI(TAG, "Starting receiver OTA (SSID: '%s')", ssid);
+
+    if ((ret = i2c_write_str(I2C_REG_SET_WIFI_SSID, ssid, 32)) != ESP_OK) {
+        return ret;
+    }
+    if ((ret = i2c_write_str(I2C_REG_SET_WIFI_PASS, password, 63)) != ESP_OK) {
+        return ret;
+    }
+
+    uint8_t buf[2] = { I2C_REG_OTA_START, 0x01 };
+    ret = i2c_master_transmit(s_dev, buf, sizeof(buf), 100);
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "OTA_START failed: %s", esp_err_to_name(ret));
+    }
+    return ret;
 }
 
 static void receiver_task(void *arg)

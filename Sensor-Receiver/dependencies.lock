@@ -2,7 +2,7 @@ dependencies:
   idf:
     source:
       type: idf
-    version: 5.5.4
+    version: 6.0.2
   u8g2:
     component_hash: 5838fbebdf68880f03b63d38be391171ffe57e72e246d4a31d0d06693e5ff85f
     dependencies: []
@@ -14,6 +14,6 @@ dependencies:
 direct_dependencies:
 - idf
 - u8g2
-manifest_hash: 579a0f9468934f12219829badcbb2d90d8392a69508f34cd47f974fa79472888
+manifest_hash: a272b979f8069d3de17494bc18549f6255a5ceb278bfe1b26ccf483b323c21cc
 target: esp32s3
-version: 2.0.0
+version: 3.0.0

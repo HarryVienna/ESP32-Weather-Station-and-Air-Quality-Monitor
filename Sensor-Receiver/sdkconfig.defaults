@@ -12,3 +12,17 @@ CONFIG_I2C_ENABLE_SLAVE_DRIVER_VERSION_2=y
 # Setzt den maximalen Log-Level auf Debug (4)
 #CONFIG_LOG_DEFAULT_LEVEL_DEBUG=y
 #CONFIG_LOG_MAXIMUM_LEVEL=4
+
+# --- Flash: physically 16 MB (Heltec WiFi LoRa 32 V3, ESP32-S3) ---
+CONFIG_ESPTOOLPY_FLASHSIZE_16MB=y
+
+# --- OTA: two app slots instead of single-app, needed so the P4 can
+# --- trigger a receiver update via I2C + WiFi credentials (see
+# --- main/ota/ota_task.c) ---
+CONFIG_PARTITION_TABLE_CUSTOM=y
+CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions.csv"
+
+# Automatic rollback to the previous OTA partition if the new image never
+# calls esp_ota_mark_app_valid_cancel_rollback() (crash loop after a
+# failed update) - see main.c.
+CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE=y

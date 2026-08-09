@@ -1,17 +1,19 @@
-name: Build and Release BaseStation Firmware
+name: Build and Release Firmware
 
-# Laeuft bei jedem Push eines Versions-Tags (z.B. "git tag v1.2.3 && git push --tags").
-# Baut main/BaseStation fuer ESP32-P4 und haengt die Firmware als Release-Assets an.
+# Runs on every push of a version tag (e.g. "git tag v1.2.3 && git push --tags").
+# Builds main/BaseStation for ESP32-P4 and main/Sensor-Receiver for ESP32-S3 in
+# two parallel jobs and attaches both firmwares as assets to a shared
+# GitHub release.
 on:
   push:
     tags:
       - "v*"
 
 permissions:
-  contents: write  # noetig, damit die Action ein GitHub Release erstellen/beschreiben darf
+  contents: write  # needed so the action can create/describe a GitHub release
 
 jobs:
-  build-and-release:
+  build-basestation:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -24,11 +26,65 @@ jobs:
           target: esp32p4
           path: BaseStation
 
+      # Own folder + unique file names: BaseStation and Sensor-Receiver both
+      # produce "bootloader.bin"/"partition-table.bin" - without renaming,
+      # the two artifact sets would overwrite each other on release upload.
+      - name: Collect artifacts
+        run: |
+          mkdir -p artifacts
+          cp BaseStation/build/Basestation.bin artifacts/Basestation.bin
+          cp BaseStation/build/bootloader/bootloader.bin artifacts/Basestation-bootloader.bin
+          cp BaseStation/build/partition_table/partition-table.bin artifacts/Basestation-partition-table.bin
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: basestation-firmware
+          path: artifacts/
+
+  build-receiver:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build with ESP-IDF
+        uses: espressif/esp-idf-ci-action@v1
+        with:
+          esp_idf_version: v6.0.2
+          target: esp32s3
+          path: Sensor-Receiver
+
+      # Build output is named SENSOR_RECEIVER.bin (project name) - renamed
+      # here to "Receiver.bin" because both BaseStation/main/ota/ota_task.c
+      # (RECEIVER_OTA_ASSET_NAME) and Sensor-Receiver/main/ota/ota_task.c
+      # (OTA_ASSET_NAME) expect exactly this asset name in the GitHub release.
+      - name: Collect artifacts
+        run: |
+          mkdir -p artifacts
+          cp Sensor-Receiver/build/SENSOR_RECEIVER.bin artifacts/Receiver.bin
+          cp Sensor-Receiver/build/bootloader/bootloader.bin artifacts/Receiver-bootloader.bin
+          cp Sensor-Receiver/build/partition_table/partition-table.bin artifacts/Receiver-partition-table.bin
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: receiver-firmware
+          path: artifacts/
+
+  release:
+    needs: [build-basestation, build-receiver]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
           files: |
-            BaseStation/build/Basestation.bin
-            BaseStation/build/bootloader/bootloader.bin
-            BaseStation/build/partition_table/partition-table.bin
+            artifacts/basestation-firmware/*
+            artifacts/receiver-firmware/*

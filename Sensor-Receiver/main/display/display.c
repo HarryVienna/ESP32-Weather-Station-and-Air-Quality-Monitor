@@ -9,12 +9,12 @@
 #include <string.h>
 #include <time.h>
 
-/* LED PWM-Konfiguration */
+/* LED PWM configuration */
 #define LED_LEDC_TIMER      LEDC_TIMER_1
 #define LED_LEDC_CHANNEL    LEDC_CHANNEL_1
 #define LED_LEDC_FREQ_HZ    1000
 #define LED_LEDC_RESOLUTION LEDC_TIMER_8_BIT   /* Duty 0-255 */
-#define LED_DUTY_ON         40                 /* ~31% Helligkeit, kein blendendes Weiß */
+#define LED_DUTY_ON         40                 /* ~31% brightness, no blinding white */
 #define LED_DUTY_OFF        0
 
 /* Display task priority: low so it never blocks sensor path */
@@ -32,7 +32,7 @@ static button_handle_t *g_button_handle = NULL;
 static QueueHandle_t g_display_queue;
 
 /* Display scroll buffer */
-static display_entry_t g_buffer[DISPLAY_BUFFER_SIZE];
+static display_line_t g_buffer[DISPLAY_BUFFER_SIZE];
 static uint8_t g_count;      // valid entries (0..DISPLAY_BUFFER_SIZE)
 static uint8_t g_write_idx;  // next write position
 
@@ -52,6 +52,48 @@ static void get_time_str(char *buf, size_t buf_size) {
     time(&now);
     localtime_r(&now, &timeinfo);
     strftime(buf, buf_size, "%H:%M", &timeinfo);
+}
+
+/* Formats a received sensor packet into a single display line. This is the
+ * only place that knows about sensor_packet_t fields - everything past the
+ * queue (display_task, redraw()) just deals with ready-to-draw text. */
+static void format_sensor_line(char *buf, size_t buf_len, const sensor_packet_t *packet) {
+    char time_str[6];
+    get_time_str(time_str, sizeof(time_str));
+
+    if (packet->link.msg_source == SENSOR_SOURCE_LORA) {
+        snprintf(buf, buf_len, "%s [L] %d %ddBm %+.1fdB",
+                 time_str, packet->header.sensor_nr, packet->link.rssi, (double)packet->link.snr);
+    } else if (packet->link.msg_source == SENSOR_SOURCE_ESPNOW) {
+        snprintf(buf, buf_len, "%s [N] %d %ddBm",
+                 time_str, packet->header.sensor_nr, packet->link.rssi);
+    } else {
+        ESP_LOGE(TAG, "Unknown source: %d", packet->link.msg_source);
+        snprintf(buf, buf_len, "%s [?] %d", time_str, packet->header.sensor_nr);
+    }
+}
+
+/* Shared non-blocking enqueue path for display_update_async() and
+ * display_log_line() - both just build a text line and hand it off here. */
+static esp_err_t enqueue_line(const char *text) {
+    if (g_display_queue == NULL) {
+        return ESP_ERR_INVALID_STATE;  /* display_init() not called */
+    }
+
+    display_line_t qe;
+    strncpy(qe.text, text, sizeof(qe.text) - 1);
+    qe.text[sizeof(qe.text) - 1] = '\0';
+
+    /* Non-blocking enqueue with short timeout.
+     * If queue is full, the update is dropped but the caller is NOT blocked. */
+    BaseType_t xRet = xQueueSendToBack(g_display_queue, &qe, pdMS_TO_TICKS(10));
+
+    if (xRet == pdTRUE) {
+        return ESP_OK;  /* Enqueued successfully */
+    }
+
+    ESP_LOGD(TAG, "Display queue full, line dropped: '%s'", text);
+    return ESP_ERR_TIMEOUT;  /* Queue full */
 }
 
 static void led_init(void)
@@ -100,7 +142,7 @@ static void redraw(void);
 
 static void display_task(void *arg) {
     (void)arg;
-    display_queue_entry_t qe;
+    display_line_t qe;
 
     ESP_LOGI(TAG, "Display task started (priority=%d, stack=%d)",
              DISPLAY_TASK_PRIORITY, DISPLAY_TASK_STACK);
@@ -113,16 +155,7 @@ static void display_task(void *arg) {
 
             if (xSemaphoreTake(g_mutex, pdMS_TO_TICKS(100)) == pdTRUE) {
                 /* Add new entry to scroll buffer */
-                display_entry_t *entry = &g_buffer[g_write_idx];
-                entry->source      = qe.source;
-                entry->sensor_nr   = qe.sensor_nr;
-                entry->sensor_type = qe.sensor_type;
-                entry->payload_len = qe.payload_len;
-                entry->rssi        = qe.rssi;
-                entry->snr         = qe.snr;
-                entry->timestamp   = qe.timestamp;
-                strncpy(entry->time_str, qe.time_str, sizeof(entry->time_str) - 1);
-                entry->time_str[sizeof(entry->time_str) - 1] = '\0';
+                g_buffer[g_write_idx] = qe;
 
                 g_write_idx = (g_write_idx + 1) % DISPLAY_BUFFER_SIZE;
                 if (g_count < DISPLAY_BUFFER_SIZE) {
@@ -169,22 +202,8 @@ static void redraw(void) {
 
     for (int i = 0; i < g_count; i++) {
         int idx = (start_idx + i) % DISPLAY_BUFFER_SIZE;
-        const display_entry_t *e = &g_buffer[idx];
-
-        char line[42];
-        if (e->source == SENSOR_SOURCE_LORA) {
-            snprintf(line, sizeof(line), "%s [L] %d %ddBm %+.1fdB",
-                     e->time_str, e->sensor_nr, e->rssi, (double)e->snr);
-        } else if (e->source == SENSOR_SOURCE_ESPNOW) {
-            snprintf(line, sizeof(line), "%s [N] %d %ddBm",
-                     e->time_str, e->sensor_nr, e->rssi);
-        } else {
-            ESP_LOGE(TAG, "Unknown source: %d", e->source);
-            snprintf(line, sizeof(line), "%s [?] %d", e->time_str, e->sensor_nr);
-        }
-
         int y = DISPLAY_ENTRY_START_Y + (i * DISPLAY_LINE_HEIGHT);
-        u8g2_DrawStr(&g_u8g2, 1, y, line);
+        u8g2_DrawStr(&g_u8g2, 1, y, g_buffer[idx].text);
     }
 
     u8g2_SendBuffer(&g_u8g2);
@@ -210,7 +229,7 @@ esp_err_t display_init(void) {
 
     u8x8_SetI2CAddress(&g_u8g2.u8x8, 0x3C << 1);
     u8g2_InitDisplay(&g_u8g2);
-    u8g2_SetPowerSave(&g_u8g2, 1);  /* Display nach Start standardmäßig aus */
+    u8g2_SetPowerSave(&g_u8g2, 1);  /* Display off by default after start */
 
     g_mutex = xSemaphoreCreateMutex();
     if (g_mutex == NULL) {
@@ -219,7 +238,7 @@ esp_err_t display_init(void) {
     }
 
     /* Create display update queue (async from sensor callbacks) */
-    g_display_queue = xQueueCreate(DISPLAY_QUEUE_MAX_ENTRIES, sizeof(display_queue_entry_t));
+    g_display_queue = xQueueCreate(DISPLAY_QUEUE_MAX_ENTRIES, sizeof(display_line_t));
     if (g_display_queue == NULL) {
         ESP_LOGE(TAG, "Failed to create display queue");
         vSemaphoreDelete(g_mutex);
@@ -236,7 +255,7 @@ esp_err_t display_init(void) {
     u8g2_SendBuffer(&g_u8g2);
 
     led_init();
-    led_set(true);  /* Display ist initial aus -> LED an */
+    led_set(true);  /* Display starts off -> LED on */
     ESP_LOGI(TAG, "Display initialized (SSD1306 128x64, I2C 0x3C), default off");
 
     button_config_t btn_cfg = {
@@ -288,32 +307,17 @@ esp_err_t display_update_async(const sensor_packet_t *packet) {
     if (packet == NULL) {
         return ESP_ERR_INVALID_ARG;
     }
-    if (g_display_queue == NULL) {
-        return ESP_ERR_INVALID_STATE;  /* display_init() not called */
+
+    char text[DISPLAY_LINE_MAX_LEN];
+    format_sensor_line(text, sizeof(text), packet);
+    return enqueue_line(text);
+}
+
+esp_err_t display_log_line(const char *text) {
+    if (text == NULL) {
+        return ESP_ERR_INVALID_ARG;
     }
-
-    /* Prepare queue entry (only metadata, no payload needed for display) */
-    display_queue_entry_t qe;
-    qe.source      = packet->link.msg_source;
-    qe.sensor_nr   = packet->header.sensor_nr;
-    qe.sensor_type = packet->header.sensor_type;
-    qe.payload_len = packet->header.payload_len;
-    qe.rssi        = packet->link.rssi;
-    qe.snr         = packet->link.snr;
-    qe.timestamp   = packet->link.timestamp;
-    get_time_str(qe.time_str, sizeof(qe.time_str));
-
-    /* Non-blocking enqueue with short timeout.
-     * If queue is full, the update is dropped but the sensor path is NOT blocked. */
-    BaseType_t xRet = xQueueSendToBack(g_display_queue, &qe, pdMS_TO_TICKS(10));
-
-    if (xRet == pdTRUE) {
-        return ESP_OK;  /* Enqueued successfully */
-    }
-
-    ESP_LOGD(TAG, "Display queue full, update dropped for sensor %d",
-             packet->header.sensor_nr);
-    return ESP_ERR_TIMEOUT;  /* Queue full */
+    return enqueue_line(text);
 }
 
 void display_toggle(void) {
@@ -340,7 +344,7 @@ void display_toggle(void) {
             g_pending_toggle = true;
             /* Wake up display task by sending a dummy signal */
             if (g_display_queue != NULL) {
-                uint8_t wake = 0;
+                display_line_t wake = {0};
                 xQueueSendToBack(g_display_queue, &wake, 0);
             }
         }

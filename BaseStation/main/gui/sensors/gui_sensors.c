@@ -205,9 +205,10 @@ static void render_temp_hum_press(sensor_type_t type, const sensor_values_t *v, 
 
   nvs_handle_t nvs_handle;
   nvs_open("weatherstation", NVS_READONLY, &nvs_handle);
-  const char *height_c = get_string_from_nvs(nvs_handle, "height", "0");
+  char *height_c = get_string_from_nvs(nvs_handle, "height", "0");
   nvs_close(nvs_handle);
   float sea_level_pressure = calc_sea_level_pressure(pressure, temperature, (uint16_t)atol(height_c));
+  free(height_c);
 
   char buf[16];
   sprintf(buf, "%.1f", temperature);
@@ -238,9 +239,10 @@ static void render_temp_hum_press_compact(sensor_type_t type, const sensor_value
 
   nvs_handle_t nvs_handle;
   nvs_open("weatherstation", NVS_READONLY, &nvs_handle);
-  const char *height_c = get_string_from_nvs(nvs_handle, "height", "0");
+  char *height_c = get_string_from_nvs(nvs_handle, "height", "0");
   nvs_close(nvs_handle);
   float sea_level_pressure = calc_sea_level_pressure(pressure, temperature, (uint16_t)atol(height_c));
+  free(height_c);
 
   char buf[16];
   sprintf(buf, "%.1f", temperature);

@@ -1184,7 +1184,7 @@
                       },
                       "group": "",
                       "groupIndex": 0,
-                      "options": "Open-Meteo\nOpen Weather Map\nVisual Crossing",
+                      "options": "Open-Meteo\nOpenWeatherMap\nVisual Crossing",
                       "optionsType": "literal",
                       "selected": 0,
                       "selectedType": "literal",

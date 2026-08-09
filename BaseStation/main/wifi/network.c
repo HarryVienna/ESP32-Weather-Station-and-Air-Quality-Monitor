@@ -28,6 +28,23 @@
 
 static const char* TAG = "WIFI";
 
+/* FreeRTOS event group to signal when we are connected. Created once in
+ * wifi_init() - see the forward-declared event_handler() below for why. */
+static EventGroupHandle_t s_wifi_event_group;
+
+#define WIFI_CONNECT_MAX_RETRIES 10
+
+static int s_retry_num = 0;
+
+/* event_handler() is the permanent WiFi lifecycle handler for the whole
+ * app - auto-reconnect (WIFI_EVENT_STA_DISCONNECTED, see
+ * wifi_stay_connected_forever()) and the status icon (disp_wifi_status())
+ * keep running for as long as the device is up, not just for the initial
+ * wifi_connect(). Registered once in wifi_init(), not per wifi_connect()
+ * call - see wifi_connect() for why that matters. */
+static void event_handler(void* arg, esp_event_base_t event_base,
+                                int32_t event_id, void* event_data);
+
 typedef struct struct_data {
     uint8_t msg_type;
     uint8_t sensor_nr;
@@ -94,16 +111,26 @@ esp_err_t wifi_init(void) {
     // Set storage to RAM
     ESP_RETURN_ON_ERROR(esp_wifi_set_storage(WIFI_STORAGE_RAM), TAG, "Failed to set storage");
 
+    // Event group + handler are set up once, here, not per wifi_connect()
+    // call - see the comment on event_handler()'s forward declaration above.
+    s_wifi_event_group = xEventGroupCreate();
+    ESP_RETURN_ON_FALSE(s_wifi_event_group, ESP_ERR_NO_MEM, TAG, "Failed to create WiFi event group");
+
+    ESP_RETURN_ON_ERROR(esp_event_handler_instance_register(WIFI_EVENT,
+                                                              ESP_EVENT_ANY_ID,
+                                                              &event_handler,
+                                                              NULL,
+                                                              NULL),
+                         TAG, "Failed to register WIFI_EVENT handler");
+    ESP_RETURN_ON_ERROR(esp_event_handler_instance_register(IP_EVENT,
+                                                              IP_EVENT_STA_GOT_IP,
+                                                              &event_handler,
+                                                              NULL,
+                                                              NULL),
+                         TAG, "Failed to register IP_EVENT handler");
+
     return ESP_OK;
 }
-
-
-/* FreeRTOS event group to signal when we are connected*/
-static EventGroupHandle_t s_wifi_event_group;
-
-#define WIFI_CONNECT_MAX_RETRIES 10
-
-static int s_retry_num = 0;
 
 /* Persistent background policy, independent of the current connection
  * attempt - see wifi_stay_connected_forever() in network.h. NOT reset by
@@ -190,20 +217,14 @@ bool wifi_connect(const char* ssid, const char* password) {
 
     ESP_ERROR_CHECK(esp_wifi_stop());
 
-    s_wifi_event_group = xEventGroupCreate();
+    /* Event group + event_handler() are set up once in wifi_init(), not
+     * here - wifi_connect() can be called more than once (setup screen
+     * "Connect" button, retried after a wrong password), and event_handler()
+     * has to keep running for the whole app lifetime (auto-reconnect,
+     * status icon), not just for this one connection attempt. Clear stale
+     * bits from a previous attempt instead of recreating the group. */
+    xEventGroupClearBits(s_wifi_event_group, WIFI_CONNECTED_BIT | WIFI_FAIL_BIT);
 
-    esp_event_handler_instance_t instance_any_id;
-    esp_event_handler_instance_t instance_got_ip;
-    ESP_ERROR_CHECK(esp_event_handler_instance_register(WIFI_EVENT,
-                                                        ESP_EVENT_ANY_ID,
-                                                        &event_handler,
-                                                        NULL,
-                                                        &instance_any_id));
-    ESP_ERROR_CHECK(esp_event_handler_instance_register(IP_EVENT,
-                                                        IP_EVENT_STA_GOT_IP,
-                                                        &event_handler,
-                                                        NULL,
-                                                        &instance_got_ip));
     wifi_config_t wifi_config = {};
     memcpy(wifi_config.sta.ssid, ssid, sizeof(wifi_config.sta.ssid));
     memcpy(wifi_config.sta.password, password, sizeof(wifi_config.sta.password));

@@ -74,7 +74,7 @@ void add_peer(const uint8_t * mac_addr, uint8_t chan){
   memset(&peer, 0, sizeof(esp_now_peer_info_t));
   peer.channel = chan;
   peer.encrypt = false;
-  peer.ifidx = ESP_IF_WIFI_STA;
+  peer.ifidx = WIFI_IF_STA;
   memcpy(peer.peer_addr, mac_addr, ESP_NOW_ETH_ALEN);
 
   if (esp_now_add_peer(&peer) != ESP_OK){
@@ -93,7 +93,7 @@ void add_peer(const uint8_t * mac_addr, uint8_t chan){
  */
 void on_data_sent(const esp_now_send_info_t *tx_info, esp_now_send_status_t status) {
     
-    // Sicherheitsprüfung (hier heißt es nun des_addr!)
+    // Safety check (the field is now called des_addr!)
     if (tx_info == NULL || tx_info->des_addr == NULL) {
         ESP_LOGE(TAG, "Send cb arg error");
         return;
@@ -205,14 +205,14 @@ void on_data_recv(const esp_now_recv_info_t *recv_info, const uint8_t *incoming_
 
             ESP_LOGI(TAG, "  Sensor Nr: %d", pairingRequest.sensor_nr);
 
-            // Peer zuerst hinzufügen, DANN senden
+            // Add peer first, THEN send
             add_peer(mac_addr, ESPNOW_FIXED_CHANNEL);
 
             struct_pairing_response pairingResponse;
             pairingResponse.msg_type = PAIRING_RESP;
             pairingResponse.sensor_nr = pairingRequest.sensor_nr;
             pairingResponse.channel = ESPNOW_FIXED_CHANNEL;
-            esp_wifi_get_mac(ESP_IF_WIFI_STA, pairingResponse.macAddr);
+            esp_wifi_get_mac(WIFI_IF_STA, pairingResponse.macAddr);
 
             esp_err_t result = esp_now_send(mac_addr, (uint8_t *) &pairingResponse, sizeof(struct_pairing_response));
             if (result != ESP_OK) {
@@ -240,7 +240,7 @@ esp_err_t init_wifi(void) {
 
     esp_err_t ret;
 
-    // NVS wird vom WiFi-Treiber zwingend für die Kalibrierungsdaten (MAC/PHY) benötigt
+    // NVS is required by the WiFi driver for calibration data (MAC/PHY)
     ret = nvs_flash_init();
     if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
       ESP_ERROR_CHECK(nvs_flash_erase());
@@ -251,7 +251,7 @@ esp_err_t init_wifi(void) {
       }
     }
 
-    // Grundlegende Netzwerk- und Event-Initialisierung
+    // Basic network and event initialization
     if ((ret = esp_netif_init()) != ESP_OK) {
         ESP_LOGE(TAG, "ESP netif init failed: %s", esp_err_to_name(ret));
         return ret;
@@ -268,26 +268,26 @@ esp_err_t init_wifi(void) {
         return ret;
     }
     
-    // Speicher auf RAM setzen, um Flash-Abnutzung zu vermeiden
+    // Set storage to RAM to avoid flash wear
     if ((ret = esp_wifi_set_storage(WIFI_STORAGE_RAM)) != ESP_OK) {
         ESP_LOGE(TAG, "WiFi set storage failed: %s", esp_err_to_name(ret));
         return ret;
     }
 
-    // WiFi in den Station-Mode versetzen (Standard für ESP-NOW Endpunkte)
+    // Put WiFi into station mode (standard for ESP-NOW endpoints)
     if ((ret = esp_wifi_set_mode(WIFI_MODE_STA)) != ESP_OK) {
         ESP_LOGE(TAG, "WiFi set mode failed: %s", esp_err_to_name(ret));
         return ret;
     }
 
-    // WICHTIG: Das Starten des Wi-Fi-Treibers ist zwingend erforderlich!
+    // IMPORTANT: starting the WiFi driver is mandatory!
     if ((ret = esp_wifi_start()) != ESP_OK) {
         ESP_LOGE(TAG, "WiFi start failed: %s", esp_err_to_name(ret));
         return ret;
     }
 
-    // Fester Channel für ESP-NOW (muss mit Sender übereinstimmen)
-    // Channel muss NACH dem Start gesetzt werden
+    // Fixed channel for ESP-NOW (must match the sender)
+    // Channel must be set AFTER start
     if ((ret = esp_wifi_set_channel(ESPNOW_FIXED_CHANNEL, WIFI_SECOND_CHAN_NONE)) != ESP_OK) {
         ESP_LOGE(TAG, "WiFi set channel failed: %s", esp_err_to_name(ret));
         return ret;
@@ -314,4 +314,24 @@ esp_err_t esp_now_start(void){
     esp_now_register_send_cb(on_data_sent);
     esp_now_register_recv_cb(on_data_recv);
     return ESP_OK;
+}
+
+esp_err_t esp_now_pause(void)
+{
+    ESP_LOGI(TAG, "Pausing ESP-NOW (WiFi radio needed for OTA)");
+    return esp_now_deinit();
+}
+
+esp_err_t esp_now_resume(void)
+{
+    esp_err_t ret;
+
+    ESP_LOGI(TAG, "Resuming ESP-NOW (channel %d)", ESPNOW_FIXED_CHANNEL);
+
+    if ((ret = esp_wifi_set_channel(ESPNOW_FIXED_CHANNEL, WIFI_SECOND_CHAN_NONE)) != ESP_OK) {
+        ESP_LOGE(TAG, "WiFi set channel failed: %s", esp_err_to_name(ret));
+        return ret;
+    }
+
+    return esp_now_start();
 }

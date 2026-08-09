@@ -10,7 +10,7 @@
 
 #include "weather_task.h"
 #include "weather/weather_data.h"
-#include "weather/weather_http.h"
+#include "http/http_client.h"
 #include "weather/weather_provider.h"
 #include "lvgl/lv_hourly_chart.h"
 #include "lvgl/lv_daily_chart.h"
@@ -118,8 +118,8 @@ void weather_task(void *pvParameter) {
     hourly_weather_data_t hourly_data[NUM_HOURS] = {0};
     daily_weather_data_t daily_data[NUM_DAYS] = {0};
 
-    weather_http_response_t response = {0};
-    esp_http_client_handle_t client = weather_http_client_create(&response);
+    http_response_t response = {0};
+    esp_http_client_handle_t client = http_client_create(&response);
 
     for (;;) {
         bool success = weather_provider_fetch_all(provider, client, &response, latitude, longitude, api_key,

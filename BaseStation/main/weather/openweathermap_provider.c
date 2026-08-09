@@ -226,14 +226,14 @@ static bool parse_daily_item(cJSON *item, daily_weather_data_t *out) {
     return true;
 }
 
-bool openweathermap_fetch_current(esp_http_client_handle_t client, weather_http_response_t *response,
+bool openweathermap_fetch_current(esp_http_client_handle_t client, http_response_t *response,
                                    const char *latitude, const char *longitude, const char *api_key,
                                    current_weather_data_t *out) {
     char url[512];
     snprintf(url, sizeof(url), OWM_URL_CURRENT, latitude, longitude, api_key);
     ESP_LOGI(TAG, "Call current weather API (OWM): %s", url);
 
-    cJSON *json = weather_http_get_json(client, response, url);
+    cJSON *json = http_get_json(client, response, url);
     if (json == NULL) {
         return false;
     }
@@ -253,7 +253,7 @@ bool openweathermap_fetch_current(esp_http_client_handle_t client, weather_http_
     return success;
 }
 
-bool openweathermap_fetch_hourly(esp_http_client_handle_t client, weather_http_response_t *response,
+bool openweathermap_fetch_hourly(esp_http_client_handle_t client, http_response_t *response,
                                   const char *latitude, const char *longitude, const char *api_key,
                                   hourly_weather_data_t *out, int count) {
     char url[512];
@@ -263,7 +263,7 @@ bool openweathermap_fetch_hourly(esp_http_client_handle_t client, weather_http_r
     for (int page = 0; page < 4 && collected < count; page++) {
         ESP_LOGI(TAG, "Call hourly weather API (OWM), page %d: %s", page, url);
 
-        cJSON *json = weather_http_get_json(client, response, url);
+        cJSON *json = http_get_json(client, response, url);
         if (json == NULL) {
             return false;
         }
@@ -318,14 +318,14 @@ bool openweathermap_fetch_hourly(esp_http_client_handle_t client, weather_http_r
     return true;
 }
 
-bool openweathermap_fetch_daily(esp_http_client_handle_t client, weather_http_response_t *response,
+bool openweathermap_fetch_daily(esp_http_client_handle_t client, http_response_t *response,
                                  const char *latitude, const char *longitude, const char *api_key,
                                  daily_weather_data_t *out, int count) {
     char url[512];
     snprintf(url, sizeof(url), OWM_URL_DAILY, latitude, longitude, api_key, count);
     ESP_LOGI(TAG, "Call daily weather API (OWM): %s", url);
 
-    cJSON *json = weather_http_get_json(client, response, url);
+    cJSON *json = http_get_json(client, response, url);
     if (json == NULL) {
         return false;
     }

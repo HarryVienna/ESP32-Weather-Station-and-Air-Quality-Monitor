@@ -1,5 +1,7 @@
 #pragma once
 
+#include <stddef.h>
+#include <stdint.h>
 #include "esp_err.h"
 
 #ifdef __cplusplus
@@ -7,24 +9,38 @@ extern "C" {
 #endif
 
 /**
- * @brief Sensor-Receiver initialisieren.
+ * @brief Initialize the sensor receiver.
  *
- * Holt den I2C-Bus vom i2c_manager, fügt den S3-Slave hinzu und
- * überträgt Zeitzone + aktuelle Systemzeit einmalig.
+ * Gets the I2C bus from i2c_manager, adds the S3 slave device, and
+ * transfers timezone + current system time once.
  *
- * Muss nach i2c_manager_init() aufgerufen werden.
+ * Must be called after i2c_manager_init().
  *
  * @return ESP_OK on success
  */
 esp_err_t receiver_init(void);
 
 /**
- * @brief Sensor-Polling als FreeRTOS-Task starten.
+ * @brief Start sensor polling as a FreeRTOS task.
  *
- * Erstellt einen Task der alle 2 s verfügbare Pakete vom S3-Slave abholt
- * und per ESP_LOGI ausgibt. Kehrt sofort zurück.
+ * Creates a task that fetches available packets from the S3 slave every
+ * 2s and logs them via ESP_LOGI. Returns immediately.
  */
 void receiver_start(void);
+
+/**
+ * @brief Starts a receiver firmware update via I2C.
+ *
+ * Sends SSID + password to the S3 (kept there in RAM only, never in NVS -
+ * see Sensor-Receiver/main/ota/ota_task.h) and then triggers the update.
+ * Fire-and-forget: the S3 pauses ESP-NOW, connects to the AP, downloads
+ * "Receiver.bin" from the latest GitHub release and reboots on success.
+ * On failure it falls back to ESP-NOW operation on its own.
+ *
+ * @param ssid      WiFi SSID (max. 32 characters)
+ * @param password  WiFi password (max. 63 characters)
+ */
+esp_err_t receiver_start_ota(const char *ssid, const char *password);
 
 #ifdef __cplusplus
 }

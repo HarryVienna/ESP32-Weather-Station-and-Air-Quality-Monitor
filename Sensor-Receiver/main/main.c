@@ -1,12 +1,12 @@
 /**
  * @file main.c
- * @brief Sensor Receiver: LoRa + ESP-NOW Empfang mit Display und I2C-Speicher
- * 
- * Architektur:
- * - LoRa (SX1262): Empfängt Sensordaten von LoRa-Sensoren
- * - ESP-NOW: Empfängt Sensordaten von ESP-NOW-Sensoren
- * - Sensor-Stack: FIFO-Puffer für I2C-Abruf durch ESP32-P4
- * - Display: OLED 128x64 mit Scroll-Funktion
+ * @brief Sensor Receiver: LoRa + ESP-NOW reception with display and I2C storage
+ *
+ * Architecture:
+ * - LoRa (SX1262): receives sensor data from LoRa sensors
+ * - ESP-NOW: receives sensor data from ESP-NOW sensors
+ * - Sensor stack: FIFO buffer for I2C readout by the ESP32-P4
+ * - Display: OLED 128x64 with scroll function
  */
 
 #include <stdio.h>
@@ -17,6 +17,7 @@
 #include "driver/gpio.h"
 #include "esp_log.h"
 #include "esp_sleep.h"
+#include "esp_ota_ops.h"
 
 // Project modules
 #include "sensor_stack.h"
@@ -73,7 +74,7 @@ static esp_err_t init_board(void) {
 
 // I2C Slave Register Map (defined in i2c_slave.h)
 //   0x00: READ  → Count (1 Byte)
-//   0x01: R/W → Packet Read (variable Länge)
+//   0x01: R/W → Packet Read (variable length)
 //   0x23: WRITE, 0x01 → Reset Drop-Counter
 //   0x24: READ → Total received (4 Byte, uint32_t LE)
 //   0x28: READ → Total overwritten (4 Byte, uint32_t LE)
@@ -128,11 +129,16 @@ void app_main(void) {
         return;
     }
     
-    // Initialize I2C Slave Interface (for P4 readout)
+    // Initialize I2C Slave Interface (for P4 readout + OTA trigger)
     if (i2c_slave_init() != ESP_OK) {
         ESP_LOGW(TAG, "I2C slave init failed (P4 readout unavailable)");
     }
-    
+
+    // Confirms an app installed via OTA as working, otherwise the
+    // bootloader rolls back to the previous ota_0/ota_1 partition on the
+    // next boot (see CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE).
+    esp_ota_mark_app_valid_cancel_rollback();
+
     ESP_LOGI(TAG, "Sensor Receiver is running!");
     ESP_LOGI(TAG, "LoRa: Receiving on 868.1 MHz, SF10, BW125");
     ESP_LOGI(TAG, "ESP-NOW: Channel 13, waiting for pairing");

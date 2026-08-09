@@ -1,3 +1,4 @@
+#include <stdlib.h>
 #include <string.h>
 #include <time.h>
 
@@ -127,6 +128,24 @@ void action_event_setup_screen_loaded(lv_event_t *e)
   lv_dropdown_set_selected(objects.dropdown_city, city_id);
 
   lv_dropdown_set_selected(objects.dropdown_language, language);
+
+  // A saved SSID means setup was already completed on a previous boot -
+  // simulate pressing "Connect" so a plain restart with unchanged settings
+  // doesn't require the user to click through Connect/Start by hand. Both
+  // fields it reads (dropdown_networks/text_area_password) are already
+  // populated above at this point.
+  if (strcmp(ssid, "") != 0)
+  {
+    action_event_wifi_connect_pressed(NULL);
+  }
+
+  free(ssid);
+  free(password);
+  free(appid_owm);
+  free(appid_vc);
+  free(latitude);
+  free(longitude);
+  free(height);
 }
 
 void action_event_timezone_value_changed(lv_event_t *e)

@@ -1,17 +1,21 @@
 #include "ota_task.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "esp_log.h"
 #include "esp_app_desc.h"
 #include "esp_crt_bundle.h"
 #include "esp_https_ota.h"
+#include "nvs.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
-#include "weather/weather_http.h"
+#include "http/http_client.h"
 #include "gui/ota/gui_ota.h"
+#include "receiver/receiver.h"
+#include "nvs/preferences.h"
 
 static const char *TAG = "ota_task";
 
@@ -62,6 +66,38 @@ static const char *find_asset_download_url(cJSON *release_json)
         }
     }
     return NULL;
+}
+
+/* Sends the receiver its WiFi SSID/password + start command via I2C - see
+ * apply_update() below: always runs alongside it whenever the P4 updates
+ * itself, without any version check of its own for the receiver. The S3
+ * downloads its own "Receiver.bin" from the same GitHub tag and falls
+ * back to ESP-NOW on its own if the release doesn't contain one (see
+ * Sensor-Receiver/main/ota/ota_task.c) - so deliberately no asset
+ * pre-check here. Fire-and-forget, doesn't block the P4's reboot. */
+static void trigger_receiver_update(void)
+{
+    /* Same source as the setup-screen WiFi connection (see
+     * gui/setup/gui_setup_network_actions.c) - no separate credential
+     * storage for the receiver, or the two could drift apart. */
+    nvs_handle_t nvs_handle;
+    if (nvs_open("weatherstation", NVS_READONLY, &nvs_handle) != ESP_OK) {
+        ESP_LOGW(TAG, "Could not open NVS for WiFi credentials - skipping receiver OTA");
+        return;
+    }
+    char *ssid = get_string_from_nvs(nvs_handle, "ssid", "");
+    char *password = get_string_from_nvs(nvs_handle, "password", "");
+    nvs_close(nvs_handle);
+
+    if (strlen(ssid) == 0) {
+        ESP_LOGW(TAG, "No WiFi SSID stored - cannot start receiver OTA");
+    } else {
+        ESP_LOGI(TAG, "Triggering receiver OTA alongside own update");
+        receiver_start_ota(ssid, password);
+    }
+
+    free(ssid);
+    free(password);
 }
 
 /* Downloads the firmware binary from download_url into the inactive OTA
@@ -136,6 +172,9 @@ static void apply_update(const char *download_url)
     }
 
     gui_ota_update_progress(100);
+
+    trigger_receiver_update();
+
     ESP_LOGI(TAG, "OTA update successful, rebooting");
     esp_restart();
 
@@ -201,7 +240,7 @@ static bool parse_version(const char *version, app_version_t *out)
  * if a<b, 0 if equal, >0 if a>b. */
 static int compare_versions(const app_version_t *a, const app_version_t *b)
 {
-    //return 1; // DEBUG
+    return 1; // DEBUG
     if (a->major != b->major) return a->major - b->major;
     if (a->minor != b->minor) return a->minor - b->minor;
     if (a->patch != b->patch) return a->patch - b->patch;
@@ -210,13 +249,13 @@ static int compare_versions(const app_version_t *a, const app_version_t *b)
 
 /* One check cycle: query the latest GitHub release, compare versions,
  * update if different. */
-static void check_for_update(esp_http_client_handle_t client, weather_http_response_t *response)
+static void check_for_update(esp_http_client_handle_t client, http_response_t *response)
 {
     const char *running_version = esp_app_get_description()->version;
 
     esp_http_client_set_header(client, "User-Agent", "BaseStation-OTA");
 
-    cJSON *json = weather_http_get_json(client, response, GITHUB_RELEASE_URL);
+    cJSON *json = http_get_json(client, response, GITHUB_RELEASE_URL);
     if (json == NULL) {
         ESP_LOGW(TAG, "Failed to fetch latest release info");
         return;
@@ -270,8 +309,8 @@ static void ota_task(void *pvParameter)
 {
     ESP_LOGI(TAG, "Start OTA task");
 
-    weather_http_response_t response = {0};
-    esp_http_client_handle_t client = weather_http_client_create(&response);
+    http_response_t response = {0};
+    esp_http_client_handle_t client = http_client_create(&response);
 
     vTaskDelay(pdMS_TO_TICKS(OTA_FIRST_CHECK_DELAY_MS));
 

@@ -30,13 +30,13 @@ static const char *WEATHER_URL_DAILY =
         "wind_speed_10m_max,wind_gusts_10m_max,sunrise,sunset&"
         "timeformat=unixtime&timezone=auto&forecast_days=%d";
 
-bool open_meteo_fetch_current(esp_http_client_handle_t client, weather_http_response_t *response,
+bool open_meteo_fetch_current(esp_http_client_handle_t client, http_response_t *response,
                                const char *latitude, const char *longitude, current_weather_data_t *out) {
     char url[512];
     snprintf(url, sizeof(url), WEATHER_URL_CURRENT, latitude, longitude);
     ESP_LOGI(TAG, "Call current weather API: %s", url);
 
-    cJSON *json = weather_http_get_json(client, response, url);
+    cJSON *json = http_get_json(client, response, url);
     if (json == NULL) {
         return false;
     }
@@ -99,13 +99,13 @@ bool open_meteo_fetch_current(esp_http_client_handle_t client, weather_http_resp
     return success;
 }
 
-bool open_meteo_fetch_hourly(esp_http_client_handle_t client, weather_http_response_t *response,
+bool open_meteo_fetch_hourly(esp_http_client_handle_t client, http_response_t *response,
                               const char *latitude, const char *longitude, hourly_weather_data_t *out, int count) {
     char url[512];
     snprintf(url, sizeof(url), WEATHER_URL_HOURLY, latitude, longitude);
     ESP_LOGI(TAG, "Call hourly weather API: %s", url);
 
-    cJSON *json = weather_http_get_json(client, response, url);
+    cJSON *json = http_get_json(client, response, url);
     if (json == NULL) {
         return false;
     }
@@ -223,13 +223,13 @@ bool open_meteo_fetch_hourly(esp_http_client_handle_t client, weather_http_respo
     return success;
 }
 
-bool open_meteo_fetch_daily(esp_http_client_handle_t client, weather_http_response_t *response,
+bool open_meteo_fetch_daily(esp_http_client_handle_t client, http_response_t *response,
                              const char *latitude, const char *longitude, daily_weather_data_t *out, int count) {
     char url[512];
     snprintf(url, sizeof(url), WEATHER_URL_DAILY, latitude, longitude, count);
     ESP_LOGI(TAG, "Call daily weather API: %s", url);
 
-    cJSON *json = weather_http_get_json(client, response, url);
+    cJSON *json = http_get_json(client, response, url);
     if (json == NULL) {
         return false;
     }

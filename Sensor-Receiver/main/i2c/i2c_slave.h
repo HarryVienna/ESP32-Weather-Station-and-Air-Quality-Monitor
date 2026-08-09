@@ -2,22 +2,25 @@
  * @file i2c_slave.h
  * @brief I2C Slave driver for P4 Master readout using ESP-IDF I2C Slave Driver v2
  *
- * Architektur:
- * - ESP32-S3 als I2C Slave (Adresse 0x38)
- * - ESP32-P4 als I2C Master
- * - Register-basiertes Protokoll für Sensor-Daten Abruf
- * - Verwendet ESP-IDF I2C Slave Driver v2 (CONFIG_I2C_ENABLE_SLAVE_DRIVER_VERSION_2)
+ * Architecture:
+ * - ESP32-S3 as I2C slave (address 0x38)
+ * - ESP32-P4 as I2C master
+ * - Register-based protocol for sensor data readout
+ * - Uses ESP-IDF I2C Slave Driver v2 (CONFIG_I2C_ENABLE_SLAVE_DRIVER_VERSION_2)
  *
- * I2C Protokoll:
- *   Master WRITE Register-Adresse → Slave empfängt Command-Byte
- *   Master READ → Slave sendet Daten basierend auf letztem Command
+ * I2C protocol:
+ *   Master WRITE register address -> Slave receives command byte
+ *   Master READ -> Slave sends data based on the last command
  *
- * Register Map:
- *   0x00: READ  → Count (1 Byte: Anzahl verfügbarer Pakete)
- *   0x01: R/W → Packet Read (variable Länge, auto-pops vom Sensor-Stack)
- *   0x23: WRITE, 0x01 → Reset Drop-Counter
- *   0x24: READ → Total received (4 Byte, uint32_t LE)
- *   0x28: READ → Total overwritten (4 Byte, uint32_t LE)
+ * Register map:
+ *   0x00: READ  -> Count (1 byte: number of available packets)
+ *   0x01: R/W -> Packet read (variable length, auto-pops from the sensor stack)
+ *   0x23: WRITE, 0x01 -> Reset drop counter
+ *   0x24: READ -> Total received (4 bytes, uint32_t LE)
+ *   0x28: READ -> Total overwritten (4 bytes, uint32_t LE)
+ *   0x12: WRITE -> Set WiFi SSID for receiver OTA (RAM only, no NVS)
+ *   0x13: WRITE -> Set WiFi password for receiver OTA (RAM only, no NVS)
+ *   0x14: WRITE, 0x01 -> Start receiver firmware update (see ota/ota_task.h)
  */
 
 #ifndef I2C_SLAVE_H
@@ -45,6 +48,11 @@ extern "C" {
 #define I2C_REG_RESET_DROP    0x23          /* Write 0x01 to reset dropped counter */
 #define I2C_REG_STATS_RECV    0x24          /* Total packets received (4 bytes, uint32_t LE) */
 #define I2C_REG_STATS_OVERWR  0x28          /* Total overwritten packets (4 bytes, uint32_t LE) */
+
+/* Receiver firmware OTA (see ota/ota_task.h) */
+#define I2C_REG_SET_WIFI_SSID 0x12          /* Write WiFi SSID for the OTA download (RAM only, max 32 bytes + NUL) */
+#define I2C_REG_SET_WIFI_PASS 0x13          /* Write WiFi password for the OTA download (RAM only, max 64 bytes + NUL) */
+#define I2C_REG_OTA_START     0x14          /* Write 0x01 to start the receiver firmware update */
 
 /* Packet size constants */
 #define I2C_MIN_PACKET_SIZE   17            /* header(4) + metadata(11) + min_payload(2) */

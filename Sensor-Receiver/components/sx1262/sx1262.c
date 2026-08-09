@@ -498,7 +498,7 @@ esp_err_t sx1262_send(uint8_t *data, uint8_t len)
 {
     esp_err_t ret = ESP_OK;
 
-    if (data == NULL || len == 0 || len > 255) {
+    if (data == NULL || len == 0) {
         return ESP_ERR_INVALID_ARG;
     }
 
@@ -639,10 +639,6 @@ esp_err_t sx1262_receive(uint8_t *data, uint8_t *len, uint32_t timeout_ms)
             uint8_t payload_len = buffer_status[0];
             uint8_t rx_start_ptr = buffer_status[1];
 
-            if (payload_len > 255) {
-                payload_len = 255;
-            }
-
             // Read data from buffer using the general function
             // We need the SPI sequence: [CMD_READ_BUFFER, OFFSET, NOP]
             
@@ -700,7 +696,6 @@ static void IRAM_ATTR sx1262_dio1_isr_handler(void *arg)
 static void sx1262_rx_task(void *arg)
 {
     uint8_t rx_buffer[255];
-    uint8_t rx_len = 0;
     sx1262_packet_status_t pkt_status;
     
     ESP_LOGI(TAG, "RX Interrupt Task started");

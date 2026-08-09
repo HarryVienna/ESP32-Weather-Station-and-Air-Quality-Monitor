@@ -201,7 +201,7 @@ static bool parse_daily_item(cJSON *item, daily_weather_data_t *out) {
     return true;
 }
 
-bool visualcrossing_fetch_all(esp_http_client_handle_t client, weather_http_response_t *response,
+bool visualcrossing_fetch_all(esp_http_client_handle_t client, http_response_t *response,
                                const char *latitude, const char *longitude, const char *api_key,
                                current_weather_data_t *current_out, hourly_weather_data_t *hourly_out,
                                int hourly_count, daily_weather_data_t *daily_out, int daily_count) {
@@ -214,7 +214,7 @@ bool visualcrossing_fetch_all(esp_http_client_handle_t client, weather_http_resp
     snprintf(url, sizeof(url), VC_URL_TIMELINE, latitude, longitude, api_key);
     ESP_LOGI(TAG, "Call weather API (VisualCrossing): %s", url);
 
-    cJSON *json = weather_http_get_json(client, response, url);
+    cJSON *json = http_get_json(client, response, url);
     if (json == NULL) {
         return false;
     }
