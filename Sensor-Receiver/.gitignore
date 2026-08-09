@@ -2,5 +2,5 @@
 build
 managed_components
 sdkconfig
-
+dependencies.lock
 .github/copilot-instructions.md
