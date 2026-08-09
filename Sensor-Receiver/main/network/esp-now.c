@@ -261,6 +261,18 @@ esp_err_t init_wifi(void) {
         return ret;
     }
 
+    // ESP-NOW itself doesn't need this (it talks directly to the WiFi MAC,
+    // no IP stack involved) - but ota/ota_task.c's wifi_connect() does: it
+    // waits for IP_EVENT_STA_GOT_IP, which only ever fires if a netif (and
+    // therefore its DHCP client) is actually attached to the STA interface.
+    // Without this, esp_wifi_connect() can still associate at L2 ("wifi:
+    // connected with ...") but never obtains an IP, and wifi_connect()
+    // times out waiting for a bit that's never set.
+    if (esp_netif_create_default_wifi_sta() == NULL) {
+        ESP_LOGE(TAG, "Failed to create default WiFi STA netif");
+        return ESP_FAIL;
+    }
+
     // Init WiFi
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
     if ((ret = esp_wifi_init(&cfg)) != ESP_OK) {
