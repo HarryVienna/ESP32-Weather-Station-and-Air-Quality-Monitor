@@ -28,6 +28,10 @@
 
 static const char* TAG = "WIFI";
 
+/* Set once in wifi_init() from its time_synced_cb parameter, read from
+ * sync_callback() further below (NTP time synchronization section). */
+static wifi_time_synced_cb_t s_time_synced_cb = NULL;
+
 /* FreeRTOS event group to signal when we are connected. Created once in
  * wifi_init() - see the forward-declared event_handler() below for why. */
 static EventGroupHandle_t s_wifi_event_group;
@@ -77,8 +81,10 @@ char* get_mac_string(const uint8_t *mac_addr, char *macStrBuffer) {
  *
  * This function initializes the WIFI driver.
  */
-esp_err_t wifi_init(void) {
+esp_err_t wifi_init(wifi_time_synced_cb_t time_synced_cb) {
     ESP_LOGI(TAG, "Install WIFI driver");
+
+    s_time_synced_cb = time_synced_cb;
 
     // Initialize NVS
     esp_err_t ret = nvs_flash_init();
@@ -267,10 +273,18 @@ static bool sntp_started = false;
 
 /**
  * @brief Callback function from time sync
+ *
+ * Fires once for the initial sync (see wifi_sync_time()) and again on
+ * every periodic resync afterwards - SNTP_OPMODE_POLL keeps this running
+ * in the background for the device's entire uptime, not just at startup.
  */
 static void sync_callback(struct timeval *tv) {
     ESP_LOGI(TAG, "Syncing date/time: %s", ctime(&tv->tv_sec));
     xSemaphoreGive(sync_semaphore);
+
+    if (s_time_synced_cb) {
+        s_time_synced_cb();
+    }
 }
 
 void wifi_sync_time(void)

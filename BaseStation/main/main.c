@@ -34,12 +34,9 @@ void app_main(void)
 
     // Hardware Init
     ESP_ERROR_CHECK(display_init());
-
-    ESP_ERROR_CHECK(wifi_init());
-
     ESP_ERROR_CHECK(i2c_manager_init());
-
     ESP_ERROR_CHECK(receiver_init());
+    ESP_ERROR_CHECK(wifi_init(receiver_sync_time));
 
     // GUI Init
     lvgl_port_lock(0);

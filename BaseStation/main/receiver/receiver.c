@@ -1,12 +1,14 @@
 #include "receiver.h"
 #include "i2c/i2c_manager.h"
 
+#include <stdlib.h>
 #include <string.h>
 #include <time.h>
 
 #include "esp_log.h"
 #include "esp_check.h"
 #include "esp_timer.h"
+#include "nvs.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "driver/i2c_master.h"
@@ -14,6 +16,7 @@
 #include "esp_rom_sys.h"
 
 #include "gui/sensors/gui_sensors.h"
+#include "nvs/preferences.h"
 
 #include "../../common/packet_format.h"
 
@@ -37,8 +40,9 @@ static const char *TAG = "RECEIVER";
 #define I2C_REG_SET_WIFI_PASS 0x13
 #define I2C_REG_OTA_START     0x14
 
-/* Timezone that gets sent to the S3 slave */
-#define SLAVE_TIMEZONE  "CET-1CEST,M3.5.0,M10.5.0/3"
+/* Fallback timezone for the S3 slave, only used if NVS ("weatherstation"/
+ * "tz") has no value yet - see receiver_sync_time(). */
+#define DEFAULT_TIMEZONE  "CET-1CEST,M3.5.0,M10.5.0/3"
 
 /* Delay between WRITE (register) and READ (data) in ms */
 #define I2C_SLAVE_PREPARE_MS  50
@@ -362,6 +366,43 @@ static void i2c_scan(void)
     ESP_LOGI(TAG, "===================");
 }
 
+void receiver_sync_time(void)
+{
+    // Return values deliberately ignored below: if I2C communication with
+    // the S3 fails (e.g. because it's not ready yet at boot), this should
+    // only be logged, not make the caller fail - receiver_init() propagates
+    // failures via ESP_ERROR_CHECK() in main.c, which would restart the
+    // whole device every time the S3 boots slowly.
+    if (s_dev == NULL) {
+        return;
+    }
+
+    time_t now = time(NULL);
+    if (now <= 1000000000) {
+        ESP_LOGW(TAG, "System time not synchronized - not sending to slave");
+        return;
+    }
+
+    // Read fresh from NVS every call (not just once) so a timezone change
+    // in the setup screen reaches the S3 on the next sync, without a
+    // separate "timezone changed" hook - see gui/setup/
+    // gui_setup_screen_actions.c: save_region_and_timezone().
+    nvs_handle_t nvs_handle;
+    char *tz = NULL;
+    if (nvs_open("weatherstation", NVS_READONLY, &nvs_handle) == ESP_OK) {
+        tz = get_string_from_nvs(nvs_handle, "tz", DEFAULT_TIMEZONE);
+        nvs_close(nvs_handle);
+    } else {
+        tz = strdup(DEFAULT_TIMEZONE);
+    }
+
+    i2c_set_timezone(tz);
+    i2c_set_time(now);
+    ESP_LOGI(TAG, "Time + timezone sent to slave (ts=%lld, tz=%s)", (long long)now, tz);
+
+    free(tz);
+}
+
 esp_err_t receiver_init(void)
 {
     ESP_LOGI(TAG, "Slave 0x%02X @ %d Hz", I2C_SLAVE_ADDR, I2C_SLAVE_FREQ);
@@ -370,22 +411,6 @@ esp_err_t receiver_init(void)
 
     ESP_RETURN_ON_ERROR(i2c_master_bus_add_device(i2c_manager_get_bus(), &s_dev_cfg, &s_dev),
                         TAG, "Failed to add slave device");
-
-    // Return values deliberately ignored: if I2C communication with the S3
-    // fails (e.g. because it's not ready yet at boot), this should only be
-    // logged, not make receiver_init() fail - otherwise
-    // ESP_ERROR_CHECK(receiver_init()) in main.c would restart the whole
-    // device every time the S3 boots slowly.
-    i2c_set_timezone(SLAVE_TIMEZONE);
-
-    time_t now = time(NULL);
-    if (now > 1000000000) {
-        i2c_set_time(now);
-        ESP_LOGI(TAG, "Zeit + Timezone an Slave übertragen (ts=%lld, tz=%s)",
-                 (long long)now, SLAVE_TIMEZONE);
-    } else {
-        ESP_LOGW(TAG, "Systemzeit nicht synchronisiert — Zeit nicht übertragen");
-    }
 
     return ESP_OK;
 }

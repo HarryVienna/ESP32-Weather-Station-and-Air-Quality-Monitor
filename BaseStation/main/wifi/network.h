@@ -10,8 +10,17 @@
 extern "C" {
 #endif
 
-// Function declarations
-esp_err_t wifi_init(void);
+typedef void (*wifi_time_synced_cb_t)(void);
+
+/* time_synced_cb, if not NULL, fires every time SNTP updates the system
+ * clock - once for the initial sync triggered by wifi_sync_time(), and
+ * again on every periodic resync afterwards (SNTP_OPMODE_POLL keeps
+ * polling in the background for the device's entire uptime, see
+ * network.c: sync_callback()). Use this instead of only reacting to the
+ * one-shot wifi_sync_time() call if something needs to stay in sync
+ * continuously, not just at startup (e.g. receiver_sync_time() in
+ * receiver/receiver.h, passed in from main.c). */
+esp_err_t wifi_init(wifi_time_synced_cb_t time_synced_cb);
 
 /* Connects with ssid/password, waits bounded (WIFI_CONNECT_MAX_RETRIES
  * attempts, see network.c) and returns whether it worked. Same behavior
