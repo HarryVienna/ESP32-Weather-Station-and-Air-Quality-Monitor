@@ -26,6 +26,8 @@ typedef struct {
     int wind_direction_10m;         // Wind direction at 10 meters in degrees
     double wind_gusts_10m;          // Wind gusts at 10 meters in km/h
     double uv_index;                // UV index
+    struct tm sunrise;              // Today's sunrise, in a struct tm
+    struct tm sunset;               // Today's sunset, in a struct tm
 } current_weather_data_t;
 
 typedef struct {
@@ -55,8 +57,6 @@ typedef struct {
     double precipitation_probability_max; // Maximum precipitation probability in %
     double wind_speed_10m_max;  // Maximum wind speed in km/h
     double wind_gusts_10m_max;  // Maximum wind gusts in km/h
-    struct tm sunrise;          // Store the sunrise in a struct tm
-    struct tm sunset;           // Store the sunset in a struct tm
 } daily_weather_data_t;
 
 #ifdef __cplusplus

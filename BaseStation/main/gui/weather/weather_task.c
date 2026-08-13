@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -51,6 +52,35 @@ static bool validate_coordinates(const char* lat, const char* lon) {
     }
 
     return true;
+}
+
+/**
+ * @brief Seconds until the next :00/:15/:30/:45 wall-clock mark
+ *
+ * Aligning fetches to quarter-hour marks (instead of just sleeping 15
+ * minutes after each fetch, which drifts with whatever second the task
+ * happened to start on) keeps the worst-case staleness after an hour/day
+ * boundary down to one fetch cycle instead of up to ~15 extra minutes.
+ * Falls back to a flat 15 minutes if the system clock isn't synchronized
+ * yet, since the computed delay would otherwise be meaningless.
+ */
+static int delay_to_next_quarter_hour(void) {
+    time_t now;
+    time(&now);
+
+    struct tm tm_now;
+    localtime_r(&now, &tm_now);
+
+    if (tm_now.tm_year + 1900 < 2020) {
+        return 60 * 15;
+    }
+
+    int seconds_into_quarter = (tm_now.tm_min % 15) * 60 + tm_now.tm_sec;
+    int delay_sec = (60 * 15) - seconds_into_quarter;
+    if (delay_sec <= 0 || delay_sec > 60 * 15) {
+        delay_sec = 60 * 15;
+    }
+    return delay_sec;
 }
 
 /**
@@ -132,6 +162,6 @@ void weather_task(void *pvParameter) {
             ESP_LOGW(TAG, "Weather data incomplete - skipping display update");
         }
 
-        vTaskDelay(pdMS_TO_TICKS(1000 * 60 * 15)); // Every 15 Minutes
+        vTaskDelay(pdMS_TO_TICKS(1000 * delay_to_next_quarter_hour()));
     }
 }

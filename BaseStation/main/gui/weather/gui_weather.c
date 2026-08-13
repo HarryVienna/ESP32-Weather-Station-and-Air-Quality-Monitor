@@ -140,8 +140,8 @@ void disp_weather(current_weather_data_t *current_weather, hourly_weather_data_t
 
   lv_img_set_angle(objects.current__wind_direction, current_weather->wind_direction_10m * 10);
 
-  struct tm time_sunrise = daily_weather[0].sunrise;
-  struct tm time_sunrset = daily_weather[0].sunset;
+  struct tm time_sunrise = current_weather->sunrise;
+  struct tm time_sunrset = current_weather->sunset;
   strftime(str_sunrise, sizeof(str_sunrise), "%H:%M", &time_sunrise);
   lv_label_set_text(objects.current__sunrise, str_sunrise);
   strftime(str_sunset, sizeof(str_sunset), "%H:%M", &time_sunrset);

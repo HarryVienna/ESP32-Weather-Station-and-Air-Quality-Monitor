@@ -56,33 +56,6 @@ void sensor_sen66_task(void *pvParameter) {
         ESP_LOGI(TAG, "Serial number: %s", serial_number);
     }
 
-// 21.97
-// 4838
-
-//23.79°
-//5086
-
-// 24.12°C 
-// 5115
-
-//24.21°C
-//5310 
-
-//24.25°C
-//5326
-
-//24.16°C
-//5292
-
-// 24.03°C
-// 5041
-
-// 22.58°
-// 4645
-
-// 23.67°
-// 5239
-
     error = sen66_set_temperature_acceleration_parameters(100, 600, 50, 20);
     if (error) {
         ESP_LOGE(TAG, "Error executing sen66_set_temperature_acceleration_parameters(): %i", error);

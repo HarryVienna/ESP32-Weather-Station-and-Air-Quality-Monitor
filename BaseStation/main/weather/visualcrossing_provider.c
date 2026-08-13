@@ -125,6 +125,15 @@ static bool parse_current(cJSON *current, current_weather_data_t *out) {
     out->wind_gusts_10m = opt_num(current, "windgust", windspeed);
     out->uv_index = opt_num(current, "uvindex", 0.0);
 
+    if (sunrise > 0) {
+        time_t sunrise_time = (time_t)sunrise;
+        localtime_r(&sunrise_time, &out->sunrise);
+    }
+    if (sunset > 0) {
+        time_t sunset_time = (time_t)sunset;
+        localtime_r(&sunset_time, &out->sunset);
+    }
+
     return true;
 }
 
@@ -179,10 +188,6 @@ static bool parse_daily_item(cJSON *item, daily_weather_data_t *out) {
 
     time_t dt_ts = (time_t)dt;
     localtime_r(&dt_ts, &out->time);
-    time_t sunrise_time = (time_t)sunrise_ts;
-    localtime_r(&sunrise_time, &out->sunrise);
-    time_t sunset_time = (time_t)sunset_ts;
-    localtime_r(&sunset_time, &out->sunset);
 
     out->temperature_2m_max = temp_max;
     out->temperature_2m_min = temp_min;

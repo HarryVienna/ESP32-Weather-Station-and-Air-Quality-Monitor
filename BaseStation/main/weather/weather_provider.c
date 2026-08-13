@@ -23,7 +23,7 @@ bool weather_provider_fetch_all(weather_provider_t provider, esp_http_client_han
         default: {
             bool current_ok = open_meteo_fetch_current(client, response, latitude, longitude, current_out);
             bool hourly_ok = open_meteo_fetch_hourly(client, response, latitude, longitude, hourly_out, hourly_count);
-            bool daily_ok = open_meteo_fetch_daily(client, response, latitude, longitude, daily_out, daily_count);
+            bool daily_ok = open_meteo_fetch_daily(client, response, latitude, longitude, daily_out, daily_count, current_out);
             return current_ok && hourly_ok && daily_ok;
         }
     }

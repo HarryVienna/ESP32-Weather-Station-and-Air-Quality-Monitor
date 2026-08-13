@@ -27,6 +27,7 @@ typedef enum{
 
 typedef struct {
     i2c_master_dev_handle_t dev_handle;
+    uint8_t mtreg;  // Measurement time register - see bh1750_set_measure_time()
 } bh_1750_t;
 
 esp_err_t bh1750_init(bh_1750_t *sensor, i2c_master_bus_handle_t bus_handle);

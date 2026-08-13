@@ -224,7 +224,8 @@ bool open_meteo_fetch_hourly(esp_http_client_handle_t client, http_response_t *r
 }
 
 bool open_meteo_fetch_daily(esp_http_client_handle_t client, http_response_t *response,
-                             const char *latitude, const char *longitude, daily_weather_data_t *out, int count) {
+                             const char *latitude, const char *longitude, daily_weather_data_t *out, int count,
+                             current_weather_data_t *current_out) {
     char url[512];
     snprintf(url, sizeof(url), WEATHER_URL_DAILY, latitude, longitude, count);
     ESP_LOGI(TAG, "Call daily weather API: %s", url);
@@ -325,11 +326,15 @@ bool open_meteo_fetch_daily(esp_http_client_handle_t client, http_response_t *re
                     // value instead of leaving it empty
                     out[i].wind_gusts_10m_max = (wind_gust_item && cJSON_IsNumber(wind_gust_item)) ? wind_gust_item->valuedouble : wind_speed_item->valuedouble;
 
-                    time_t sunriseTimestamp = (time_t)sunrise_item->valueint;
-                    localtime_r(&sunriseTimestamp, &out[i].sunrise);
+                    if (i == 0) {
+                        // Only "current" is displayed as-is - see the
+                        // header comment on this function.
+                        time_t sunriseTimestamp = (time_t)sunrise_item->valueint;
+                        localtime_r(&sunriseTimestamp, &current_out->sunrise);
 
-                    time_t sunsetTimestamp = (time_t)sunset_item->valueint;
-                    localtime_r(&sunsetTimestamp, &out[i].sunset);
+                        time_t sunsetTimestamp = (time_t)sunset_item->valueint;
+                        localtime_r(&sunsetTimestamp, &current_out->sunset);
+                    }
                 }
 
                 if (daily_data_valid) {

@@ -84,6 +84,7 @@ esp_http_client_handle_t http_client_create(http_response_t *response) {
         .crt_bundle_attach = esp_crt_bundle_attach,
         .user_data = response,
         .disable_auto_redirect = true,
+        .timeout_ms = 15000,
     };
 
     return esp_http_client_init(&config);

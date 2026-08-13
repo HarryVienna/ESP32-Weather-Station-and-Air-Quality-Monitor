@@ -1,4 +1,6 @@
+#include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <time.h>
 
@@ -7,6 +9,19 @@
 #include "openweathermap_provider.h"
 
 static const char *TAG = "openweathermap_provider";
+
+/* Days since 1970-01-01 for a proleptic Gregorian civil date (Howard
+ * Hinnant's algorithm - http://howardhinnant.github.io/date_algorithms.html).
+ * Used below to build a UTC-midnight timestamp straight from a Y/M/D triple
+ * without needing timegm(), which picolibc doesn't provide. */
+static int64_t days_from_civil(int y, int m, int d) {
+    y -= m <= 2;
+    int64_t era = (y >= 0 ? y : y - 399) / 400;
+    unsigned yoe = (unsigned)(y - era * 400);
+    unsigned doy = (unsigned)((153 * (m + (m > 2 ? -3 : 9)) + 2) / 5 + d - 1);
+    unsigned doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
+    return era * 146097 + (int64_t)doe - 719468;
+}
 
 /* One Call API 4.0 (https://openweathermap.org/api/one-call-4) - unlike
  * 3.0, current/hourly/daily are separate endpoints, no combined call.
@@ -22,7 +37,7 @@ static const char *OWM_URL_HOURLY =
 
 static const char *OWM_URL_DAILY =
         "https://api.openweathermap.org/data/4.0/onecall/timeline/1day?"
-        "lat=%s&lon=%s&appid=%s&units=metric&cnt=%d";
+        "lat=%s&lon=%s&appid=%s&units=metric&cnt=%d&start=%lld";
 
 static bool req_num(cJSON *obj, const char *key, double *out) {
     cJSON *item = cJSON_GetObjectItem(obj, key);
@@ -119,7 +134,7 @@ static int owm_weather_id_to_wmo(int owm_id) {
 }
 
 static bool parse_current_item(cJSON *item, current_weather_data_t *out) {
-    double temp, pressure, humidity, clouds, wind_speed, wind_deg;
+    double temp, pressure, humidity, clouds, wind_speed, wind_deg, sunrise_ts, sunset_ts;
     int weather_id;
 
     if (!req_num(item, "temp", &temp) ||
@@ -128,6 +143,8 @@ static bool parse_current_item(cJSON *item, current_weather_data_t *out) {
         !req_num(item, "clouds", &clouds) ||
         !req_num(item, "wind_speed", &wind_speed) ||
         !req_num(item, "wind_deg", &wind_deg) ||
+        !req_num(item, "sunrise", &sunrise_ts) ||
+        !req_num(item, "sunset", &sunset_ts) ||
         !owm_weather_id(item, &weather_id)) {
         ESP_LOGE(TAG, "Current weather data incomplete - missing required fields");
         return false;
@@ -147,6 +164,13 @@ static bool parse_current_item(cJSON *item, current_weather_data_t *out) {
     // case use wind speed as the gust value instead of leaving it empty
     out->wind_gusts_10m = opt_num(item, "wind_gust", wind_speed) * 3.6;
     out->uv_index = opt_num(item, "uvi", 0.0);
+
+    // Unlike "dt" on the daily endpoint, these are genuine moments in time
+    // (not a pure calendar day), so a real local-time conversion is right here.
+    time_t sunrise_time = (time_t)sunrise_ts;
+    localtime_r(&sunrise_time, &out->sunrise);
+    time_t sunset_time = (time_t)sunset_ts;
+    localtime_r(&sunset_time, &out->sunset);
 
     return true;
 }
@@ -200,12 +224,16 @@ static bool parse_daily_item(cJSON *item, daily_weather_data_t *out) {
 
     double daylight_duration = sunset_ts - sunrise_ts;
 
+    // "dt" is a pure calendar day, not a specific moment - openweathermap_fetch_daily()
+    // builds "start" from the location's local today's own Y/M/D read directly as a UTC
+    // timestamp (no local->UTC conversion), and OWM echoes that back verbatim as day 0,
+    // +1 day per subsequent entry. Reading it back with gmtime_r() (not localtime_r()) is
+    // the matching other half of that trick: it returns those same Y/M/D digits untouched,
+    // which are already the location's local calendar date - no TZ conversion needed or
+    // wanted here. (localtime_r() would shift the date by the UTC offset and often land on
+    // the wrong day - see the "Di statt Mi" investigation.)
     time_t dt_ts = (time_t)dt;
-    localtime_r(&dt_ts, &out->time);
-    time_t sunrise_time = (time_t)sunrise_ts;
-    localtime_r(&sunrise_time, &out->sunrise);
-    time_t sunset_time = (time_t)sunset_ts;
-    localtime_r(&sunset_time, &out->sunset);
+    gmtime_r(&dt_ts, &out->time);
 
     out->temperature_2m_max = temp_max;
     out->temperature_2m_min = temp_min;
@@ -322,7 +350,32 @@ bool openweathermap_fetch_daily(esp_http_client_handle_t client, http_response_t
                                  const char *latitude, const char *longitude, const char *api_key,
                                  daily_weather_data_t *out, int count) {
     char url[512];
-    snprintf(url, sizeof(url), OWM_URL_DAILY, latitude, longitude, api_key, count);
+
+    // OWM's daily endpoint only returns data starting from "today" as
+    // documented if "start" is an exact UTC-midnight timestamp (a multiple
+    // of 86400) - verified empirically: a non-aligned value (e.g. local
+    // midnight straight-converted to UTC, which lands on a fractional UTC
+    // hour for any non-zero offset) makes it silently fall back to
+    // unrelated/stale data instead.
+    //
+    // So: take the location's local today's own Y/M/D and build a UTC
+    // timestamp directly from those digits (days_from_civil(), no TZ
+    // conversion applied) - that's always UTC-midnight-aligned by
+    // construction, for any timezone. OWM then echoes it back verbatim as
+    // day 0, +1 UTC day per subsequent entry (verified). parse_daily_item()
+    // reads "dt" back with gmtime_r() rather than localtime_r() - the
+    // matching other half of this trick: it returns those same Y/M/D
+    // digits untouched, which are already the local calendar date, so no
+    // further TZ conversion is needed (or wanted) at that end either.
+    time_t now;
+    time(&now);
+    struct tm local_now;
+    localtime_r(&now, &local_now);
+
+    int64_t days = days_from_civil(local_now.tm_year + 1900, local_now.tm_mon + 1, local_now.tm_mday);
+    time_t start_ts = (time_t)(days * 86400);
+
+    snprintf(url, sizeof(url), OWM_URL_DAILY, latitude, longitude, api_key, count, (long long)start_ts);
     ESP_LOGI(TAG, "Call daily weather API (OWM): %s", url);
 
     cJSON *json = http_get_json(client, response, url);

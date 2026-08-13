@@ -24,7 +24,7 @@
 
 static const char* TAG = "brightness_task";
 
-#define LUX_CALIBRATION_OFFSET   5     // Self-emitted light from the enclosure LEDs (specific to this weather station)
+#define LUX_CALIBRATION_OFFSET   1     // Self-emitted light from the enclosure LEDs (specific to this weather station)
 #define BRIGHTNESS_NO_PRESENCE   5     // Display brightness when no presence is detected
 
 /* Right after being configured (RECOVER_SEN/PRESENCE_MODE/START_SEN/

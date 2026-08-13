@@ -8,8 +8,9 @@
 
 static const char *TAG = "bh1750";
 
-#define BH1750_I2C_ADDR    0x23
-#define BH1750_I2C_FREQ_HZ 50000
+#define BH1750_I2C_ADDR      0x23
+#define BH1750_I2C_FREQ_HZ   50000
+#define BH1750_DEFAULT_MTREG 69  // Power-on-reset default - see datasheet
 
 
 static esp_err_t write_reg_i2c(bh_1750_t *sensor, uint8_t *data, uint8_t len) {
@@ -29,6 +30,7 @@ esp_err_t bh1750_init(bh_1750_t *sensor, i2c_master_bus_handle_t bus_handle) {
         .device_address  = BH1750_I2C_ADDR,
         .scl_speed_hz    = BH1750_I2C_FREQ_HZ,
     };
+    sensor->mtreg = BH1750_DEFAULT_MTREG;
     return i2c_master_bus_add_device(bus_handle, &dev_cfg, &sensor->dev_handle);
 }
 
@@ -66,6 +68,9 @@ esp_err_t bh1750_set_measure_time(bh_1750_t *sensor, uint8_t time)
     if (ret == ESP_OK) {
         ret = write_reg_i2c(sensor, &cmd_low, 1);
     }
+    if (ret == ESP_OK) {
+        sensor->mtreg = time;
+    }
     vTaskDelay(pdMS_TO_TICKS(180));
     return ret;
 }
@@ -80,6 +85,10 @@ esp_err_t bh1750_read(bh_1750_t *sensor, uint16_t *lux)
     }
 
     uint16_t raw = ((uint16_t)buf[0] << 8) | buf[1];
-    *lux = (raw * 10) / 12; // division by 1.2
+    // "raw / 1.2" is only correct at the default MTreg (69) - datasheet
+    // scales it by (default_mtreg / mtreg) for any other configured value,
+    // e.g. mtreg=254 (see bh1750_set_measure_time() callers) needs raw
+    // scaled down by ~69/254 to compensate for the longer integration time.
+    *lux = (uint16_t)(((uint32_t)raw * 10 * BH1750_DEFAULT_MTREG) / (12 * sensor->mtreg));
     return ESP_OK;
 }
