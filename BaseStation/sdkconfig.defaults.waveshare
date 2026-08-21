@@ -1,0 +1,6 @@
+# Overlay for the Waveshare ESP32-P4-Module-DEV-KIT build - layered on top
+# of sdkconfig.defaults via "idf.py -D SDKCONFIG_DEFAULTS=..." (see
+# .github/workflows/release.yml). Redundant with sdkconfig.defaults' own
+# default right now, but explicit here so both CI jobs look symmetric and
+# this keeps working if that default ever changes.
+CONFIG_DISPLAY_BOARD_WAVESHARE=y

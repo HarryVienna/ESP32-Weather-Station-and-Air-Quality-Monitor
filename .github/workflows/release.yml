@@ -1,9 +1,10 @@
 name: Build and Release Firmware
 
 # Runs on every push of a version tag (e.g. "git tag v1.2.3 && git push --tags").
-# Builds main/BaseStation for ESP32-P4 and main/Sensor-Receiver for ESP32-S3 in
-# two parallel jobs and attaches both firmwares as assets to a shared
-# GitHub release.
+# Builds main/BaseStation for ESP32-P4 (once per supported display board -
+# see main/Kconfig.projbuild) and main/Sensor-Receiver for ESP32-S3 in
+# parallel jobs and attaches all firmwares as assets to a shared GitHub
+# release.
 on:
   push:
     tags:
@@ -13,7 +14,15 @@ permissions:
   contents: write  # needed so the action can create/describe a GitHub release
 
 jobs:
-  build-basestation:
+  # Same steps for both display boards, only the SDKCONFIG_DEFAULTS overlay
+  # and the output file names differ - see main/Kconfig.projbuild for why
+  # this needs two separate builds instead of one binary that works on both
+  # (different touch controller/backlight/GPIOs, selected at compile time).
+  # Each job's container is a fresh checkout, so there's never a stale
+  # sdkconfig around to make the SDKCONFIG_DEFAULTS overlay a no-op (see
+  # the "sdkconfig.defaults* only seeds a NEW sdkconfig" note in
+  # sdkconfig.defaults.guition).
+  build-basestation-waveshare:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -33,21 +42,53 @@ jobs:
           esp_idf_version: v6.0.2
           target: esp32p4
           path: BaseStation
+          command: idf.py -D "SDKCONFIG_DEFAULTS=sdkconfig.defaults;sdkconfig.defaults.waveshare" build
 
-      # Own folder + unique file names: BaseStation and Sensor-Receiver both
-      # produce "bootloader.bin"/"partition-table.bin" - without renaming,
-      # the two artifact sets would overwrite each other on release upload.
+      # Own folder + unique file names: BaseStation-waveshare, BaseStation-
+      # guition and Sensor-Receiver all produce "bootloader.bin"/
+      # "partition-table.bin" - without renaming, the artifact sets would
+      # overwrite each other on release upload.
       - name: Collect artifacts
         run: |
           mkdir -p artifacts
-          cp BaseStation/build/Basestation.bin artifacts/Basestation.bin
-          cp BaseStation/build/bootloader/bootloader.bin artifacts/Basestation-bootloader.bin
-          cp BaseStation/build/partition_table/partition-table.bin artifacts/Basestation-partition-table.bin
+          cp BaseStation/build/Basestation.bin artifacts/Basestation-waveshare.bin
+          cp BaseStation/build/bootloader/bootloader.bin artifacts/Basestation-waveshare-bootloader.bin
+          cp BaseStation/build/partition_table/partition-table.bin artifacts/Basestation-waveshare-partition-table.bin
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: basestation-firmware
+          name: basestation-waveshare-firmware
+          path: artifacts/
+
+  build-basestation-guition:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Clean stale component cache
+        run: rm -rf BaseStation/managed_components BaseStation/build
+
+      - name: Build with ESP-IDF
+        uses: espressif/esp-idf-ci-action@v1
+        with:
+          esp_idf_version: v6.0.2
+          target: esp32p4
+          path: BaseStation
+          command: idf.py -D "SDKCONFIG_DEFAULTS=sdkconfig.defaults;sdkconfig.defaults.guition" build
+
+      - name: Collect artifacts
+        run: |
+          mkdir -p artifacts
+          cp BaseStation/build/Basestation.bin artifacts/Basestation-guition.bin
+          cp BaseStation/build/bootloader/bootloader.bin artifacts/Basestation-guition-bootloader.bin
+          cp BaseStation/build/partition_table/partition-table.bin artifacts/Basestation-guition-partition-table.bin
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: basestation-guition-firmware
           path: artifacts/
 
   build-receiver:
@@ -56,8 +97,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # See "Clean stale component cache" in build-basestation above - same
-      # reasoning, this is what was hitting the u8g2 hash-mismatch error.
+      # See "Clean stale component cache" above - same reasoning, this is
+      # what was hitting the u8g2 hash-mismatch error.
       - name: Clean stale component cache
         run: rm -rf Sensor-Receiver/managed_components Sensor-Receiver/build
 
@@ -86,7 +127,7 @@ jobs:
           path: artifacts/
 
   release:
-    needs: [build-basestation, build-receiver]
+    needs: [build-basestation-waveshare, build-basestation-guition, build-receiver]
     runs-on: ubuntu-latest
     steps:
       - name: Download artifacts
@@ -99,5 +140,6 @@ jobs:
         with:
           tag_name: ${{ github.ref_name }}
           files: |
-            artifacts/basestation-firmware/*
+            artifacts/basestation-waveshare-firmware/*
+            artifacts/basestation-guition-firmware/*
             artifacts/receiver-firmware/*

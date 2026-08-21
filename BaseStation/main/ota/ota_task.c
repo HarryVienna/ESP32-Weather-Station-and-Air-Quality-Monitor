@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "sdkconfig.h"
 #include "esp_log.h"
 #include "esp_app_desc.h"
 #include "esp_crt_bundle.h"
@@ -37,7 +38,19 @@ static TaskHandle_t s_ota_task_handle = NULL;
 #define GITHUB_OWNER          "HarryVienna"
 #define GITHUB_REPO           "ESP32-Weather-Station-and-Air-Quality-Monitor"
 #define GITHUB_RELEASE_URL    "https://api.github.com/repos/" GITHUB_OWNER "/" GITHUB_REPO "/releases/latest"
-#define OTA_ASSET_NAME        "Basestation.bin"
+
+/* The release workflow builds BaseStation twice - once per
+ * CONFIG_DISPLAY_BOARD_* (see main/Kconfig.projbuild) - and attaches both
+ * binaries to the same release under these two distinct names, since a
+ * device flashed for one board must never install the other's firmware
+ * (different touch controller, backlight mechanism, GPIOs - see
+ * display_waveshare.c/display_guition.c). Each device asks for only the
+ * asset name matching its own build. */
+#if defined(CONFIG_DISPLAY_BOARD_WAVESHARE)
+#define OTA_ASSET_NAME "Basestation-waveshare.bin"
+#elif defined(CONFIG_DISPLAY_BOARD_GUITION)
+#define OTA_ASSET_NAME "Basestation-guition.bin"
+#endif
 
 /* First check shortly after task start, then every 24h - GitHub releases
  * aren't frequent enough to justify more frequent polling. */

@@ -129,6 +129,12 @@ void action_event_setup_screen_loaded(lv_event_t *e)
 
   lv_dropdown_set_selected(objects.dropdown_language, language);
 
+  // Reflect whatever was already saved in NVS - relevant if latitude/
+  // longitude are already filled in but WiFi hasn't (re-)connected yet
+  // this boot (or vice versa): button_starten should stay disabled either
+  // way, not just once a connect happens to succeed later.
+  gui_setup_refresh_start_button();
+
   // A saved SSID means setup was already completed on a previous boot -
   // simulate pressing "Connect" so a plain restart with unchanged settings
   // doesn't require the user to click through Connect/Start by hand. Both
@@ -219,6 +225,8 @@ void action_event_lat_value_changed(lv_event_t *e)
   nvs_open("weatherstation", NVS_READWRITE, &nvs_handle);
   put_string_to_nvs(nvs_handle, "latitude", lv_textarea_get_text(objects.text_area_latitude));
   nvs_close(nvs_handle);
+
+  gui_setup_refresh_start_button();
 }
 
 void action_event_long_value_changed(lv_event_t *e)
@@ -227,6 +235,8 @@ void action_event_long_value_changed(lv_event_t *e)
   nvs_open("weatherstation", NVS_READWRITE, &nvs_handle);
   put_string_to_nvs(nvs_handle, "longitude", lv_textarea_get_text(objects.text_area_longitude));
   nvs_close(nvs_handle);
+
+  gui_setup_refresh_start_button();
 }
 
 void action_event_alt_value_changed(lv_event_t *e)

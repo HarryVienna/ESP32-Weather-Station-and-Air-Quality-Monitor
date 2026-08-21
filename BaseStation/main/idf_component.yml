@@ -6,7 +6,7 @@ dependencies:
   idf:
     version: '>=6.0.2'
     
-  ## LVGL 8.x graphics library
+  ## LVGL 9.5 graphics library
   lvgl/lvgl:
     version: "9.5.*"
 

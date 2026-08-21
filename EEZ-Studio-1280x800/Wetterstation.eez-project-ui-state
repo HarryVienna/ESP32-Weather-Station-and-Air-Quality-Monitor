@@ -1,13 +1,13 @@
 {
   "navigation": {
     "selectedUserPageObject": "[Wetterstation.eez-project]:/userPages/1",
-    "selectedUserWidgetObject": "[Wetterstation.eez-project]:/userWidgets/0",
+    "selectedUserWidgetObject": "[Wetterstation.eez-project]:/userWidgets/5",
     "selectedActionObject": "[Wetterstation.eez-project]:/actions/4",
     "selectedStyleObject": "[Wetterstation.eez-project]:/lvglStyles/styles/2",
     "selectedFontObject": "[Wetterstation.eez-project]:/fonts/5",
     "selectedBitmapObject": "[Wetterstation.eez-project]:/bitmaps/14",
     "subnavigationSelectedItems": {
-      "variables-tab/sub-navigation/selected-item": "Global"
+      "variables-tab/sub-navigation/selected-item": "Enums"
     }
   },
   "layoutModel": {
@@ -195,9 +195,43 @@
               "type": "tabset",
               "id": "EDITORS",
               "weight": 46.34484846302899,
+              "selected": 1,
               "enableDeleteWhenEmpty": false,
               "enableClose": false,
               "children": [
+                {
+                  "type": "tab",
+                  "id": "#2e1468b2-e27f-4049-a1da-66ce1c670a03",
+                  "name": "Sensor_Radiation_Compact",
+                  "component": "editor",
+                  "config": {
+                    "objectPath": "[Wetterstation.eez-project]:/userWidgets/6",
+                    "permanent": false
+                  },
+                  "icon": "svg:user_widget"
+                },
+                {
+                  "type": "tab",
+                  "id": "#21f957a0-b024-4c40-8892-a90beedb2cfe",
+                  "name": "Sensor_Radiation",
+                  "component": "editor",
+                  "config": {
+                    "objectPath": "[Wetterstation.eez-project]:/userWidgets/5",
+                    "permanent": true
+                  },
+                  "icon": "svg:user_widget"
+                },
+                {
+                  "type": "tab",
+                  "id": "#3a79b33d-fdb0-4f0f-97e6-041800b5aa37",
+                  "name": "Sensor_Temp_Hum",
+                  "component": "editor",
+                  "config": {
+                    "objectPath": "[Wetterstation.eez-project]:/userWidgets/2",
+                    "permanent": true
+                  },
+                  "icon": "svg:user_widget"
+                },
                 {
                   "type": "tab",
                   "id": "#0d40218d-5906-4b9f-ae1a-31c37babd50b",
@@ -1381,9 +1415,7 @@
           },
           "2": {
             "0": {},
-            "1": {
-              "$selected": true
-            }
+            "1": {}
           }
         }
       },
@@ -1434,9 +1466,7 @@
       "selectionBack": {
         "0": {
           "0": {},
-          "1": {
-            "$selected": true
-          },
+          "1": {},
           "2": {
             "0": {},
             "1": {}
@@ -1445,10 +1475,10 @@
       },
       "transform": {
         "translate": {
-          "x": -276.6170830344506,
-          "y": -340.0651799519857
+          "x": 63.920537123197846,
+          "y": -106.13024992927677
         },
-        "scale": 3
+        "scale": 0.8
       },
       "timeline": {
         "isEditorActive": false,
@@ -1784,7 +1814,8 @@
   "lvglExpandedPropertiesGroup": [
     "TEXT",
     "MISCELLANEOUS",
-    "MARGIN"
+    "MARGIN",
+    "BACKGROUND"
   ],
   "showInactiveFlowsInDebugger": true,
   "globalFlowZoom": false,

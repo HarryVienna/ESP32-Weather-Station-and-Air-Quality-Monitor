@@ -1,0 +1,11 @@
+# Overlay for the Guition JC8012P4A1C-I-W-Y build - layered on top of
+# sdkconfig.defaults via "idf.py -D SDKCONFIG_DEFAULTS=..." (see
+# .github/workflows/release.yml). Overrides sdkconfig.defaults' own
+# CONFIG_DISPLAY_BOARD_WAVESHARE=y default.
+#
+# Only takes effect while no sdkconfig exists yet (or the option isn't set
+# in it) - *DEFAULTS files only seed a fresh config, they don't override an
+# already-decided value. Harmless for CI (every job starts from a clean
+# checkout), but locally, switching boards this way needs `rm sdkconfig`
+# first - "idf.py menuconfig" is the normal way to change it locally instead.
+CONFIG_DISPLAY_BOARD_GUITION=y

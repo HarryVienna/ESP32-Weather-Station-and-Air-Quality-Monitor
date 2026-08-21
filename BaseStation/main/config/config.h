@@ -1,7 +1,6 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
-
 // Colors
 #define COLOR_RED 0xF40000
 #define COLOR_ORANGE 0xF56101
@@ -24,12 +23,5 @@
 // WIFI
 #define HOST_NAME   "ESP32-WEATHERSTATION"
 #define NTP_SERVER  "de.pool.ntp.org"
-
-// I2C
-#define I2C_SCL          GPIO_NUM_18
-#define I2C_SDA          GPIO_NUM_17
-#define I2C_RST          GPIO_NUM_38
-#define I2C_CLK_SPEED_HZ 100000
-#define I2C_NUM          I2C_NUM_0
 
 #endif /* CONFIG_H */

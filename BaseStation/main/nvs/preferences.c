@@ -63,7 +63,7 @@ uint8_t get_uint8_from_nvs(nvs_handle_t handle, const char* key, uint8_t default
     uint8_t value = default_value;
 
     esp_err_t err = nvs_get_u8(handle, key, &value);
-    if (err != ESP_OK) {
+    if (err != ESP_OK && err != ESP_ERR_NVS_NOT_FOUND) {
         ESP_LOGE(TAG, "nvs_get_u8 fail: %s %s", key, nvs_error(err));
     }
 

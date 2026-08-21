@@ -1,11 +1,15 @@
+#include "sdkconfig.h"
+
+#if defined(CONFIG_DISPLAY_BOARD_WAVESHARE)
+
 /*******************************************************************************
- * display.c - Waveshare ESP32-P4-Module-DEV-KIT-C with 10.1" DSI Display Driver
+ * display_waveshare.c - Waveshare ESP32-P4-Module-DEV-KIT-C with 10.1" DSI Display Driver
  *******************************************************************************
  *
  * Complete display subsystem initialization for:
  *   - 10.1" MIPI DSI display (800x1280, JD9365 controller)
  *   - GT911 capacitive touch controller (I2C)
- *   - LVGL 8 graphics library (landscape mode via software rotation)
+ *   - LVGL 9.5 graphics library (landscape mode via software rotation)
  *
  * Display: Waveshare 10.1-DSI-TOUCH-A
  *   https://www.waveshare.com/wiki/10.1-DSI-TOUCH-A
@@ -18,6 +22,8 @@
 #include "display.h"
 
 #include <string.h>
+
+#include "i2c/i2c_manager.h"
 
 /* ---- FreeRTOS ---- */
 #include "freertos/FreeRTOS.h"
@@ -54,11 +60,10 @@ static const char *TAG = "display";
 #define DSI_PHY_LDO_CHAN    3
 #define DSI_PHY_LDO_MV     2500
 
-/* I2C bus (shared between backlight and touch) */
-#define I2C_SCL_PIN         GPIO_NUM_8
-#define I2C_SDA_PIN         GPIO_NUM_7
-#define I2C_PORT_NUM        I2C_NUM_0
-#define I2C_CLK_SPEED_HZ    400000
+/* I2C bus - owned/created by i2c_manager (main/i2c/), shared by backlight,
+ * touch, and every other I2C peripheral in the project. This is just the
+ * per-device speed used for devices added to that bus below. */
+#define I2C_CLK_SPEED_HZ    100000
 
 /* Backlight controller */
 #define BL_I2C_ADDR         0x45
@@ -333,22 +338,16 @@ static const jd9365_lcd_init_cmd_t s_ws_init_cmds[] = {
 
 
 /*******************************************************************************
- * I2C Bus (Display-intern: Backlight + Touch)
+ * I2C Bus
  ******************************************************************************/
 static esp_err_t init_i2c(void)
 {
-    ESP_LOGI(TAG, "Initializing display I2C bus (SDA=GPIO%d, SCL=GPIO%d, %d Hz)",
-             I2C_SDA_PIN, I2C_SCL_PIN, I2C_CLK_SPEED_HZ);
-
-    i2c_master_bus_config_t cfg = {
-        .clk_source        = I2C_CLK_SRC_DEFAULT,
-        .i2c_port          = I2C_PORT_NUM,
-        .sda_io_num        = I2C_SDA_PIN,
-        .scl_io_num        = I2C_SCL_PIN,
-        .glitch_ignore_cnt = 7,
-        .flags.enable_internal_pullup = true,
-    };
-    return i2c_new_master_bus(&cfg, &s_i2c_bus);
+    s_i2c_bus = i2c_manager_get_bus();
+    if (s_i2c_bus == NULL) {
+        ESP_LOGE(TAG, "I2C bus not ready - call i2c_manager_init() before display_init()");
+        return ESP_ERR_INVALID_STATE;
+    }
+    return ESP_OK;
 }
 
 
@@ -594,3 +593,5 @@ lv_disp_t *display_get(void)
 {
     return s_lvgl_display;
 }
+
+#endif /* CONFIG_DISPLAY_BOARD_WAVESHARE */

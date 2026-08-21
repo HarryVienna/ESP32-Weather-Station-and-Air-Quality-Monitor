@@ -1,0 +1,28 @@
+menu "Weather Station Display Board"
+
+    choice DISPLAY_BOARD
+        prompt "Display board"
+        default DISPLAY_BOARD_WAVESHARE
+        help
+            Selects which of main/display/display_waveshare.c /
+            display_guition.c actually compiles to anything (the other's
+            content is compiled out via #if, see the top of each file) -
+            both sit in the tree at once, but only the selected board's
+            driver is built and linked.
+
+            The two boards use different touch controllers, backlight
+            mechanisms, GPIOs, and JD9365 panel init sequences, so exactly
+            one must be picked here at build time - not auto-detected at
+            boot, since probing wrong and configuring the wrong board's
+            GPIOs as outputs/inputs is a real risk (they mean something
+            else, or are unconnected, on the other board).
+
+        config DISPLAY_BOARD_WAVESHARE
+            bool "Waveshare ESP32-P4-Module-DEV-KIT (GT911 touch, I2C backlight)"
+
+        config DISPLAY_BOARD_GUITION
+            bool "Guition JC8012P4A1C-I-W-Y (GSL3680 touch, PWM backlight)"
+
+    endchoice
+
+endmenu

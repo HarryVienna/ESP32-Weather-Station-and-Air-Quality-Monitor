@@ -35,7 +35,7 @@ void sensor_sen66_task(void *pvParameter) {
 
     error = sen66_device_reset();
     if (error) {
-        ESP_LOGE(TAG, "Error executing sen5x_device_reset(): %i", error);
+        ESP_LOGE(TAG, "Error executing sen66_device_reset(): %i", error);
     }
 
     vTaskDelay(pdMS_TO_TICKS(1000 * 12));

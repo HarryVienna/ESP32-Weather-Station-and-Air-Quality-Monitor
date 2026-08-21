@@ -19,53 +19,43 @@ typedef void (*wifi_time_synced_cb_t)(void);
  * network.c: sync_callback()). Use this instead of only reacting to the
  * one-shot wifi_sync_time() call if something needs to stay in sync
  * continuously, not just at startup (e.g. receiver_sync_time() in
- * receiver/receiver.h, passed in from main.c). */
+ * receiver/receiver.h, passed in from main.c).
+ *
+ * Also creates the WiFi manager's queue + task (see network.c) - the
+ * single owner of all esp_wifi_* calls; wifi_connect_start()/
+ * wifiscan_start() below just post requests to it. */
 esp_err_t wifi_init(wifi_time_synced_cb_t time_synced_cb);
-
-/* Connects with ssid/password, waits bounded (WIFI_CONNECT_MAX_RETRIES
- * attempts, see network.c) and returns whether it worked. Same behavior
- * for the test connect (setup screen button) and the initial connection
- * on startup - there's no difference between the two, hence no parameter
- * for it. For permanent reconnect behavior afterwards, see
- * wifi_stay_connected_forever(). */
-bool wifi_connect(const char* ssid, const char* password);
-
-/* From now on, the WiFi driver retries connecting indefinitely on every
- * WIFI_EVENT_STA_DISCONNECTED (instead of giving up after
- * WIFI_CONNECT_MAX_RETRIES) - e.g. if only the router restarts, the
- * weather station should never permanently give up during operation.
- * Called by the setup screen "Connect" button on success (see
- * gui_setup_network_actions.c) - from that point on this IS the real,
- * permanent connection; the "Start" button no longer needs to bring up
- * WiFi separately afterwards. */
-void wifi_stay_connected_forever(void);
 
 /* Blocking, bounded (10s timeout): synchronizes the system time via NTP.
  * Called by the setup screen "Connect" button after a successful
- * wifi_connect() (see gui_setup_network_actions.c) - already runs there on
- * its own task (wificonnect_task), so it doesn't block the UI. Calling it
- * multiple times is safe (SNTP is only initialized the first time). */
+ * wifi_connect_start() (see gui_setup_network_actions.c) - runs on the
+ * WiFi manager task, not the UI task, so it doesn't block the UI. Calling
+ * it multiple times is safe (SNTP is only initialized the first time). */
 void wifi_sync_time(void);
 
-/* The following start their respective WiFi operation as its own FreeRTOS
- * task, so the (blocking) esp_wifi_* call doesn't block the caller (e.g.
- * an LVGL event handler). on_done runs on the respective task, not the
- * caller - lock when accessing the UI inside it. */
+/* The following post their respective request to the WiFi manager task
+ * (see network.c) and return immediately - on_done runs on that task, not
+ * the caller, so lock when accessing the UI inside it. */
 
 typedef void (*wifiscan_done_cb_t)(char *networks);
 
 /* One-shot WiFi scan (setup screen dropdown). on_done gets the found
- * SSIDs as a newline-separated list (can be empty). */
+ * SSIDs as a newline-separated list (can be empty). If a connection is up
+ * when this is called, it's resumed automatically once the scan is done -
+ * scanning doesn't require staying disconnected afterwards. */
 void wifiscan_start(wifiscan_done_cb_t on_done);
 
 typedef void (*wificonnect_done_cb_t)(bool connected);
 
-/* Connects ssid/password (setup screen "Connect" button), bounded (see
- * wifi_connect()). This is now the only place that actually brings up
- * WiFi - the caller should call wifi_stay_connected_forever() and
- * wifi_sync_time() on success (see gui_setup_network_actions.c:
- * on_wificonnect_done()). */
-void wificonnect_start(const char *ssid, const char *password, wificonnect_done_cb_t on_done);
+/* Connects ssid/password (setup screen "Connect" button, and the boot-time
+ * auto-connect for a previously saved SSID - both go through this, there's
+ * no behavioral difference between them). Bounded retries
+ * (WIFI_CONNECT_MAX_RETRIES, see network.c) while reaching the first
+ * successful connection; from then on the WiFi manager retries indefinitely
+ * on every later disconnect (e.g. the router rebooting must never be
+ * treated as "give up") without calling on_done again - that only fires
+ * once, for this initial attempt. */
+void wifi_connect_start(const char *ssid, const char *password, wificonnect_done_cb_t on_done);
 
 #ifdef __cplusplus
 }

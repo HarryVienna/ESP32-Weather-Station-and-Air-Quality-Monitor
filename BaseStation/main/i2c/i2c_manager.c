@@ -5,9 +5,9 @@
 
 static const char *TAG = "i2c_manager";
 
-#define I2C_SDA_PIN         GPIO_NUM_20
-#define I2C_SCL_PIN         GPIO_NUM_21
-#define I2C_PORT_NUM        I2C_NUM_1
+#define I2C_SDA_PIN         GPIO_NUM_7
+#define I2C_SCL_PIN         GPIO_NUM_8
+#define I2C_PORT_NUM        I2C_NUM_0
 
 static i2c_master_bus_handle_t s_bus = NULL;
 

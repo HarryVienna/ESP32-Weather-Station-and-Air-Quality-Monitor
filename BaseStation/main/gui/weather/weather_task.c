@@ -25,7 +25,7 @@ static const char* TAG = "weather_task";
  * @param lon Longitude string (expected range: -180 to 180)
  * @return true if valid, false otherwise
  */
-static bool validate_coordinates(const char* lat, const char* lon) {
+bool validate_coordinates(const char* lat, const char* lon) {
     if (lat == NULL || lon == NULL || lat[0] == '\0' || lon[0] == '\0') {
         ESP_LOGE(TAG, "Coordinates are NULL or empty");
         return false;
