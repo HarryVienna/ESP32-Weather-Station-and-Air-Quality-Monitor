@@ -347,25 +347,6 @@ static void update_sensor_display(const sensor_packet_t *pkt)
 
 /* -------------------------------------------------------------------------- */
 
-static void i2c_scan(void)
-{
-    ESP_LOGI(TAG, "=== I2C Bus Scan ===");
-    int found = 0;
-    for (uint8_t addr = 0x08; addr <= 0x77; addr++) {
-        if (i2c_master_probe(i2c_manager_get_bus(), addr, 20) == ESP_OK) {
-            ESP_LOGI(TAG, "  Device found at 0x%02X", addr);
-            found++;
-        }
-    }
-    if (found == 0) {
-        ESP_LOGW(TAG, "  Kein Gerät gefunden — Verdrahtung prüfen!");
-    }
-    if (i2c_master_probe(i2c_manager_get_bus(), I2C_SLAVE_ADDR, 20) != ESP_OK) {
-        ESP_LOGE(TAG, "  Slave 0x%02X NICHT gefunden!", I2C_SLAVE_ADDR);
-    }
-    ESP_LOGI(TAG, "===================");
-}
-
 void receiver_sync_time(void)
 {
     // Return values deliberately ignored below: if I2C communication with
@@ -407,7 +388,9 @@ esp_err_t receiver_init(void)
 {
     ESP_LOGI(TAG, "Slave 0x%02X @ %d Hz", I2C_SLAVE_ADDR, I2C_SLAVE_FREQ);
 
-    i2c_scan();
+    if (i2c_master_probe(i2c_manager_get_bus(), I2C_SLAVE_ADDR, 20) != ESP_OK) {
+        ESP_LOGE(TAG, "Slave 0x%02X NICHT gefunden!", I2C_SLAVE_ADDR);
+    }
 
     ESP_RETURN_ON_ERROR(i2c_master_bus_add_device(i2c_manager_get_bus(), &s_dev_cfg, &s_dev),
                         TAG, "Failed to add slave device");

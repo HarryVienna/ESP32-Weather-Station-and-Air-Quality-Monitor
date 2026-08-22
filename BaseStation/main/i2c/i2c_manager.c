@@ -11,6 +11,22 @@ static const char *TAG = "i2c_manager";
 
 static i2c_master_bus_handle_t s_bus = NULL;
 
+static void i2c_scan(void)
+{
+    ESP_LOGI(TAG, "=== I2C Bus Scan ===");
+    int found = 0;
+    for (uint8_t addr = 0x08; addr <= 0x77; addr++) {
+        if (i2c_master_probe(s_bus, addr, 20) == ESP_OK) {
+            ESP_LOGI(TAG, "  Device found at 0x%02X", addr);
+            found++;
+        }
+    }
+    if (found == 0) {
+        ESP_LOGW(TAG, "  Kein Gerät gefunden — Verdrahtung prüfen!");
+    }
+    ESP_LOGI(TAG, "===================");
+}
+
 esp_err_t i2c_manager_init(void)
 {
     ESP_LOGI(TAG, "Initializing I2C bus (SDA=GPIO%d, SCL=GPIO%d)",
@@ -27,6 +43,9 @@ esp_err_t i2c_manager_init(void)
     ESP_RETURN_ON_ERROR(i2c_new_master_bus(&cfg, &s_bus), TAG, "i2c_new_master_bus failed");
 
     ESP_LOGI(TAG, "I2C bus ready");
+
+    i2c_scan();
+
     return ESP_OK;
 }
 
