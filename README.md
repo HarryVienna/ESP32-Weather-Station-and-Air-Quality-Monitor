@@ -5,12 +5,8 @@ station that displays everything, a dedicated radio gateway, and a family of bat
 wireless sensor nodes (temperature/humidity, barometric pressure, and radiation) spread around a
 house and garden.
 
-<!--
-  TODO: add a photo of the assembled hardware (base station + a few sensor nodes).
-  Place the file at e.g. docs/images/hardware.jpg.
--->
-![The weather station hardware](docs/images/hardware.jpg)
-*The base station together with some of the wireless sensor nodes.*
+<img width="1280" height="853" alt="DSC_2149_medium" src="https://github.com/user-attachments/assets/f536a60d-82a7-4c8c-a7bb-82c67a33872f" />
+
 
 ## Overview
 
