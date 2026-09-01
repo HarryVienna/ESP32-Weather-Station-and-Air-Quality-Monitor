@@ -5,7 +5,7 @@ station that displays everything, a dedicated radio gateway, and a family of bat
 wireless sensor nodes (temperature/humidity, barometric pressure, and radiation) spread around a
 house and garden.
 
-<img width="1280" height="853" alt="DSC_2149_medium" src="https://github.com/user-attachments/assets/f536a60d-82a7-4c8c-a7bb-82c67a33872f" />
+<img width="1280" height="853" alt="DSC_2189_mittel" src="https://github.com/user-attachments/assets/f58d5611-99e7-4674-8ca6-b77585577fb7" />
 
 
 ## Overview
