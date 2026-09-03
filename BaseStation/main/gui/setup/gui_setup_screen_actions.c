@@ -79,6 +79,15 @@ void action_event_setup_screen_loaded(lv_event_t *e)
   // EEZ Studio doesn't mark this panel hidden by default, unlike the keyboards
   disp_show_setup_spinner(false);
 
+  // For faster entering the API keys
+  // {
+  //   nvs_handle_t nvs_handle_debug;
+  //   nvs_open("weatherstation", NVS_READWRITE, &nvs_handle_debug);
+  //   put_string_to_nvs(nvs_handle_debug, "appid_owm", "xxx");
+  //   put_string_to_nvs(nvs_handle_debug, "appid_vc", "xxx");
+  //   nvs_close(nvs_handle_debug);
+  // }
+
   nvs_handle_t nvs_handle;
   nvs_open("weatherstation", NVS_READONLY, &nvs_handle);
 

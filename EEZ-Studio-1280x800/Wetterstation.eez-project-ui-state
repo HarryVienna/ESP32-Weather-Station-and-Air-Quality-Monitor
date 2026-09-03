@@ -1,7 +1,7 @@
 {
   "navigation": {
     "selectedUserPageObject": "[Wetterstation.eez-project]:/userPages/1",
-    "selectedUserWidgetObject": "[Wetterstation.eez-project]:/userWidgets/5",
+    "selectedUserWidgetObject": "[Wetterstation.eez-project]:/userWidgets/15",
     "selectedActionObject": "[Wetterstation.eez-project]:/actions/4",
     "selectedStyleObject": "[Wetterstation.eez-project]:/lvglStyles/styles/2",
     "selectedFontObject": "[Wetterstation.eez-project]:/fonts/5",
@@ -128,7 +128,6 @@
                   "type": "tabset",
                   "id": "#6b74b635-7a66-4336-91ba-4808f2d949f2",
                   "weight": 1.17437857767944,
-                  "selected": 1,
                   "enableClose": false,
                   "children": [
                     {
@@ -195,10 +194,21 @@
               "type": "tabset",
               "id": "EDITORS",
               "weight": 46.34484846302899,
-              "selected": 1,
+              "selected": 5,
               "enableDeleteWhenEmpty": false,
               "enableClose": false,
               "children": [
+                {
+                  "type": "tab",
+                  "id": "#e0a1dc81-abf5-403c-bddd-a425caf555a1",
+                  "name": "Sensor_SHT45_1",
+                  "component": "editor",
+                  "config": {
+                    "objectPath": "[Wetterstation.eez-project]:/userWidgets/15",
+                    "permanent": false
+                  },
+                  "icon": "svg:user_widget"
+                },
                 {
                   "type": "tab",
                   "id": "#2e1468b2-e27f-4049-a1da-66ce1c670a03",
@@ -206,7 +216,7 @@
                   "component": "editor",
                   "config": {
                     "objectPath": "[Wetterstation.eez-project]:/userWidgets/6",
-                    "permanent": false
+                    "permanent": true
                   },
                   "icon": "svg:user_widget"
                 },
@@ -265,8 +275,7 @@
                   },
                   "icon": "svg:page"
                 }
-              ],
-              "active": true
+              ]
             },
             {
               "type": "row",
@@ -286,7 +295,8 @@
                       "enableClose": false,
                       "icon": "svg:properties"
                     }
-                  ]
+                  ],
+                  "active": true
                 },
                 {
                   "type": "tabset",
@@ -1226,10 +1236,10 @@
       },
       "transform": {
         "translate": {
-          "x": -592.6739868862226,
-          "y": -424.1614307011515
+          "x": -311.80213383095224,
+          "y": -305.524656882605
         },
-        "scale": 1.5
+        "scale": 0.9
       },
       "timeline": {
         "isEditorActive": false,
@@ -1241,10 +1251,11 @@
       "selectionBack": {
         "0": {
           "0": {
-            "0": {
+            "0": {},
+            "1": {},
+            "2": {
               "$selected": true
             },
-            "1": {},
             "3": {
               "0": {}
             },
@@ -1567,12 +1578,7 @@
       "selectionBack": {
         "0": {
           "0": {},
-          "1": {},
-          "3": {
-            "3": {
-              "$selected": true
-            }
-          }
+          "1": {}
         }
       },
       "transform": {
@@ -1812,8 +1818,6 @@
   "lvglPart": "MAIN",
   "lvglState": "DEFAULT",
   "lvglExpandedPropertiesGroup": [
-    "TEXT",
-    "MISCELLANEOUS",
     "MARGIN",
     "BACKGROUND"
   ],

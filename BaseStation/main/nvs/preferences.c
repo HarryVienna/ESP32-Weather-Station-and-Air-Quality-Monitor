@@ -10,31 +10,34 @@ const char* nvs_error(esp_err_t err) {
     return esp_err_to_name(err);
 }
 
-// Function to get a string from NVS
+// Function to get a string from NVS. default_value may be NULL, meaning
+// "no default" - the function then returns NULL instead of a fallback
+// string if the key is missing or unreadable, so the caller can tell
+// "not configured" apart from an actual stored value.
 char* get_string_from_nvs(nvs_handle_t handle, const char* key, const char* default_value) {
 
     size_t len = 0;
     esp_err_t err = nvs_get_str(handle, key, NULL, &len);
     if (err != ESP_OK && err != ESP_ERR_NVS_NOT_FOUND) {
         ESP_LOGE(TAG, "nvs_get_str len fail: %s %s", key, nvs_error(err));
-        return strdup(default_value);
+        return default_value ? strdup(default_value) : NULL;
     }
 
     if (err == ESP_ERR_NVS_NOT_FOUND) {
-        return strdup(default_value);
+        return default_value ? strdup(default_value) : NULL;
     }
 
     char* value = (char*)malloc(len);
     if (value == NULL) {
         ESP_LOGE(TAG, "Memory allocation failed for key: %s", key);
-        return strdup(default_value);
+        return default_value ? strdup(default_value) : NULL;
     }
 
     err = nvs_get_str(handle, key, value, &len);
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "nvs_get_str fail: %s %s", key, nvs_error(err));
         free(value);
-        return strdup(default_value);
+        return default_value ? strdup(default_value) : NULL;
     }
 
     return value;

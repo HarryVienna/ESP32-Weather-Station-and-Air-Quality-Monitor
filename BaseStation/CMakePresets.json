@@ -1,0 +1,30 @@
+{
+  "version": 3,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 21,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "waveshare",
+      "displayName": "Waveshare ESP32-P4-Module-DEV-KIT",
+      "description": "Waveshare ESP32-P4-Module-DEV-KIT (GT911 touch, I2C backlight)",
+      "binaryDir": "${sourceDir}/build/waveshare",
+      "cacheVariables": {
+        "SDKCONFIG": "${sourceDir}/build/waveshare/sdkconfig",
+        "SDKCONFIG_DEFAULTS": "${sourceDir}/sdkconfig.defaults;${sourceDir}/sdkconfig.defaults.waveshare"
+      }
+    },
+    {
+      "name": "guition",
+      "displayName": "Guition JC8012P4A1C-I-W-Y",
+      "description": "Guition JC8012P4A1C-I-W-Y (GSL3680 touch, PWM backlight)",
+      "binaryDir": "${sourceDir}/build/guition",
+      "cacheVariables": {
+        "SDKCONFIG": "${sourceDir}/build/guition/sdkconfig",
+        "SDKCONFIG_DEFAULTS": "${sourceDir}/sdkconfig.defaults;${sourceDir}/sdkconfig.defaults.guition"
+      }
+    }
+  ]
+}

@@ -40,10 +40,6 @@ static const char *TAG = "RECEIVER";
 #define I2C_REG_SET_WIFI_PASS 0x13
 #define I2C_REG_OTA_START     0x14
 
-/* Fallback timezone for the S3 slave, only used if NVS ("weatherstation"/
- * "tz") has no value yet - see receiver_sync_time(). */
-#define DEFAULT_TIMEZONE  "CET-1CEST,M3.5.0,M10.5.0/3"
-
 /* Delay between WRITE (register) and READ (data) in ms */
 #define I2C_SLAVE_PREPARE_MS  50
 
@@ -368,13 +364,20 @@ void receiver_sync_time(void)
     // in the setup screen reaches the S3 on the next sync, without a
     // separate "timezone changed" hook - see gui/setup/
     // gui_setup_screen_actions.c: save_region_and_timezone().
+    //
+    // Only proceed if "tz" is actually set in NVS - before the user has
+    // gone through setup once there's no real timezone to report, and the
+    // slave shouldn't be told a made-up default it never confirmed.
     nvs_handle_t nvs_handle;
-    char *tz = NULL;
-    if (nvs_open("weatherstation", NVS_READONLY, &nvs_handle) == ESP_OK) {
-        tz = get_string_from_nvs(nvs_handle, "tz", DEFAULT_TIMEZONE);
-        nvs_close(nvs_handle);
-    } else {
-        tz = strdup(DEFAULT_TIMEZONE);
+    if (nvs_open("weatherstation", NVS_READONLY, &nvs_handle) != ESP_OK) {
+        ESP_LOGW(TAG, "NVS not available - not sending to slave");
+        return;
+    }
+    char *tz = get_string_from_nvs(nvs_handle, "tz", NULL);
+    nvs_close(nvs_handle);
+    if (tz == NULL) {
+        ESP_LOGW(TAG, "No timezone configured yet - not sending to slave");
+        return;
     }
 
     i2c_set_timezone(tz);

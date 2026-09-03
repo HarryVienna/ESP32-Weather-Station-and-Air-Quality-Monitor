@@ -9,6 +9,9 @@
 extern "C" {
 #endif
 
+// default_value may be NULL to get NULL back instead of a fallback when
+// the key is missing, so the caller can distinguish "not configured" from
+// an actual stored (possibly empty) value.
 char* get_string_from_nvs(nvs_handle_t handle, const char* key, const char* default_value);
 size_t put_string_to_nvs(nvs_handle_t handle, const char* key, const char* value);
 uint8_t get_uint8_from_nvs(nvs_handle_t handle, const char* key, uint8_t default_value);

@@ -27,10 +27,11 @@
 #define ROLLING_WINDOW_SEC    (ROLLING_WINDOW_MIN * 60)
 
 /* DIP-Switch: 4 Bit Sensor-Nr (0..15), Schalter zwischen Pin und GND */
-static const uint8_t PIN_SENSOR_BITS[4] = { GPIO0, GPIO1, GPIO2, GPIO3 };
+/* DIP0=GPIO0, DIP1=GPIO3, DIP2=GPIO2, DIP3=GPIO1 (Verlötung) */
+static const uint8_t PIN_SENSOR_BITS[4] = { GPIO0, GPIO3, GPIO2, GPIO1 };
 
-/* TX-Power fix – kein DIP-Switch mehr nötig */
-#define TX_POWER_DBM          14
+/* TX-Power */
+#define TX_POWER_DBM          0
 
 /* LoRa P2P – identisch mit Receiver */
 #define RF_FREQUENCY          869525000UL
@@ -186,6 +187,7 @@ void setup(void) {
     Serial.println("\nCubeCell Geigerzähler LoRa Sender");
 
     sensorNr = readBits(PIN_SENSOR_BITS, 4);
+
     Serial.printf("Sensor #%u, %lu Hz, SF%d, %d dBm\n",
                   sensorNr, RF_FREQUENCY, LORA_SPREADING_FACTOR, TX_POWER_DBM);
 
