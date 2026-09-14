@@ -42,7 +42,7 @@ jobs:
           esp_idf_version: v6.0.2
           target: esp32p4
           path: BaseStation
-          command: idf.py -D "SDKCONFIG_DEFAULTS=sdkconfig.defaults;sdkconfig.defaults.waveshare" build
+          command: idf.py --preset waveshare build
 
       # Own folder + unique file names: BaseStation-waveshare, BaseStation-
       # guition and Sensor-Receiver all produce "bootloader.bin"/
@@ -51,9 +51,9 @@ jobs:
       - name: Collect artifacts
         run: |
           mkdir -p artifacts
-          cp BaseStation/build/Basestation.bin artifacts/Basestation-waveshare.bin
-          cp BaseStation/build/bootloader/bootloader.bin artifacts/Basestation-waveshare-bootloader.bin
-          cp BaseStation/build/partition_table/partition-table.bin artifacts/Basestation-waveshare-partition-table.bin
+          cp BaseStation/build/waveshare/Basestation.bin artifacts/Basestation-waveshare.bin
+          cp BaseStation/build/waveshare/bootloader/bootloader.bin artifacts/Basestation-waveshare-bootloader.bin
+          cp BaseStation/build/waveshare/partition_table/partition-table.bin artifacts/Basestation-waveshare-partition-table.bin
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -76,14 +76,14 @@ jobs:
           esp_idf_version: v6.0.2
           target: esp32p4
           path: BaseStation
-          command: idf.py -D "SDKCONFIG_DEFAULTS=sdkconfig.defaults;sdkconfig.defaults.guition" build
+          command: idf.py --preset guition build
 
       - name: Collect artifacts
         run: |
           mkdir -p artifacts
-          cp BaseStation/build/Basestation.bin artifacts/Basestation-guition.bin
-          cp BaseStation/build/bootloader/bootloader.bin artifacts/Basestation-guition-bootloader.bin
-          cp BaseStation/build/partition_table/partition-table.bin artifacts/Basestation-guition-partition-table.bin
+          cp BaseStation/build/guition/Basestation.bin artifacts/Basestation-guition.bin
+          cp BaseStation/build/guition/bootloader/bootloader.bin artifacts/Basestation-guition-bootloader.bin
+          cp BaseStation/build/guition/partition_table/partition-table.bin artifacts/Basestation-guition-partition-table.bin
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
