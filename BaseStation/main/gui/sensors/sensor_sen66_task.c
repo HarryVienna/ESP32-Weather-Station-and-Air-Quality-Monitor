@@ -10,6 +10,7 @@
 #include "sensirion_i2c_hal.h"
 
 #include "gui_sen66.h"
+#include "config/config.h"
 
 
 static const char* TAG = "sensor_sen66_task";
@@ -65,7 +66,7 @@ void sensor_sen66_task(void *pvParameter) {
 
     // Temperature offset: T_compensated = T_ambient + (slope * T_ambient) + offset
     // offset scaled by 200, slope scaled by 10000, time_constant in seconds (0 = immediate)
-    float temp_offset = -1.4f;
+    float temp_offset = SEN66_TEMP_OFFSET;
     error = sen66_set_temperature_offset_parameters(
         (int16_t)(200.0f * temp_offset), /*slope=*/0, /*time_constant=*/0, /*slot=*/0);
     if (error) {

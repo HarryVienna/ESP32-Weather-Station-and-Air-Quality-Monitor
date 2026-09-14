@@ -1,6 +1,8 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
+#include "sdkconfig.h"
+
 // Colors
 #define COLOR_RED 0xF40000
 #define COLOR_ORANGE 0xF56101
@@ -23,5 +25,14 @@
 // WIFI
 #define HOST_NAME   "ESP32-WEATHERSTATION"
 #define NTP_SERVER  "de.pool.ntp.org"
+
+// Board-specific values (board is selected in Kconfig, see main/Kconfig.projbuild)
+#if defined(CONFIG_DISPLAY_BOARD_WAVESHARE)
+#define SEN66_TEMP_OFFSET  -1.4f
+#elif defined(CONFIG_DISPLAY_BOARD_GUITION)
+#define SEN66_TEMP_OFFSET  -1.1f
+#else
+#error "No display board selected - see main/Kconfig.projbuild"
+#endif
 
 #endif /* CONFIG_H */

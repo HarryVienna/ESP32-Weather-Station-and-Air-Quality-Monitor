@@ -70,6 +70,11 @@ CONFIG_ESP_WIFI_REMOTE_ENABLED=y
 CONFIG_ESP_HOSTED_ENABLED=y
 CONFIG_ESP_WIFI_REMOTE_LIBRARY_HOSTED=y
 
+# SDIO link P4 <-> C6 lowered from the 40 MHz default (max for SDIO high
+# speed) to 20 MHz. At 40 MHz the 4-bit bus intermittently threw
+# ESP_ERR_INVALID_CRC (0x109) in sdmmc_io/H_SDIO_DRV
+CONFIG_ESP_HOSTED_SDIO_CLOCK_FREQ_KHZ=20000
+
 # --- LVGL Configuration ---
 CONFIG_LV_USE_CLIB_MALLOC=y
 CONFIG_LV_USE_CLIB_STRING=y
