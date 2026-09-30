@@ -30,7 +30,7 @@
 #if defined(CONFIG_DISPLAY_BOARD_WAVESHARE)
 #define SEN66_TEMP_OFFSET  -1.4f
 #elif defined(CONFIG_DISPLAY_BOARD_GUITION)
-#define SEN66_TEMP_OFFSET  -1.1f
+#define SEN66_TEMP_OFFSET  -1.6f
 #else
 #error "No display board selected - see main/Kconfig.projbuild"
 #endif
