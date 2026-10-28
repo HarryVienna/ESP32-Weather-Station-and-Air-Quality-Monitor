@@ -5,9 +5,19 @@
 
 static const char *TAG = "i2c_manager";
 
+#if defined(CONFIG_DISPLAY_BOARD_WAVESHARE)
+#define I2C_SDA_PIN         GPIO_NUM_20
+#define I2C_SCL_PIN         GPIO_NUM_21
+#define I2C_PORT_NUM        I2C_NUM_1
+#elif defined(CONFIG_DISPLAY_BOARD_GUITION)
 #define I2C_SDA_PIN         GPIO_NUM_7
 #define I2C_SCL_PIN         GPIO_NUM_8
 #define I2C_PORT_NUM        I2C_NUM_0
+#else
+#error "No display board selected - see main/Kconfig.projbuild"
+#endif
+
+
 
 static i2c_master_bus_handle_t s_bus = NULL;
 
